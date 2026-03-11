@@ -1,0 +1,38 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'core/config/supabase_config.dart';
+import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
+  await SupabaseConfig.initialize();
+  runApp(const ProviderScope(child: PagewalkerApp()));
+}
+
+class PagewalkerApp extends StatelessWidget {
+  const PagewalkerApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      title: 'Pagewalker',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.dark,
+      routerConfig: appRouter,
+    );
+  }
+}
+
