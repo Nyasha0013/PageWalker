@@ -17,6 +17,7 @@ import '../../features/readers/readers_screen.dart';
 import '../../features/readers/public_profile_screen.dart';
 import '../../features/timer/reading_timer_screen.dart';
 import '../../features/achievements/achievements_screen.dart';
+import '../../features/wrapped/yearly_wrapped_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -108,6 +109,16 @@ final appRouter = GoRouter(
       path: '/achievements',
       pageBuilder: (context, state) => _fadePage(
         const AchievementsScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/wrapped/:year',
+      pageBuilder: (context, state) => CustomTransitionPage(
+        child: YearlyWrappedScreen(
+          year: int.parse(state.pathParameters['year']!),
+        ),
+        transitionsBuilder: (context, animation, secondary, child) =>
+            FadeTransition(opacity: animation, child: child),
       ),
     ),
   ],
