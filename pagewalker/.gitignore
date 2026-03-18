@@ -12,32 +12,26 @@
 .swiftpm/
 migrate_working_dir/
 
-# IDE/editor
+# IntelliJ related
 *.iml
 *.ipr
 *.iws
 .idea/
-.vscode/
-.cursor/
 
-# Docs
-*.pdf
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
-.packages
-.flutter-plugins
 .flutter-plugins-dependencies
-.metadata
 .pub-cache/
 .pub/
-build/
 /build/
 /coverage/
-**/.flutter-plugins
-**/.flutter-plugins-dependencies
 
 # Symbolication related
 app.*.symbols
@@ -49,19 +43,3 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-**/android/.gradle/
-**/android/local.properties
-
-# iOS / macOS
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/ephemeral/
-**/ios/Pods/
-**/ios/.symlinks/
-**/Runner.xcworkspace/
-
-# Environment / secrets
-**/.env
-**/lib/core/config/env.dart
-
-# Local export/clone scratch
-tmp_remote/
