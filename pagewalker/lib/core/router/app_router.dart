@@ -18,6 +18,15 @@ import '../../features/readers/public_profile_screen.dart';
 import '../../features/timer/reading_timer_screen.dart';
 import '../../features/achievements/achievements_screen.dart';
 import '../../features/wrapped/yearly_wrapped_screen.dart';
+import '../../features/onboarding/onboarding_screen.dart';
+import '../../features/legal/privacy_policy_screen.dart';
+import '../../features/legal/terms_screen.dart';
+import '../../features/book_club/book_clubs_screen.dart';
+import '../../features/book_club/create_club_screen.dart';
+import '../../features/book_club/join_club_screen.dart';
+import '../../features/book_club/club_detail_screen.dart';
+import '../../features/book_club/club_chat_screen.dart';
+import '../../features/book_club/club_members_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -25,6 +34,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/',
       builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding',
+      pageBuilder: (context, state) => _fadePage(
+        const OnboardingScreen(),
+      ),
     ),
     GoRoute(
       path: '/auth/login',
@@ -36,6 +51,18 @@ final appRouter = GoRouter(
       path: '/auth/signup',
       pageBuilder: (context, state) => _fadePage(
         const SignupScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/privacy',
+      pageBuilder: (context, state) => _fadePage(
+        const PrivacyPolicyScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/terms',
+      pageBuilder: (context, state) => _fadePage(
+        const TermsScreen(),
       ),
     ),
     ShellRoute(
@@ -119,6 +146,48 @@ final appRouter = GoRouter(
         ),
         transitionsBuilder: (context, animation, secondary, child) =>
             FadeTransition(opacity: animation, child: child),
+      ),
+    ),
+    GoRoute(
+      path: '/clubs',
+      pageBuilder: (context, state) => _fadePage(
+        const BookClubsScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/clubs/create',
+      pageBuilder: (context, state) => _fadePage(
+        const CreateClubScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/clubs/join',
+      pageBuilder: (context, state) => _fadePage(
+        const JoinClubScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/clubs/:clubId',
+      pageBuilder: (context, state) => _fadePage(
+        ClubDetailScreen(
+          clubId: state.pathParameters['clubId']!,
+        ),
+      ),
+    ),
+    GoRoute(
+      path: '/clubs/:clubId/chat',
+      pageBuilder: (context, state) => _fadePage(
+        ClubChatScreen(
+          clubId: state.pathParameters['clubId']!,
+        ),
+      ),
+    ),
+    GoRoute(
+      path: '/clubs/:clubId/members',
+      pageBuilder: (context, state) => _fadePage(
+        ClubMembersScreen(
+          clubId: state.pathParameters['clubId']!,
+        ),
       ),
     ),
   ],

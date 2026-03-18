@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="220" fill="#0A0A0A"/>
+  <ellipse cx="512" cy="520" rx="280" ry="260" fill="#FF6B1A" opacity="0.15"/>
+
+  <rect x="324" y="254" width="384" height="460" rx="24" fill="#1A0500" opacity="0.6"/>
+  <rect x="318" y="248" width="384" height="460" rx="24" fill="#E04E00"/>
+
+  <rect x="674" y="260" width="20" height="436" rx="4" fill="#F5F0E8" opacity="0.9"/>
+
+  <defs>
+    <linearGradient id="coverGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF8C42"/>
+      <stop offset="100%" stop-color="#FF6B1A"/>
+    </linearGradient>
+    <linearGradient id="legGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E04E00"/>
+      <stop offset="100%" stop-color="#FF6B1A"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="318" y="248" width="360" height="460" rx="24" fill="url(#coverGrad)"/>
+  <line x1="356" y1="268" x2="356" y2="688" stroke="#E04E00" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+
+  <line x1="376" y1="420" x2="642" y2="420" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.25"/>
+  <line x1="376" y1="450" x2="580" y2="450" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.2"/>
+
+  <circle cx="454" cy="540" r="34" fill="white"/>
+  <circle cx="560" cy="540" r="34" fill="white"/>
+  <circle cx="462" cy="544" r="18" fill="#0A0A0A"/>
+  <circle cx="568" cy="544" r="18" fill="#0A0A0A"/>
+  <circle cx="470" cy="536" r="7" fill="white" opacity="0.8"/>
+  <circle cx="576" cy="536" r="7" fill="white" opacity="0.8"/>
+
+  <path d="M 452 610 Q 508 650 564 610" stroke="white" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <circle cx="422" cy="600" r="24" fill="#F472B6" opacity="0.35"/>
+  <circle cx="596" cy="600" r="24" fill="#F472B6" opacity="0.35"/>
+
+  <rect x="410" y="706" width="44" height="120" rx="22" fill="url(#legGrad)"/>
+  <ellipse cx="432" cy="834" rx="38" ry="18" fill="#FF6B1A"/>
+
+  <rect x="548" y="706" width="44" height="120" rx="22" fill="url(#legGrad)"/>
+  <ellipse cx="570" cy="834" rx="38" ry="18" fill="#FF6B1A"/>
+
+  <text x="700" y="340" font-size="80" opacity="0.6">&</text>
+</svg>
+

@@ -3,9 +3,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import '../../core/config/supabase_config.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -89,7 +91,20 @@ class _SplashScreenState extends State<SplashScreen>
     // 3.5s — navigate to home or auth
     await Future.delayed(const Duration(milliseconds: 1700));
     if (!mounted) return;
-    context.go('/auth/login');
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final onboardingComplete =
+        prefs.getBool('onboarding_complete') ?? false;
+    final hasSession =
+        SupabaseConfig.client.auth.currentSession != null;
+
+    if (hasSession) {
+      context.go('/home');
+    } else if (!onboardingComplete) {
+      context.go('/onboarding');
+    } else {
+      context.go('/auth/login');
+    }
   }
 
   void _generateParticles() {

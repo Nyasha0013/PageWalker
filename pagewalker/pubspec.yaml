@@ -36,6 +36,7 @@ dependencies:
   # Utils
   shared_preferences: ^2.2.3
   share_plus: ^9.0.0
+  home_widget: ^0.6.0
   intl: ^0.19.0
   uuid: ^4.3.3
   image_picker: ^1.0.7
@@ -47,10 +48,20 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
     - assets/animations/
+    - assets/icon/
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/pagewalker_icon.png"
+  adaptive_icon_background: "#0A0A0A"
+  adaptive_icon_foreground: "assets/icon/pagewalker_icon_foreground.png"
+  min_sdk_android: 21
 

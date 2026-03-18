@@ -558,6 +558,100 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                           ),
                         ),
 
+                        // SECTION 6 — HOME SCREEN WIDGET
+                        GlassCard(
+                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Home Screen Widget',
+                                style: AppText.bodySemiBold(
+                                  15,
+                                  color: AppColors.orangePrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Add the Pagewalker widget to your home screen to see your current read at a glance.',
+                                style: AppText.body(
+                                  13,
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.lightTextSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xE6120800),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppColors.orangePrimary.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Pagewalker',
+                                      style: AppText.label(
+                                        10,
+                                        color: AppColors.orangePrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Your current book title',
+                                      style: AppText.display(14, context: context),
+                                    ),
+                                    Text(
+                                      'Author name',
+                                      style: AppText.body(
+                                        11,
+                                        color: isDark
+                                            ? AppColors.darkTextSecondary
+                                            : AppColors.lightTextSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    LinearProgressIndicator(
+                                      value: 0.65,
+                                      backgroundColor: AppColors.orangeDeep.withOpacity(0.3),
+                                      valueColor: const AlwaysStoppedAnimation(
+                                        AppColors.orangePrimary,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Page 258 of 400 · 35% left',
+                                      style: AppText.body(
+                                        10,
+                                        color: isDark
+                                            ? AppColors.darkTextMuted
+                                            : AppColors.lightTextMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'To add: long press your home screen → Widgets → Pagewalker',
+                                style: AppText.body(
+                                  12,
+                                  color: isDark
+                                      ? AppColors.darkTextMuted
+                                      : AppColors.lightTextMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                         // SECTION 6 — ACCOUNT
                         GlassCard(
                           padding: const EdgeInsets.all(16),
@@ -604,6 +698,46 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                     ),
                                   ),
                                 ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // SECTION 7 — LEGAL
+                        GlassCard(
+                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Column(
+                            children: [
+                              ListTile(
+                                title: Text('Privacy Policy', style: AppText.body(15, context: context)),
+                                trailing: const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 16,
+                                  color: AppColors.orangePrimary,
+                                ),
+                                onTap: () => context.push('/privacy'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              Divider(color: AppColors.orangePrimary.withOpacity(0.1)),
+                              ListTile(
+                                title: Text('Terms of Service', style: AppText.body(15, context: context)),
+                                trailing: const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 16,
+                                  color: AppColors.orangePrimary,
+                                ),
+                                onTap: () => context.push('/terms'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              Divider(color: AppColors.orangePrimary.withOpacity(0.1)),
+                              ListTile(
+                                title: Text('App Version', style: AppText.body(15, context: context)),
+                                trailing: Text(
+                                  '1.0.0',
+                                  style: AppText.body(14, color: AppColors.darkTextMuted, context: context),
+                                ),
+                                contentPadding: EdgeInsets.zero,
                               ),
                             ],
                           ),
