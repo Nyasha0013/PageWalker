@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/supabase_config.dart';
+import 'core/providers/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
@@ -18,21 +19,25 @@ Future<void> main() async {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  await SupabaseConfig.initialize();
+  try {
+    await SupabaseConfig.initialize();
+  } catch (_) {
+    // Continue without Supabase so app works offline / without auth
+  }
   runApp(const ProviderScope(child: PagewalkerApp()));
 }
 
-class PagewalkerApp extends StatelessWidget {
+class PagewalkerApp extends ConsumerWidget {
   const PagewalkerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       title: 'Pagewalker',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: ref.watch(themeProvider),
       routerConfig: appRouter,
     );
   }

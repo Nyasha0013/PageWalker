@@ -10,6 +10,7 @@ import '../../features/library/library_screen.dart';
 import '../../features/discover/discover_screen.dart';
 import '../../features/social/social_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/profile/profile_settings_screen.dart';
 import '../../features/book_detail/book_detail_screen.dart';
 
 final appRouter = GoRouter(
@@ -53,6 +54,12 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/profile',
           builder: (c, s) => const ProfileScreen(),
+        ),
+        GoRoute(
+          path: '/profile/settings',
+          pageBuilder: (context, state) => _fadePage(
+            const ProfileSettingsScreen(),
+          ),
         ),
       ],
     ),

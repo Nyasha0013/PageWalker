@@ -96,6 +96,7 @@ class _ReviewCardState extends State<_ReviewCard>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -172,14 +173,13 @@ class _ReviewCardState extends State<_ReviewCard>
                     padding: const EdgeInsets.all(4),
                     child: Text(
                       'This book grabbed my heart, shattered it, and then gently stitched it back together with starlight and feral tenderness.',
-                      style: AppText.body(13),
+                      style: AppText.body(13, context: context),
                     ),
                   ),
                   if (!_showSpoiler)
                     Positioned.fill(
                       child: Container(
-                        color: AppColors.darkCard
-                            .withOpacity(0.8),
+                        color: (isDark ? AppColors.darkCard : AppColors.lightCard).withOpacity(0.8),
                         child: Center(
                           child: Text(
                             'Tap to reveal spoilers',
@@ -217,7 +217,7 @@ class _ReviewCardState extends State<_ReviewCard>
                       : Icons.favorite_border_rounded,
                   color: _liked
                       ? AppColors.orangeBright
-                      : AppColors.darkTextMuted,
+                      : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
                 ),
               ),
             ),
@@ -283,7 +283,7 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
               const SizedBox(height: 12),
               Text(
                 'Share your review',
-                style: AppText.display(18),
+                style: AppText.display(18, context: context),
               ),
               const SizedBox(height: 12),
               TextField(

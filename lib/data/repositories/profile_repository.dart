@@ -17,7 +17,10 @@ class ProfileRepository {
   }
 
   Future<void> updateProfile(Profile profile) async {
-    await _client.from('profiles').upsert(profile.toSupabase());
+    await _client
+        .from('profiles')
+        .update(profile.toSupabase())
+        .eq('id', profile.id);
   }
 }
 

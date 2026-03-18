@@ -142,5 +142,24 @@ class AppColors {
   static const Color tierA = orangePrimary;
   static const Color tierB = orangeBright;
   static const Color tierC = darkTextMuted;
+
+  // ─── Legacy aliases (to keep older widgets compiling) ─────
+  static const Color primary = orangePrimary;
+  static const Color secondary = orangeBright;
+  static const Color gold = orangeAmber;
+  static const Color moonlight = orangeAmber;
+  static const Color mystic = orangeDeep;
+
+  static const Color textPrimary = darkTextPrimary;
+  static const Color textSecondary = darkTextSecondary;
+  static const Color textMuted = darkTextMuted;
+
+  static const Color bgCard = darkCard;
+  static const Color bgSurface = darkSurface;
+
+  static const List<Color> gradientButton = gradientOrange;
+  static const List<Color> gradientMystic = gradientEmber;
+
+  static const Color error = Color(0xFFFF4444);
 }
 

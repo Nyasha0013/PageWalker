@@ -49,10 +49,14 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _errorMessage = e.message;
       });
-    } catch (_) {
+    } catch (e, _) {
+      final msg = e.toString().toLowerCase();
       setState(() {
-        _errorMessage =
-            'Something went wrong. Please try again in a moment.';
+        _errorMessage = (msg.contains('host lookup') ||
+                msg.contains('socket') ||
+                msg.contains('connection'))
+            ? 'Cannot reach server. Check your internet and that Supabase URL is set in lib/core/config/env.dart'
+            : 'Something went wrong. Please try again in a moment.';
       });
     } finally {
       if (mounted) {
@@ -76,8 +80,8 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Center(
             child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
+                  horizontal: 28,
+                  vertical: 24,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -109,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 32),
                     if (_errorMessage != null)
                       GlassCard(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(16),
                         borderColor: Colors.red.withOpacity(0.5),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,12 +121,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             const Icon(
                               Icons.error_outline,
                               color: Colors.red,
+                              size: 22,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 _errorMessage!,
-                                style: AppText.body(13, context: context),
+                                style: AppText.body(14, context: context)
+                                    .copyWith(color: Colors.white, height: 1.4),
                               ),
                             ),
                           ],
@@ -133,7 +139,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           .slideY(begin: -0.1, end: 0),
                     if (_errorMessage != null) const SizedBox(height: 16),
                     GlassCard(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 24,
+                      ),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -146,17 +155,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                                 .animate()
                                 .fadeIn(duration: 400.ms),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 8),
                             Text(
                               'Sign in to keep walking through your worlds.',
-                              style: AppText.body(
-                                14,
-                                context: context,
-                              ),
+                              style: AppText.body(14, context: context),
                             )
                                 .animate()
                                 .fadeIn(delay: 100.ms, duration: 400.ms),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
@@ -178,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 .animate()
                                 .fadeIn(delay: 150.ms, duration: 400.ms)
                                 .slideY(begin: 0.1, end: 0),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 20),
                             TextFormField(
                               controller: _passwordController,
                               obscureText: true,
@@ -239,7 +245,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }

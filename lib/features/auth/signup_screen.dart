@@ -62,10 +62,14 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() {
         _errorMessage = e.message;
       });
-    } catch (_) {
+    } catch (e, _) {
+      final msg = e.toString().toLowerCase();
       setState(() {
-        _errorMessage =
-            'Something went wrong. Please try again in a moment.';
+        _errorMessage = (msg.contains('host lookup') ||
+                msg.contains('socket') ||
+                msg.contains('connection'))
+            ? 'Cannot reach server. Check your internet and that Supabase URL is set in lib/core/config/env.dart'
+            : 'Something went wrong. Please try again in a moment.';
       });
     } finally {
       if (mounted) {
@@ -91,8 +95,8 @@ class _SignupScreenState extends State<SignupScreen> {
           child: Center(
             child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
+                  horizontal: 28,
+                  vertical: 24,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -111,10 +115,11 @@ class _SignupScreenState extends State<SignupScreen> {
                         .animate()
                         .fadeIn(duration: 500.ms)
                         .slideY(begin: -0.2, end: 0),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(
                       'Craft your reading universe',
                       style: AppText.displayItalic(18),
+                      textAlign: TextAlign.center,
                     )
                         .animate()
                         .fadeIn(delay: 200.ms, duration: 500.ms)
@@ -122,7 +127,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     const SizedBox(height: 32),
                     if (_errorMessage != null)
                       GlassCard(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(16),
                         borderColor: Colors.red.withOpacity(0.5),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,12 +135,14 @@ class _SignupScreenState extends State<SignupScreen> {
                             const Icon(
                               Icons.error_outline,
                               color: Colors.red,
+                              size: 22,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 _errorMessage!,
-                                style: AppText.body(13, context: context),
+                                style: AppText.body(14, context: context)
+                                    .copyWith(color: Colors.white, height: 1.4),
                               ),
                             ),
                           ],
@@ -146,7 +153,10 @@ class _SignupScreenState extends State<SignupScreen> {
                           .slideY(begin: -0.1, end: 0),
                     if (_errorMessage != null) const SizedBox(height: 16),
                     GlassCard(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 24,
+                      ),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -159,17 +169,14 @@ class _SignupScreenState extends State<SignupScreen> {
                             )
                                 .animate()
                                 .fadeIn(duration: 400.ms),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 8),
                             Text(
                               'Choose a name and handle the BookTok gods would approve.',
-                              style: AppText.body(
-                                14,
-                                context: context,
-                              ),
+                              style: AppText.body(14, context: context),
                             )
                                 .animate()
                                 .fadeIn(delay: 100.ms, duration: 400.ms),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
                             TextFormField(
                               controller: _displayNameController,
                               decoration: const InputDecoration(
@@ -187,7 +194,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 .animate()
                                 .fadeIn(delay: 150.ms, duration: 400.ms)
                                 .slideY(begin: 0.1, end: 0),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 18),
                             TextFormField(
                               controller: _usernameController,
                               decoration: const InputDecoration(
@@ -209,7 +216,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 .animate()
                                 .fadeIn(delay: 180.ms, duration: 400.ms)
                                 .slideY(begin: 0.1, end: 0),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 18),
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
@@ -231,7 +238,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 .animate()
                                 .fadeIn(delay: 210.ms, duration: 400.ms)
                                 .slideY(begin: 0.1, end: 0),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 18),
                             TextFormField(
                               controller: _passwordController,
                               obscureText: true,
@@ -292,7 +299,6 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }

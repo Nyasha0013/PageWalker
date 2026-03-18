@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -46,7 +47,7 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed && mounted) {
-          context.go('/auth/login');
+          context.go('/home');
         }
       });
     _mainController.forward();

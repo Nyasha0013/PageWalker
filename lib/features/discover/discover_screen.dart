@@ -15,8 +15,7 @@ class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
 
   @override
-  State<DiscoverScreen> createState() =>
-      _DiscoverScreenState();
+  State<DiscoverScreen> createState() => _DiscoverScreenState();
 }
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
@@ -43,8 +42,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       _results = const [];
     });
     try {
-      final books =
-          await _repository.getMoodRecommendations(
+      final books = await _repository.getMoodRecommendations(
         moodInput: _moodController.text.trim(),
         topBooks: _topBooks,
         topTropes: _topTropes,
@@ -65,6 +63,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: DynamicSkyBackground(
         child: SafeArea(
@@ -76,269 +75,245 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               24,
             ),
             children: [
-                Text(
-                  'What’s your vibe?',
-                  style: AppText.display(26),
-                )
-                    .animate()
-                    .fadeIn(duration: 500.ms)
-                    .slideY(begin: -0.1, end: 0),
-                const SizedBox(height: 12),
-                GlassCard(
-                  padding: const EdgeInsets.all(16),
+              Text(
+                'What’s your vibe?',
+                style: AppText.display(26, context: context),
+              ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.1, end: 0),
+              const SizedBox(height: 12),
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _moodController,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        hintText: 'Tell Pagewalker how you want to feel...',
+                      ),
+                      style: AppText.body(14),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 38,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _moods.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          final label = _moods[index];
+                          return TropeChip(
+                            label: label,
+                            selected: false,
+                            onTap: () {
+                              _moodController.text = label;
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    GradientButton(
+                      label: 'Find my next read ✦',
+                      width: double.infinity,
+                      onPressed: _loading ? null : _findNextRead,
+                      isLoading: _loading,
+                    ),
+                  ],
+                ),
+              )
+                  .animate()
+                  .fadeIn(delay: 120.ms, duration: 500.ms)
+                  .slideY(begin: 0.1, end: 0),
+              const SizedBox(height: 20),
+              if (_loading)
+                Center(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
                     children: [
-                      TextField(
-                        controller: _moodController,
-                        maxLines: 2,
-                        decoration:
-                            const InputDecoration(
-                          hintText:
-                              'Tell Pagewalker how you want to feel...',
-                        ),
-                        style: AppText.body(14),
-                      ),
-                      const SizedBox(height: 12),
                       SizedBox(
-                        height: 38,
-                        child: ListView.separated(
-                          scrollDirection:
-                              Axis.horizontal,
-                          itemCount: _moods.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 8),
-                          itemBuilder: (context, index) {
-                            final label = _moods[index];
-                            return TropeChip(
-                              label: label,
-                              selected: false,
-                              onTap: () {
-                                _moodController.text =
-                                    label;
-                              },
-                            );
-                          },
+                        height: 140,
+                        child: Lottie.asset(
+                          'assets/animations/sparkle.json',
+                          repeat: true,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      GradientButton(
-                        label: 'Find my next read ✦',
-                        width: double.infinity,
-                        onPressed:
-                            _loading ? null : _findNextRead,
-                        isLoading: _loading,
-                      ),
-                    ],
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 120.ms, duration: 500.ms)
-                    .slideY(begin: 0.1, end: 0),
-                const SizedBox(height: 20),
-                if (_loading)
-                  Center(
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          height: 140,
-                          child: Lottie.asset(
-                            'assets/animations/sparkle.json',
-                            repeat: true,
-                          ),
-                        ),
-                        Text(
-                          'Consulting the story stars...',
-                          style: AppText.body(
-                            14,
-                            context: context,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (!_loading && _results.isNotEmpty)
-                  Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
                       Text(
-                        'Recommendations',
-                        style: AppText.display(20),
-                      )
-                          .animate()
-                          .fadeIn(
-                            delay: 160.ms,
-                            duration: 400.ms,
-                          ),
-                      const SizedBox(height: 12),
-                      ..._results
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => GlassCard(
-                              margin:
-                                  const EdgeInsets.only(
-                                bottom: 10,
-                              ),
-                              padding:
-                                  const EdgeInsets.all(12),
-                              child: Row(
-                                children: [
-                                  const BookCoverWidget(
-                                    width: 60,
-                                    height: 90,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment
-                                              .start,
-                                      children: [
-                                        Text(
-                                          entry.value,
-                                          style: AppText
-                                              .bodySemiBold(
-                                            15,
-                                          ),
-                                        ),
-                                        const SizedBox(
-                                            height: 4),
-                                        Text(
-                                          'A book that matches your current vibe in the most delicious way.',
-                                          style: AppText
-                                              .displayItalic(
-                                            13,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                                .animate()
-                                .fadeIn(
-                                  delay: (200 +
-                                          entry.key *
-                                              60)
-                                      .ms,
-                                  duration: 400.ms,
-                                )
-                                .slideY(
-                                  begin: 0.1,
-                                  end: 0,
-                                ),
-                          )
-                          .toList(),
+                        'Consulting the story stars...',
+                        style: AppText.body(
+                          14,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary,
+                        ),
+                      ),
                     ],
                   ),
-                const SizedBox(height: 24),
-                Text(
-                  'Curated for you',
-                  style: AppText.display(20, context: context),
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 190,
-                  child: PageView.builder(
-                    controller:
-                        PageController(viewportFraction: 0.7),
-                    itemCount: 5,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
+              if (!_loading && _results.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Recommendations',
+                      style: AppText.display(20, context: context),
+                    ).animate().fadeIn(
+                          delay: 160.ms,
+                          duration: 400.ms,
                         ),
-                        child: GlassCard(
-                          padding:
-                              const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Collection ${index + 1}',
-                                style:
-                                    AppText.bodySemiBold(14),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: const [
-                                  BookCoverWidget(
-                                    width: 60,
-                                    height: 90,
-                                  ),
-                                  SizedBox(width: 8),
-                                  BookCoverWidget(
-                                    width: 60,
-                                    height: 90,
-                                  ),
-                                  SizedBox(width: 8),
-                                  BookCoverWidget(
-                                    width: 60,
-                                    height: 90,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Hot right now',
-                  style: AppText.display(20, context: context),
-                ),
-                const SizedBox(height: 12),
-                ...List.generate(
-                  4,
-                  (index) => GlassCard(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        const BookCoverWidget(
-                          width: 52,
-                          height: 78,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Trending title ${index + 1}',
-                                style:
-                                    AppText.bodySemiBold(15),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '#BookTok made me do it',
-                                style: AppText.body(
-                                  13,
-                                  context: context,
+                    const SizedBox(height: 12),
+                    ..._results
+                        .asMap()
+                        .entries
+                        .map(
+                          (entry) => GlassCard(
+                            margin: const EdgeInsets.only(
+                              bottom: 10,
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                const BookCoverWidget(
+                                  width: 60,
+                                  height: 90,
                                 ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        entry.value,
+                                        style: AppText.bodySemiBold(
+                                          15,
+                                          context: context,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'A book that matches your current vibe in the most delicious way.',
+                                        style: AppText.displayItalic(
+                                          13,
+                                          context: context,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                              .animate()
+                              .fadeIn(
+                                delay: (200 + entry.key * 60).ms,
+                                duration: 400.ms,
+                              )
+                              .slideY(
+                                begin: 0.1,
+                                end: 0,
                               ),
-                            ],
-                          ),
+                        )
+                        .toList(),
+                  ],
+                ),
+              const SizedBox(height: 24),
+              Text(
+                'Curated for you',
+                style: AppText.display(20, context: context),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 190,
+                child: PageView.builder(
+                  controller: PageController(viewportFraction: 0.7),
+                  itemCount: 5,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                      ),
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Collection ${index + 1}',
+                              style: AppText.bodySemiBold(14, context: context),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: const [
+                                BookCoverWidget(
+                                  width: 60,
+                                  height: 90,
+                                ),
+                                SizedBox(width: 8),
+                                BookCoverWidget(
+                                  width: 60,
+                                  height: 90,
+                                ),
+                                SizedBox(width: 8),
+                                BookCoverWidget(
+                                  width: 60,
+                                  height: 90,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Hot right now',
+                style: AppText.display(20, context: context),
+              ),
+              const SizedBox(height: 12),
+              ...List.generate(
+                4,
+                (index) => GlassCard(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      const BookCoverWidget(
+                        width: 52,
+                        height: 78,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Trending title ${index + 1}',
+                              style: AppText.bodySemiBold(15, context: context),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '#BookTok made me do it',
+                              style: AppText.body(
+                                13,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.lightTextSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
-

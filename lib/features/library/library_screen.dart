@@ -1,6 +1,7 @@
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
@@ -43,8 +44,7 @@ class _LibraryScreenState extends State<LibraryScreen>
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final pillWidth = (width - 40 - 12) / 4;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       floatingActionButton: _SpinFab(
@@ -63,102 +63,82 @@ class _LibraryScreenState extends State<LibraryScreen>
         child: SafeArea(
           child: Column(
             children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                  child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Your Library',
-                        style: AppText.display(24, context: context),
-                      ),
-                      const Icon(
-                        Icons.auto_stories_rounded,
-                        color: Colors.white,
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SizedBox(
-                    height: 40,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: GlassCard(
-                            borderRadius: 999,
-                            padding: EdgeInsets.zero,
-                            child: Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
-                              children: List.generate(_tabs.length,
-                                  (index) {
-                                final selected =
-                                    _currentIndex == index;
-                                return Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _currentIndex = index;
-                                      });
-                                    },
-                                    child: Center(
-                                      child: Text(
-                                        _tabs[index],
-                                        style: AppText.body(
-                                          13,
-                                          color: selected
-                                              ? Colors.white
-                                              : AppColors.darkTextSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ),
-                          ),
-                        ),
-                        AnimatedPositioned(
-                          duration:
-                              const Duration(milliseconds: 220),
-                          curve: Curves.easeOutCubic,
-                          left: _currentIndex * pillWidth,
-                          top: 2,
-                          bottom: 2,
-                          child: Container(
-                            width: pillWidth,
-                            decoration: BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.circular(999),
-                              gradient: const LinearGradient(
-                                colors: AppColors.gradientOrange,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.orangePrimary
-                                      .withOpacity(0.4),
-                                  blurRadius: 18,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Your Library',
+                      style: AppText.display(24, context: context),
                     ),
+                    const Icon(
+                      Icons.auto_stories_rounded,
+                      color: AppColors.orangeAmber,
+                    ),
+                  ],
+                ),
+              ),
+              // Updated tab selector (prevents orange pill covering text)
+              Container(
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.darkCard.withOpacity(0.8)
+                      : AppColors.lightCard.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: AppColors.orangePrimary.withOpacity(0.3),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    child: _buildTabBody(_currentIndex),
-                  ),
+                child: Row(
+                  children: _tabs.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final label = entry.value;
+                    final selected = _currentIndex == index;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _currentIndex = index),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOut,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? AppColors.orangePrimary.withOpacity(0.85)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(26),
+                          ),
+                          child: Text(
+                            label,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.nunito(
+                              fontSize: 13,
+                              fontWeight:
+                                  selected ? FontWeight.w700 : FontWeight.w500,
+                              color: selected
+                                  ? Colors.white
+                                  : (isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.lightTextSecondary),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: _buildTabBody(_currentIndex),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -254,4 +234,3 @@ class _SpinFabState extends State<_SpinFab>
     );
   }
 }
-

@@ -1,26 +1,33 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/config/supabase_config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/widgets/book_cover_widget.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/dynamic_sky_background.dart';
+import 'profile_controller.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen>
+class _ProfileScreenState extends ConsumerState<ProfileScreen>
     with TickerProviderStateMixin {
   late AnimationController _avatarGlowController;
   final GlobalKey _wrapKey = GlobalKey();
@@ -110,7 +117,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
         ),
-      ),
     );
   }
 }
@@ -125,6 +131,16 @@ class _Header extends StatelessWidget {
     return Center(
       child: Column(
         children: [
+          Row(
+            children: [
+              const Spacer(),
+              IconButton(
+                onPressed: () => context.push('/profile/settings'),
+                icon: const Icon(Icons.settings_rounded),
+                color: AppColors.orangePrimary,
+              ),
+            ],
+          ),
           AnimatedBuilder(
             animation: controller,
             builder: (context, child) {
@@ -151,40 +167,147 @@ class _Header extends StatelessWidget {
                 child: child,
               );
             },
-            child: const CircleAvatar(
-              radius: 40,
-              backgroundColor: AppColors.darkBg,
-              child: Text(
-                'PW',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                ),
-              ),
-            ),
+            child: const _AvatarSection(),
           ),
           const SizedBox(height: 10),
-          Text(
-            'Pagewalker Muse',
-            style: AppText.display(22),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '@bookishdreamer',
-            style: AppText.body(
-              13,
-              context: context,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Collecting fictional heartbreaks and happily-ever-afters.',
-            style: AppText.body(13),
-            textAlign: TextAlign.center,
+          Consumer(
+            builder: (context, ref, _) {
+              final profile = ref.watch(profileProvider).valueOrNull;
+              return Column(
+                children: [
+                  Text(
+                    profile?.displayName.isNotEmpty == true
+                        ? profile!.displayName
+                        : 'Pagewalker Muse',
+                    style: AppText.display(22, context: context),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    (profile?.username.isNotEmpty == true)
+                        ? '@${profile!.username}'
+                        : '@bookishdreamer',
+                    style: AppText.body(13, context: context),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    profile?.bio?.isNotEmpty == true
+                        ? profile!.bio!
+                        : 'Collecting fictional heartbreaks and happily-ever-afters.',
+                    style: AppText.body(13, context: context),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
     );
+  }
+}
+
+class _AvatarSection extends ConsumerStatefulWidget {
+  const _AvatarSection();
+
+  @override
+  ConsumerState<_AvatarSection> createState() => _AvatarSectionState();
+}
+
+class _AvatarSectionState extends ConsumerState<_AvatarSection> {
+  bool _uploading = false;
+
+  Future<void> _pickAndUploadPhoto() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 85,
+    );
+    if (image == null) return;
+
+    setState(() => _uploading = true);
+    try {
+      final bytes = await image.readAsBytes();
+      final userId = SupabaseConfig.client.auth.currentUser!.id;
+      final fileName = 'avatar_$userId.jpg';
+
+      await SupabaseConfig.client.storage.from('avatars').uploadBinary(
+            fileName,
+            bytes,
+            fileOptions: const FileOptions(upsert: true),
+          );
+      final url = SupabaseConfig.client.storage.from('avatars').getPublicUrl(fileName);
+
+      await SupabaseConfig.client.from('profiles').update({'avatar_url': url}).eq('id', userId);
+      ref.invalidate(profileProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = ref.watch(profileProvider).valueOrNull;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: _pickAndUploadPhoto,
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(colors: AppColors.gradientOrange),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.orangePrimary.withOpacity(0.5),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 50,
+              backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+              backgroundImage: profile?.avatarUrl != null ? NetworkImage(profile!.avatarUrl!) : null,
+              child: _uploading
+                  ? const CircularProgressIndicator(color: AppColors.orangePrimary)
+                  : profile?.avatarUrl == null
+                      ? Text(
+                          _getInitials(profile?.displayName ?? 'PW'),
+                          style: AppText.display(24, color: AppColors.orangePrimary),
+                        )
+                      : null,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: AppColors.gradientOrange),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.black, width: 2),
+            ),
+            child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name.substring(0, min(2, name.length)).toUpperCase();
   }
 }
 
@@ -386,7 +509,7 @@ class _TierListSection extends StatelessWidget {
             tilePadding: EdgeInsets.zero,
             title: Text(
               t.$1,
-              style: AppText.bodySemiBold(14),
+              style: AppText.bodySemiBold(14, context: context),
             ),
             children: [
               GlassCard(
