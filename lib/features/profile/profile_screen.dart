@@ -56,8 +56,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Future<void> _shareWrap() async {
-    final renderObject =
-        _wrapKey.currentContext?.findRenderObject();
+    final renderObject = _wrapKey.currentContext?.findRenderObject();
     if (renderObject is! RenderRepaintBoundary) return;
     final image = await renderObject.toImage(
       pixelRatio: 3,
@@ -84,39 +83,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
-                _Header(controller: _avatarGlowController)
-                    .animate()
-                    .fadeIn(duration: 500.ms),
-                const SizedBox(height: 16),
-                _StatsRow().animate().fadeIn(
-                      delay: 80.ms,
-                    ),
-                const SizedBox(height: 16),
-                _ReadingWrapSection(
-                  periods: _periods,
-                  periodIndex: _periodIndex,
-                  onPeriodChanged: (i) {
-                    setState(() => _periodIndex = i);
-                  },
-                  repaintKey: _wrapKey,
-                  onShare: _shareWrap,
-                ).animate().fadeIn(delay: 140.ms),
-                const SizedBox(height: 16),
-                _TierListSection()
-                    .animate()
-                    .fadeIn(delay: 200.ms),
-                const SizedBox(height: 16),
-                _TropeDnaSection()
-                    .animate()
-                    .fadeIn(delay: 260.ms),
-                const SizedBox(height: 16),
-                _BingoSection()
-                    .animate()
-                    .fadeIn(delay: 300.ms),
-              ],
-            ),
+              _Header(controller: _avatarGlowController)
+                  .animate()
+                  .fadeIn(duration: 500.ms),
+              const SizedBox(height: 16),
+              _StatsRow().animate().fadeIn(
+                    delay: 80.ms,
+                  ),
+              const SizedBox(height: 16),
+              const _AchievementsPreview().animate().fadeIn(delay: 110.ms),
+              const SizedBox(height: 16),
+              _ReadingWrapSection(
+                periods: _periods,
+                periodIndex: _periodIndex,
+                onPeriodChanged: (i) {
+                  setState(() => _periodIndex = i);
+                },
+                repaintKey: _wrapKey,
+                onShare: _shareWrap,
+              ).animate().fadeIn(delay: 140.ms),
+              const SizedBox(height: 16),
+              _TierListSection().animate().fadeIn(delay: 200.ms),
+              const SizedBox(height: 16),
+              _TropeDnaSection().animate().fadeIn(delay: 260.ms),
+              const SizedBox(height: 16),
+              _BingoSection().animate().fadeIn(delay: 300.ms),
+            ],
           ),
         ),
+      ),
     );
   }
 }
@@ -128,6 +123,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         children: [
@@ -152,8 +148,7 @@ class _Header extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.orangePrimary
-                          .withOpacity(glow * 0.6),
+                      color: AppColors.orangePrimary.withOpacity(glow * 0.6),
                       blurRadius: 30,
                     ),
                   ],
@@ -186,7 +181,10 @@ class _Header extends StatelessWidget {
                     (profile?.username.isNotEmpty == true)
                         ? '@${profile!.username}'
                         : '@bookishdreamer',
-                    style: AppText.body(13, context: context),
+                    style: AppText.body(
+                      13,
+                      context: context,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -200,7 +198,132 @@ class _Header extends StatelessWidget {
               );
             },
           ),
+          const SizedBox(height: 4),
         ],
+      ),
+    );
+  }
+}
+
+class _AchievementsPreview extends ConsumerWidget {
+  const _AchievementsPreview();
+
+  Future<(int unlockedCount, List<Map<String, dynamic>> unlocked)> _load(
+    String userId,
+  ) async {
+    final unlocked = await SupabaseConfig.client
+        .from('user_achievements')
+        .select('achievement_id, unlocked_at, achievements(icon, name)')
+        .eq('user_id', userId)
+        .order('unlocked_at', ascending: false);
+
+    final list = (unlocked as List).cast<Map<String, dynamic>>();
+    return (list.length, list);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = SupabaseConfig.client.auth.currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: FutureBuilder(
+        future: _load(user.id),
+        builder: (context, snapshot) {
+          final data = snapshot.data;
+          final unlockedCount = data?.$1 ?? 0;
+          final unlocked = data?.$2 ?? const <Map<String, dynamic>>[];
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Achievements',
+                      style: AppText.bodySemiBold(
+                        15,
+                        context: context,
+                        color: AppColors.orangePrimary,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.push('/achievements'),
+                    child: Text(
+                      'See all →',
+                      style: AppText.bodySemiBold(
+                        12,
+                        context: context,
+                        color: AppColors.orangePrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '$unlockedCount unlocked',
+                style: AppText.body(
+                  12,
+                  context: context,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (snapshot.connectionState == ConnectionState.waiting)
+                const LinearProgressIndicator(
+                  color: AppColors.orangePrimary,
+                )
+              else if (unlocked.isEmpty)
+                Text(
+                  'Your first badge is one good moment away.',
+                  style: AppText.body(13, context: context),
+                )
+              else
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: unlocked.take(6).map((row) {
+                      final a = row['achievements'] as Map<String, dynamic>?;
+                      final icon = (a?['icon'] as String?) ?? '🏅';
+                      final name = (a?['name'] as String?) ?? 'Achievement';
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.darkCard,
+                            border: Border.all(
+                              color: AppColors.orangePrimary.withOpacity(0.35),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.orangePrimary.withOpacity(0.12),
+                                blurRadius: 18,
+                              ),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: Tooltip(
+                            message: name,
+                            child: Text(
+                              icon,
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -237,9 +360,12 @@ class _AvatarSectionState extends ConsumerState<_AvatarSection> {
             bytes,
             fileOptions: const FileOptions(upsert: true),
           );
-      final url = SupabaseConfig.client.storage.from('avatars').getPublicUrl(fileName);
+      final url =
+          SupabaseConfig.client.storage.from('avatars').getPublicUrl(fileName);
 
-      await SupabaseConfig.client.from('profiles').update({'avatar_url': url}).eq('id', userId);
+      await SupabaseConfig.client
+          .from('profiles')
+          .update({'avatar_url': url}).eq('id', userId);
       ref.invalidate(profileProvider);
     } catch (e) {
       if (mounted) {
@@ -261,11 +387,14 @@ class _AvatarSectionState extends ConsumerState<_AvatarSection> {
       child: Stack(
         alignment: Alignment.bottomRight,
         children: [
+          // Avatar circle with orange glow border
           Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(colors: AppColors.gradientOrange),
+              gradient: const LinearGradient(
+                colors: AppColors.gradientOrange,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.orangePrimary.withOpacity(0.5),
@@ -276,18 +405,24 @@ class _AvatarSectionState extends ConsumerState<_AvatarSection> {
             ),
             child: CircleAvatar(
               radius: 50,
-              backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
-              backgroundImage: profile?.avatarUrl != null ? NetworkImage(profile!.avatarUrl!) : null,
+              backgroundColor:
+                  isDark ? AppColors.darkCard : AppColors.lightCard,
+              backgroundImage: profile?.avatarUrl != null
+                  ? NetworkImage(profile!.avatarUrl!)
+                  : null,
               child: _uploading
-                  ? const CircularProgressIndicator(color: AppColors.orangePrimary)
+                  ? const CircularProgressIndicator(
+                      color: AppColors.orangePrimary)
                   : profile?.avatarUrl == null
                       ? Text(
                           _getInitials(profile?.displayName ?? 'PW'),
-                          style: AppText.display(24, color: AppColors.orangePrimary),
+                          style: AppText.display(24,
+                              color: AppColors.orangePrimary),
                         )
                       : null,
             ),
           ),
+          // Camera icon badge
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
@@ -295,7 +430,11 @@ class _AvatarSectionState extends ConsumerState<_AvatarSection> {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.black, width: 2),
             ),
-            child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+            child: const Icon(
+              Icons.camera_alt_rounded,
+              size: 14,
+              color: Colors.white,
+            ),
           ),
         ],
       ),
@@ -314,6 +453,7 @@ class _AvatarSectionState extends ConsumerState<_AvatarSection> {
 class _StatsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final stats = [
       ('Books Read', '128'),
       ('Avg Rating', '4.3'),
@@ -346,7 +486,9 @@ class _StatsRow extends StatelessWidget {
                       s.$1,
                       style: AppText.body(
                         11,
-                        context: context,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
                       ),
                     ),
                   ],
@@ -376,6 +518,8 @@ class _ReadingWrapSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final wrappedYear = now.month == 1 ? now.year - 1 : now.year;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -391,8 +535,7 @@ class _ReadingWrapSection extends StatelessWidget {
               child: GestureDetector(
                 onTap: () => onPeriodChanged(index),
                 child: AnimatedContainer(
-                  duration:
-                      const Duration(milliseconds: 200),
+                  duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.symmetric(
                     horizontal: 4,
                   ),
@@ -400,8 +543,7 @@ class _ReadingWrapSection extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    borderRadius:
-                        BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(999),
                     gradient: selected
                         ? const LinearGradient(
                             colors: AppColors.gradientOrange,
@@ -410,11 +552,9 @@ class _ReadingWrapSection extends StatelessWidget {
                     border: Border.all(
                       color: selected
                           ? Colors.transparent
-                          : AppColors.orangePrimary
-                              .withOpacity(0.4),
+                          : AppColors.orangePrimary.withOpacity(0.4),
                     ),
-                    color:
-                        selected ? null : AppColors.darkCard,
+                    color: selected ? null : AppColors.darkCard,
                   ),
                   child: Center(
                     child: Text(
@@ -438,8 +578,7 @@ class _ReadingWrapSection extends StatelessWidget {
           child: GlassCard(
             padding: const EdgeInsets.all(14),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: const [
@@ -482,6 +621,23 @@ class _ReadingWrapSection extends StatelessWidget {
           width: double.infinity,
           onPressed: onShare,
         ),
+        if (periodIndex == 3) ...[
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: () => context.push('/wrapped/$wrappedYear'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.orangePrimary,
+              side: BorderSide(
+                color: AppColors.orangePrimary.withOpacity(0.45),
+              ),
+              minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: const Text('View my Wrapped'),
+          ),
+        ],
       ],
     );
   }
@@ -518,8 +674,7 @@ class _TierListSection extends StatelessWidget {
                   children: List.generate(
                     3,
                     (index) => Padding(
-                      padding:
-                          const EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         vertical: 4,
                       ),
                       child: Row(
@@ -531,7 +686,7 @@ class _TierListSection extends StatelessWidget {
                           const SizedBox(width: 6),
                           Text(
                             'Beloved book ${index + 1}',
-                            style: AppText.body(13),
+                            style: AppText.body(13, context: context),
                           ),
                         ],
                       ),
@@ -562,7 +717,7 @@ class _TropeDnaSection extends StatelessWidget {
         title: '',
       ),
       PieChartSectionData(
-        color: AppColors.orangeEmber,
+        color: AppColors.orangeDeep,
         value: 20,
         title: '',
       ),
@@ -580,7 +735,7 @@ class _TropeDnaSection extends StatelessWidget {
         children: [
           Text(
             'Your reading personality',
-            style: AppText.display(18),
+            style: AppText.display(18, context: context),
           ),
           const SizedBox(height: 10),
           SizedBox(
@@ -607,7 +762,7 @@ class _TropeDnaSection extends StatelessWidget {
                 label: 'Angst',
               ),
               _LegendDot(
-                color: AppColors.orangeEmber,
+                color: AppColors.orangeDeep,
                 label: 'Magic',
               ),
               _LegendDot(
@@ -633,6 +788,7 @@ class _LegendDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -649,7 +805,9 @@ class _LegendDot extends StatelessWidget {
           label,
           style: AppText.body(
             11,
-            context: context,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.lightTextSecondary,
           ),
         ),
       ],
@@ -660,6 +818,7 @@ class _LegendDot extends StatelessWidget {
 class _BingoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GlassCard(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -667,15 +826,14 @@ class _BingoSection extends StatelessWidget {
         children: [
           Text(
             'Reading Bingo',
-            style: AppText.display(18),
+            style: AppText.display(18, context: context),
           ),
           const SizedBox(height: 10),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: 25,
-            gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 5,
               mainAxisSpacing: 4,
               crossAxisSpacing: 4,
@@ -688,17 +846,17 @@ class _BingoSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                   gradient: completed
                       ? const LinearGradient(
-                          colors: AppColors.gradientOrange,
+                          colors: AppColors.gradientEmber,
                         )
                       : null,
                   border: Border.all(
                     color: completed
                         ? Colors.transparent
-                        : AppColors.orangePrimary
-                            .withOpacity(0.4),
+                        : AppColors.orangePrimary.withOpacity(0.4),
                   ),
-                  color:
-                      completed ? null : AppColors.darkCard,
+                  color: completed
+                      ? null
+                      : (isDark ? AppColors.darkCard : AppColors.lightCard),
                 ),
                 child: Center(
                   child: Text(
@@ -707,7 +865,9 @@ class _BingoSection extends StatelessWidget {
                       10,
                       color: completed
                           ? Colors.white
-                            : AppColors.darkTextSecondary,
+                          : (isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary),
                     ),
                   ),
                 ),
@@ -719,4 +879,3 @@ class _BingoSection extends StatelessWidget {
     );
   }
 }
-

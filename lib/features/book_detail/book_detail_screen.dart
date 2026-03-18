@@ -151,7 +151,7 @@ class _RatersDigest extends StatelessWidget {
                 'Tap stars to rate',
                 style: AppText.body(
                   13,
-                  context: context,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -202,9 +202,7 @@ class _TierChip extends StatelessWidget {
           13,
           color: gradient != null
               ? Colors.black
-              : Theme.of(context).brightness == Brightness.dark
-                  ? AppColors.darkTextPrimary
-                  : AppColors.lightTextPrimary,
+              : AppColors.textPrimary,
         ),
       ),
     );

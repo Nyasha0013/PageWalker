@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/config/supabase_config.dart';
 import '../../core/providers/theme_provider.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/widgets/dynamic_sky_background.dart';
@@ -37,6 +39,46 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   bool _saving = false;
   bool _seeded = false;
 
+  bool _notificationsEnabled = false;
+  bool _streakWarnings = true;
+  TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationPrefs();
+  }
+
+  Future<void> _loadNotificationPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? false;
+      _streakWarnings = prefs.getBool('streak_warnings') ?? true;
+      final hour = prefs.getInt('notifications_hour') ?? 20;
+      final minute = prefs.getInt('notifications_minute') ?? 0;
+      _reminderTime = TimeOfDay(hour: hour, minute: minute);
+    });
+  }
+
+  Future<void> _saveNotificationPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notifications_enabled', _notificationsEnabled);
+    await prefs.setBool('streak_warnings', _streakWarnings);
+    await prefs.setInt('notifications_hour', _reminderTime.hour);
+    await prefs.setInt('notifications_minute', _reminderTime.minute);
+  }
+
+  String _getReminderMessage() {
+    return "Pick up your book for a few minutes — future you will thank you.";
+  }
+
+  String _formatTime(TimeOfDay t) {
+    final h = t.hour.toString().padLeft(2, '0');
+    final m = t.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
   @override
   void dispose() {
     _displayNameController.dispose();
@@ -60,7 +102,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     _ageController.text = profile.age?.toString() ?? '';
     _locationController.text = profile.location ?? '';
     _favouriteGenreController.text = profile.favouriteGenre ?? '';
-    _readingGoalController.text = profile.readingGoal.toString();
+    _readingGoalController.text = (profile.readingGoal).toString();
     _instagramController.text = profile.instagramHandle ?? '';
     _facebookController.text = profile.facebookName ?? '';
     _isPublic = profile.isPublic;
@@ -140,6 +182,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                   SliverToBoxAdapter(
                     child: Column(
                       children: [
+                        // SECTION 1 — APPEARANCE
                         GlassCard(
                           padding: const EdgeInsets.all(16),
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -148,7 +191,10 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                             children: [
                               Text(
                                 'Appearance',
-                                style: AppText.bodySemiBold(15, color: AppColors.orangePrimary),
+                                style: AppText.bodySemiBold(
+                                  15,
+                                  color: AppColors.orangePrimary,
+                                ),
                               ),
                               const SizedBox(height: 12),
                               Row(
@@ -229,6 +275,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                             ],
                           ),
                         ),
+
+                        // SECTION 2 — PERSONAL INFO
                         GlassCard(
                           padding: const EdgeInsets.all(16),
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -288,6 +336,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                             ],
                           ),
                         ),
+
+                        // SECTION 3 — SOCIAL LINKS
                         GlassCard(
                           padding: const EdgeInsets.all(16),
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -327,6 +377,152 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                             ],
                           ),
                         ),
+
+                        // SECTION 4 — NOTIFICATIONS
+                        GlassCard(
+                          padding: const EdgeInsets.all(16),
+                          margin:
+                              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Notifications',
+                                style: AppText.bodySemiBold(
+                                  15,
+                                  color: AppColors.orangePrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Daily Reading Reminder',
+                                        style: AppText.bodySemiBold(14, context: context),
+                                      ),
+                                      Text(
+                                        'Get nudged to read every day',
+                                        style: AppText.body(
+                                          12,
+                                          color: AppColors.darkTextSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Switch(
+                                    value: _notificationsEnabled,
+                                    onChanged: (val) async {
+                                      setState(() => _notificationsEnabled = val);
+                                      await _saveNotificationPrefs();
+                                      if (val) {
+                                        await NotificationService().requestPermission();
+                                        await NotificationService().scheduleDailyReminder(
+                                          time: _reminderTime,
+                                          message: _getReminderMessage(),
+                                        );
+                                      } else {
+                                        await NotificationService().cancelAll();
+                                      }
+                                    },
+                                    activeColor: AppColors.orangePrimary,
+                                  ),
+                                ],
+                              ),
+                              if (_notificationsEnabled) ...[
+                                const SizedBox(height: 12),
+                                GestureDetector(
+                                  onTap: () async {
+                                    final picked = await showTimePicker(
+                                      context: context,
+                                      initialTime: _reminderTime,
+                                      builder: (context, child) => Theme(
+                                        data: Theme.of(context).copyWith(
+                                          colorScheme: const ColorScheme.dark(
+                                            primary: AppColors.orangePrimary,
+                                          ),
+                                        ),
+                                        child: child!,
+                                      ),
+                                    );
+                                    if (picked != null) {
+                                      setState(() => _reminderTime = picked);
+                                      await _saveNotificationPrefs();
+                                      await NotificationService().scheduleDailyReminder(
+                                        time: picked,
+                                        message: _getReminderMessage(),
+                                      );
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.darkCard,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: AppColors.orangePrimary.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Reminder time',
+                                          style: AppText.body(14, context: context),
+                                        ),
+                                        Text(
+                                          _formatTime(_reminderTime),
+                                          style: AppText.bodySemiBold(
+                                            14,
+                                            color: AppColors.orangePrimary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Streak Warnings',
+                                        style: AppText.bodySemiBold(14, context: context),
+                                      ),
+                                      Text(
+                                        'Alert when streak is at risk',
+                                        style: AppText.body(
+                                          12,
+                                          color: AppColors.darkTextSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Switch(
+                                    value: _streakWarnings,
+                                    onChanged: (val) async {
+                                      setState(() => _streakWarnings = val);
+                                      await _saveNotificationPrefs();
+                                    },
+                                    activeColor: AppColors.orangePrimary,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // SECTION 5 — PRIVACY
                         GlassCard(
                           padding: const EdgeInsets.all(16),
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -336,13 +532,18 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Public Profile', style: AppText.bodySemiBold(14, context: context)),
+                                    Text(
+                                      'Public Profile',
+                                      style: AppText.bodySemiBold(14, context: context),
+                                    ),
                                     const SizedBox(height: 2),
                                     Text(
                                       'Allow other readers to find and follow you',
                                       style: AppText.body(
                                         12,
-                                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                        color: isDark
+                                            ? AppColors.darkTextSecondary
+                                            : AppColors.lightTextSecondary,
                                       ),
                                     ),
                                   ],
@@ -356,18 +557,25 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                             ],
                           ),
                         ),
+
+                        // SECTION 6 — ACCOUNT
                         GlassCard(
                           padding: const EdgeInsets.all(16),
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text('Account', style: AppText.bodySemiBold(15, color: AppColors.orangePrimary)),
+                              Text(
+                                'Account',
+                                style: AppText.bodySemiBold(15, color: AppColors.orangePrimary),
+                              ),
                               const SizedBox(height: 12),
                               OutlinedButton(
                                 onPressed: () {},
                                 style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: AppColors.orangePrimary.withOpacity(0.5)),
+                                  side: BorderSide(
+                                    color: AppColors.orangePrimary.withOpacity(0.5),
+                                  ),
                                   foregroundColor: AppColors.orangePrimary,
                                 ),
                                 child: const Text('Change Password'),
@@ -390,13 +598,17 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                 child: Center(
                                   child: Text(
                                     'Delete Account',
-                                    style: AppText.body(12, color: const Color(0xFFFF4444).withOpacity(0.7)),
+                                    style: AppText.body(
+                                      12,
+                                      color: const Color(0xFFFF4444).withOpacity(0.7),
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
+
                         const SizedBox(height: 8),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),

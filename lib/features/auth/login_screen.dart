@@ -49,14 +49,9 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _errorMessage = e.message;
       });
-    } catch (e, _) {
-      final msg = e.toString().toLowerCase();
+    } catch (_) {
       setState(() {
-        _errorMessage = (msg.contains('host lookup') ||
-                msg.contains('socket') ||
-                msg.contains('connection'))
-            ? 'Cannot reach server. Check your internet and that Supabase URL is set in lib/core/config/env.dart'
-            : 'Something went wrong. Please try again in a moment.';
+        _errorMessage = 'Something went wrong. Please try again in a moment.';
       });
     } finally {
       if (mounted) {
@@ -79,173 +74,162 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 24,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Pagewalker',
-                      style: AppText.script(52).copyWith(
-                        shadows: const [
-                          Shadow(
-                            color: AppColors.orangePrimary,
-                            blurRadius: 30,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Pagewalker',
+                    style: AppText.script(52).copyWith(
+                      shadows: const [
+                        Shadow(
+                          color: AppColors.orangePrimary,
+                          blurRadius: 30,
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                  )
+                      .animate()
+                      .fadeIn(duration: 500.ms)
+                      .slideY(begin: -0.2, end: 0),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your story begins here',
+                    style: AppText.displayItalic(18),
+                    textAlign: TextAlign.center,
+                  )
+                      .animate()
+                      .fadeIn(delay: 200.ms, duration: 500.ms)
+                      .slideY(begin: -0.1, end: 0),
+                  const SizedBox(height: 32),
+                  if (_errorMessage != null)
+                    GlassCard(
+                      padding: const EdgeInsets.all(12),
+                      borderColor: Colors.red.withOpacity(0.5),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: AppText.body(13, context: context),
+                            ),
                           ),
                         ],
                       ),
-                      textAlign: TextAlign.center,
                     )
                         .animate()
-                        .fadeIn(duration: 500.ms)
-                        .slideY(begin: -0.2, end: 0),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Your story begins here',
-                      style: AppText.displayItalic(18),
-                      textAlign: TextAlign.center,
-                    )
-                        .animate()
-                        .fadeIn(delay: 200.ms, duration: 500.ms)
+                        .fadeIn(duration: 300.ms)
                         .slideY(begin: -0.1, end: 0),
-                    const SizedBox(height: 32),
-                    if (_errorMessage != null)
-                      GlassCard(
-                        padding: const EdgeInsets.all(16),
-                        borderColor: Colors.red.withOpacity(0.5),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: Colors.red,
-                              size: 22,
+                  if (_errorMessage != null) const SizedBox(height: 16),
+                  GlassCard(
+                    padding: const EdgeInsets.all(20),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Welcome back, dreamer ✦',
+                            style: AppText.display(22, context: context),
+                          ).animate().fadeIn(duration: 400.ms),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Sign in to keep walking through your worlds.',
+                            style: AppText.body(
+                              14,
+                              context: context,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
+                          ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                            ),
+                            style: AppText.body(14, context: context),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter your email';
+                              }
+                              if (!value.contains('@')) {
+                                return 'Please enter a valid email';
+                              }
+                              return null;
+                            },
+                          )
+                              .animate()
+                              .fadeIn(delay: 150.ms, duration: 400.ms)
+                              .slideY(begin: 0.1, end: 0),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Password',
+                            ),
+                            style: AppText.body(14, context: context),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter your password';
+                              }
+                              if (value.length < 6) {
+                                return 'Password must be at least 6 characters';
+                              }
+                              return null;
+                            },
+                          )
+                              .animate()
+                              .fadeIn(delay: 200.ms, duration: 400.ms)
+                              .slideY(begin: 0.1, end: 0),
+                          const SizedBox(height: 24),
+                          GradientButton(
+                            label: 'Sign In',
+                            isLoading: _isLoading,
+                            onPressed: _isLoading ? null : _signIn,
+                          )
+                              .animate()
+                              .fadeIn(delay: 250.ms, duration: 400.ms)
+                              .slideY(begin: 0.1, end: 0),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: () {
+                              context.go('/auth/signup');
+                            },
+                            child: Center(
                               child: Text(
-                                _errorMessage!,
-                                style: AppText.body(14, context: context)
-                                    .copyWith(color: Colors.white, height: 1.4),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                          .animate()
-                          .fadeIn(duration: 300.ms)
-                          .slideY(begin: -0.1, end: 0),
-                    if (_errorMessage != null) const SizedBox(height: 16),
-                    GlassCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 24,
-                      ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              'Welcome back, dreamer ✦',
-                              style: AppText.display(22, context: context),
-                            )
-                                .animate()
-                                .fadeIn(duration: 400.ms),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Sign in to keep walking through your worlds.',
-                              style: AppText.body(14, context: context),
-                            )
-                                .animate()
-                                .fadeIn(delay: 100.ms, duration: 400.ms),
-                            const SizedBox(height: 24),
-                            TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
-                              ),
-                              style: AppText.body(14, context: context),
-                              validator: (value) {
-                                if (value == null ||
-                                    value.trim().isEmpty) {
-                                  return 'Please enter your email';
-                                }
-                                if (!value.contains('@')) {
-                                  return 'Please enter a valid email';
-                                }
-                                return null;
-                              },
-                            )
-                                .animate()
-                                .fadeIn(delay: 150.ms, duration: 400.ms)
-                                .slideY(begin: 0.1, end: 0),
-                            const SizedBox(height: 20),
-                            TextFormField(
-                              controller: _passwordController,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Password',
-                              ),
-                              style: AppText.body(14, context: context),
-                              validator: (value) {
-                                if (value == null ||
-                                    value.trim().isEmpty) {
-                                  return 'Please enter your password';
-                                }
-                                if (value.length < 6) {
-                                  return 'Password must be at least 6 characters';
-                                }
-                                return null;
-                              },
-                            )
-                                .animate()
-                                .fadeIn(delay: 200.ms, duration: 400.ms)
-                                .slideY(begin: 0.1, end: 0),
-                            const SizedBox(height: 24),
-                            GradientButton(
-                              label: 'Sign In',
-                              isLoading: _isLoading,
-                              onPressed: _isLoading ? null : _signIn,
-                            )
-                                .animate()
-                                .fadeIn(delay: 250.ms, duration: 400.ms)
-                                .slideY(begin: 0.1, end: 0),
-                            const SizedBox(height: 12),
-                            GestureDetector(
-                              onTap: () {
-                                context.go('/auth/signup');
-                              },
-                              child: Center(
-                                child: Text(
-                                  'Don’t have an account? Sign Up',
-                                  style: AppText.body(
-                                    13,
-                                    context: context,
-                                  ),
+                                'Don’t have an account? Sign Up',
+                                style: AppText.body(
+                                  13,
+                                  context: context,
                                 ),
                               ),
-                            )
-                                .animate()
-                                .fadeIn(delay: 300.ms, duration: 400.ms),
-                          ],
-                        ),
+                            ),
+                          ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
+                        ],
                       ),
-                    )
-                        .animate()
-                        .fadeIn(delay: 150.ms, duration: 500.ms)
-                        .slideY(begin: 0.15, end: 0),
-                  ],
-                ),
+                    ),
+                  )
+                      .animate()
+                      .fadeIn(delay: 150.ms, duration: 500.ms)
+                      .slideY(begin: 0.15, end: 0),
+                ],
               ),
             ),
           ),
         ),
+      ),
     );
   }
 }
-

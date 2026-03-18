@@ -1,12 +1,11 @@
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/dynamic_sky_background.dart';
 import 'widgets/currently_reading_tab.dart';
 import 'widgets/dnf_tab.dart';
@@ -72,17 +71,31 @@ class _LibraryScreenState extends State<LibraryScreen>
                       'Your Library',
                       style: AppText.display(24, context: context),
                     ),
-                    const Icon(
-                      Icons.auto_stories_rounded,
-                      color: AppColors.orangeAmber,
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () => context.push('/scanner'),
+                          icon: const Icon(
+                            Icons.qr_code_scanner_rounded,
+                          ),
+                          color: AppColors.orangePrimary,
+                          tooltip: 'Scan a book',
+                        ),
+                        const Icon(
+                          Icons.auto_stories_rounded,
+                          color: AppColors.orangeAmber,
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
               // Updated tab selector (prevents orange pill covering text)
               Container(
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: isDark
@@ -217,7 +230,7 @@ class _SpinFabState extends State<_SpinFab>
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.orangePrimary,
+                color: AppColors.orangeBright,
                 blurRadius: 28,
                 offset: Offset(0, 10),
               ),
@@ -226,7 +239,7 @@ class _SpinFabState extends State<_SpinFab>
           child: Center(
             child: Text(
               '✦',
-              style: AppText.display(24),
+              style: AppText.display(24, color: Colors.white),
             ),
           ),
         ),

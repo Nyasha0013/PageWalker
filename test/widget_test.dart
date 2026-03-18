@@ -18,6 +18,8 @@ void main() {
         child: PagewalkerApp(),
       ),
     );
+
+    // MaterialApp.router builds a WidgetsApp under the hood.
     expect(find.byType(WidgetsApp), findsOneWidget);
   });
 }

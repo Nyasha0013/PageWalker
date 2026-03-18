@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/config/supabase_config.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/router/app_router.dart';
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -19,11 +20,8 @@ Future<void> main() async {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  try {
-    await SupabaseConfig.initialize();
-  } catch (_) {
-    // Continue without Supabase so app works offline / without auth
-  }
+  await NotificationService().initialize();
+  await SupabaseConfig.initialize();
   runApp(const ProviderScope(child: PagewalkerApp()));
 }
 

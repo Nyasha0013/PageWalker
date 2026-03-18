@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text.dart';
@@ -39,7 +40,7 @@ class CurrentlyReadingTab extends StatelessWidget {
                         'By a beloved author',
                         style: AppText.body(
                           13,
-                          context: context,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -59,11 +60,25 @@ class CurrentlyReadingTab extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                GradientButton(
-                  label: 'Update',
-                  height: 40,
-                  width: 104,
-                  onPressed: () {},
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GradientButton(
+                      label: '▶ Read Now',
+                      height: 40,
+                      width: 112,
+                      onPressed: () => context.push(
+                        '/timer/demo_book_${index + 1}',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    GradientButton(
+                      label: 'Update',
+                      height: 40,
+                      width: 112,
+                      onPressed: () {},
+                    ),
+                  ],
                 ),
               ],
             ),

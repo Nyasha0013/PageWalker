@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
@@ -20,6 +22,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _breathingController;
+  bool _showWrappedBanner = false;
+  int _wrappedYear = DateTime.now().year;
 
   final _moods = const [
     'Make me cry',
@@ -38,6 +42,23 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+    _checkWrappedBanner();
+  }
+
+  Future<void> _checkWrappedBanner() async {
+    final now = DateTime.now();
+    final isWrappedSeason = now.month == 12 || now.month == 1;
+    if (!isWrappedSeason) return;
+
+    // Show the wrapped for the year that just ended (in January) or current year (in December).
+    final year = now.month == 1 ? now.year - 1 : now.year;
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool('wrapped_${year}_seen') ?? false;
+    if (!mounted) return;
+    setState(() {
+      _wrappedYear = year;
+      _showWrappedBanner = !seen;
+    });
   }
 
   @override
@@ -64,6 +85,84 @@ class _HomeScreenState extends State<HomeScreen>
         child: SafeArea(
           child: CustomScrollView(
             slivers: [
+              if (_showWrappedBanner)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                    child: GestureDetector(
+                      onTap: () async {
+                        await HapticFeedback.lightImpact();
+                        if (!mounted) return;
+                        context.push('/wrapped/$_wrappedYear');
+                        setState(() => _showWrappedBanner = false);
+                      },
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(
+                                  colors: AppColors.gradientOrange,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.orangePrimary.withOpacity(0.25),
+                                    blurRadius: 22,
+                                  )
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                '✦',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Your $_wrappedYear Wrapped is ready!',
+                                    style: AppText.bodySemiBold(
+                                      14,
+                                      color: AppColors.orangePrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Tap to see your year in books',
+                                    style: AppText.body(
+                                      12,
+                                      color: isDark
+                                          ? AppColors.darkTextSecondary
+                                          : AppColors.lightTextSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.white.withOpacity(0.45),
+                            ),
+                          ],
+                        ),
+                      )
+                          .animate()
+                          .fadeIn(duration: 450.ms)
+                          .scale(begin: const Offset(0.98, 0.98)),
+                    ),
+                  ),
+                ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -147,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen>
                         decoration: BoxDecoration(
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.orangePrimary
+                              color: AppColors.orangeBright
                                   .withOpacity(opacity * 0.4),
                               blurRadius: 30,
                               spreadRadius: 1,
@@ -254,17 +353,13 @@ class _HomeScreenState extends State<HomeScreen>
                               children: [
                                 Text(
                                   'Untitled adventure',
-                                  style: AppText.bodySemiBold(15,
-                                      context: context),
+                                  style: AppText.bodySemiBold(15),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'TBR',
-                                  style: AppText.label(
-                                    11,
-                                    color: AppColors.orangeAmber,
-                                    context: context,
-                                  ),
+                                  style: AppText.label(11,
+                                      color: AppColors.orangeAmber),
                                 ),
                               ],
                             ),
@@ -285,7 +380,9 @@ class _HomeScreenState extends State<HomeScreen>
                               'Just added',
                               style: AppText.body(
                                 11,
-                                context: context,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.lightTextSecondary,
                               ),
                             ),
                           ),

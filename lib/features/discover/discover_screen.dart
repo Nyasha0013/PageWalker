@@ -229,9 +229,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   itemCount: 5,
                   itemBuilder: (context, index) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
                       child: GlassCard(
                         padding: const EdgeInsets.all(12),
                         child: Column(
@@ -242,22 +240,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                               style: AppText.bodySemiBold(14, context: context),
                             ),
                             const SizedBox(height: 8),
-                            Row(
-                              children: const [
-                                BookCoverWidget(
-                                  width: 60,
-                                  height: 90,
-                                ),
+                            const Row(
+                              children: [
+                                BookCoverWidget(width: 60, height: 90),
                                 SizedBox(width: 8),
-                                BookCoverWidget(
-                                  width: 60,
-                                  height: 90,
-                                ),
+                                BookCoverWidget(width: 60, height: 90),
                                 SizedBox(width: 8),
-                                BookCoverWidget(
-                                  width: 60,
-                                  height: 90,
-                                ),
+                                BookCoverWidget(width: 60, height: 90),
                               ],
                             ),
                           ],
@@ -273,17 +262,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 style: AppText.display(20, context: context),
               ),
               const SizedBox(height: 12),
-              ...List.generate(
-                4,
-                (index) => GlassCard(
+              ...List.generate(4, (index) {
+                return GlassCard(
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
-                      const BookCoverWidget(
-                        width: 52,
-                        height: 78,
-                      ),
+                      const BookCoverWidget(width: 52, height: 78),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -308,8 +293,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       ),
                     ],
                   ),
-                ),
-              ),
+                );
+              }),
             ],
           ),
         ),

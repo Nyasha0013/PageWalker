@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
@@ -41,16 +42,49 @@ class _SocialScreenState extends State<SocialScreen> {
         child: SafeArea(
           child: ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-            itemCount: 10,
+            itemCount: 11,
             itemBuilder: (context, index) {
+              if (index == 0) {
+                return GlassCard(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Looking for book friends?',
+                              style: AppText.bodySemiBold(14, context: context),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Discover readers and follow their journeys.',
+                              style: AppText.body(12, context: context),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      GradientButton(
+                        label: 'Find Readers',
+                        onPressed: () => context.push('/readers'),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.06, end: 0);
+              }
+
+              final reviewIndex = index - 1;
               return GlassCard(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
-                child: _ReviewCard(index: index),
+                child: _ReviewCard(index: reviewIndex),
               )
                   .animate()
                   .fadeIn(
-                    delay: (index * 60).ms,
+                    delay: (reviewIndex * 60).ms,
                     duration: 400.ms,
                   )
                   .slideY(begin: 0.1, end: 0);
@@ -179,7 +213,8 @@ class _ReviewCardState extends State<_ReviewCard>
                   if (!_showSpoiler)
                     Positioned.fill(
                       child: Container(
-                        color: (isDark ? AppColors.darkCard : AppColors.lightCard).withOpacity(0.8),
+                        color: (isDark ? AppColors.darkCard : AppColors.lightCard)
+                            .withOpacity(0.8),
                         child: Center(
                           child: Text(
                             'Tap to reveal spoilers',
@@ -217,7 +252,9 @@ class _ReviewCardState extends State<_ReviewCard>
                       : Icons.favorite_border_rounded,
                   color: _liked
                       ? AppColors.orangeBright
-                      : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+                      : (isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted),
                 ),
               ),
             ),
@@ -275,7 +312,7 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.darkTextMuted,
+                    color: AppColors.textMuted,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -332,7 +369,7 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
                     onChanged: (v) {
                       setState(() => _spoiler = v);
                     },
-                    activeColor: AppColors.orangePrimary,
+                    activeColor: AppColors.primary,
                   ),
                 ],
               ),
