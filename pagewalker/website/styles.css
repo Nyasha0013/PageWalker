@@ -272,6 +272,16 @@ a:hover {
   border: 2px solid rgba(255, 182, 220, 0.65);
   border-top-color: rgba(147, 197, 253, 0.55);
   border-left-color: rgba(255, 143, 200, 0.5);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 40px rgba(59, 130, 246, 0.15),
+    0 8px 24px rgba(255, 79, 163, 0.1);
 }
 
 .card h3 {
@@ -507,4 +517,254 @@ footer .copy {
   margin: 0;
   font-size: 0.95rem;
   color: var(--text-secondary);
+}
+
+/* Skip link (accessibility) */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  z-index: 100;
+  padding: 0.75rem 1.25rem;
+  background: var(--pink);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 8px;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  outline: 3px solid var(--blue);
+}
+
+/* Dedication */
+.dedication-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 1.25rem;
+  padding: 0.45rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 182, 220, 0.45),
+    rgba(147, 197, 253, 0.4)
+  );
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 12px rgba(255, 79, 163, 0.12);
+}
+
+.dedication-pill__heart {
+  color: var(--pink);
+  font-size: 1rem;
+  line-height: 1;
+  animation: heart-soft 2.2s ease-in-out infinite;
+}
+
+@keyframes heart-soft {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+.card-emoji {
+  display: block;
+  font-size: 1.5rem;
+  margin-bottom: 0.35rem;
+  line-height: 1;
+}
+
+/* Quotes */
+.quotes {
+  padding: 1rem 0 3rem;
+}
+
+.quotes-intro {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1rem;
+  margin: -0.5rem 0 1.75rem;
+}
+
+.quote-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.quote-card {
+  margin: 0;
+  padding: 1.35rem 1.5rem;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: var(--radius);
+  border: 2px solid rgba(255, 182, 220, 0.55);
+  box-shadow: var(--shadow);
+  transition: transform 0.22s ease;
+}
+
+.quote-card:hover {
+  transform: translateY(-3px);
+}
+
+.quote-card blockquote {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.quote-card figcaption {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* CTA band */
+.cta-band {
+  margin: 1rem 0 2.5rem;
+  padding: clamp(2rem, 5vw, 2.75rem) 1.25rem;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 182, 220, 0.35) 0%,
+    rgba(255, 255, 255, 0.95) 45%,
+    rgba(147, 197, 253, 0.4) 100%
+  );
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow);
+}
+
+.cta-inner {
+  text-align: center;
+  max-width: 36rem;
+  margin-inline: auto;
+}
+
+.cta-inner h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3vw, 1.75rem);
+  margin: 0 0 0.5rem;
+  color: var(--text);
+}
+
+.cta-lede {
+  margin: 0 0 1.5rem;
+  color: var(--text-secondary);
+  font-size: 1.02rem;
+}
+
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.cta-actions .btn {
+  min-width: 10rem;
+}
+
+/* Footer dedication */
+.footer-dedication {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: linear-gradient(120deg, var(--pink), var(--blue));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  margin: 0 0 0.75rem;
+  max-width: 28rem;
+  margin-inline: auto;
+  line-height: 1.4;
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: reveal-in 0.7s ease forwards;
+}
+
+.reveal-delay-1 {
+  animation-delay: 0.08s;
+}
+.reveal-delay-2 {
+  animation-delay: 0.16s;
+}
+.reveal-delay-3 {
+  animation-delay: 0.24s;
+}
+
+@keyframes reveal-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-delay-1,
+  .reveal-delay-2,
+  .reveal-delay-3 {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .dedication-pill__heart {
+    animation: none;
+  }
+  .card:hover,
+  .quote-card:hover {
+    transform: none;
+  }
+}
+
+/* 404 */
+.page-404 {
+  padding: 3rem 1rem 4rem;
+  text-align: center;
+  max-width: 26rem;
+  margin-inline: auto;
+}
+
+.e404-kicker {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  background: linear-gradient(120deg, var(--pink), var(--blue));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.page-404 h1 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+
+.e404-text {
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem;
+}
+
+.e404-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
 }

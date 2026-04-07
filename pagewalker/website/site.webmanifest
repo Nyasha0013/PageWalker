@@ -1,0 +1,17 @@
+{
+  "name": "Pagewalker",
+  "short_name": "Pagewalker",
+  "description": "Book discovery, reading tracking, and reader friends — for Kimberley and every book lover.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff8fc",
+  "theme_color": "#ff4fa3",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

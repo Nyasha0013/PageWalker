@@ -3,22 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#ff4fa3" />
     <meta
       name="description"
-      content="Pagewalker — discover books, track your reading, share reviews, and connect with readers. Official site."
+      content="Pagewalker — discover books, track reading, join book clubs, and celebrate your reading life. Made with love for Kimberley."
     />
-    <meta property="og:title" content="Pagewalker" />
+    <meta property="og:title" content="Pagewalker — Reading, together" />
     <meta
       property="og:description"
-      content="Book discovery, library, social reading, and book clubs — in one app."
+      content="Your cozy bookish hub: TBR stacks, reviews, reading streaks, and friends who get the plot twist."
     />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://pagewalker.vercel.app/" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pagewalker" />
+    <meta
+      name="twitter:description"
+      content="Book discovery, reading tracking, and reader friends — one happy shelf at a time."
+    />
+    <link rel="canonical" href="https://pagewalker.vercel.app/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
     <title>Pagewalker — Reading, together</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <div class="wrap inner">
         <a class="logo" href="/">Pagewalker</a>
@@ -34,9 +48,13 @@
       </div>
     </header>
 
-    <main>
+    <main id="main">
       <section class="hero wrap">
-        <div class="hero-inner">
+        <div class="hero-inner reveal">
+          <p class="dedication-pill" role="note">
+            <span class="dedication-pill__heart" aria-hidden="true">♥</span>
+            For Kimberley — made with love · happy reading
+          </p>
           <h1>Walk your shelves.<br /><span class="accent">Share the story.</span></h1>
           <p class="lede">
             Your cozy corner for TBR piles, reading streaks, spicy reviews, and book-club
@@ -67,22 +85,25 @@
       </section>
 
       <section class="features wrap" aria-labelledby="features-heading">
-        <h2 id="features-heading">Your reading universe</h2>
+        <h2 id="features-heading" class="reveal">Your reading universe</h2>
         <div class="grid">
-          <div class="card">
+          <div class="card reveal reveal-delay-1">
+            <span class="card-emoji" aria-hidden="true">📚</span>
             <h3>Discover &amp; stack</h3>
             <p>
               Hunt your next obsession, curate your TBR, and flex your finished pile like
               the main character you are.
             </p>
           </div>
-          <div class="card">
+          <div class="card reveal reveal-delay-2">
+            <span class="card-emoji" aria-hidden="true">✨</span>
             <h3>Track the vibe</h3>
             <p>
               Sessions, streaks, and yearly wraps so your reading era gets the spotlight.
             </p>
           </div>
-          <div class="card">
+          <div class="card reveal reveal-delay-3">
+            <span class="card-emoji" aria-hidden="true">💌</span>
             <h3>Gossip &amp; clubs</h3>
             <p>
               Hot takes, profiles, and book-club rooms for when you need to process that
@@ -91,10 +112,51 @@
           </div>
         </div>
       </section>
+
+      <section class="quotes wrap" aria-labelledby="quotes-heading">
+        <h2 id="quotes-heading" class="reveal">Little reading joys</h2>
+        <p class="quotes-intro reveal">Tiny reminders for when you need one more chapter.</p>
+        <div class="quote-grid">
+          <figure class="quote-card reveal reveal-delay-1">
+            <blockquote>“Stack the TBR. Slay the slump. Repeat.”</blockquote>
+            <figcaption>— The Pagewalker mood</figcaption>
+          </figure>
+          <figure class="quote-card reveal reveal-delay-2">
+            <blockquote>“Your plot-twist era starts on page one.”</blockquote>
+            <figcaption>— For night-owl readers</figcaption>
+          </figure>
+          <figure class="quote-card reveal reveal-delay-3">
+            <blockquote>“Stars, shelves, and a little bit of chaos.”</blockquote>
+            <figcaption>— Book club optional, drama guaranteed</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="cta-band" aria-labelledby="cta-heading">
+        <div class="wrap cta-inner reveal">
+          <h2 id="cta-heading">Start your next chapter</h2>
+          <p class="cta-lede">
+            Download the app, catch the updates, or drop a line — we’re glad you’re here.
+          </p>
+          <div class="cta-actions">
+            <a
+              class="btn"
+              href="https://play.google.com/store/apps/details?id=com.pagewalker.app"
+              rel="noopener noreferrer"
+              >Get it on Google Play</a
+            >
+            <a class="btn btn-outline" href="/updates">Read updates</a>
+            <a class="btn btn-outline" href="mailto:nkimwalker@gmail.com?subject=Pagewalker"
+              >Say hello</a
+            >
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer>
       <div class="wrap inner">
+        <p class="footer-dedication">For Kimberley · may your TBR never win (but kindly try)</p>
         <div class="links">
           <a href="/updates">Updates</a>
           <a href="/sign-in">Sign in</a>
