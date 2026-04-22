@@ -303,6 +303,7 @@
       "signin.email": "Email",
       "signin.password": "Password",
       "signin.submit": "Sign in",
+      "signin.facebook": "Continue with Facebook",
       "signin.forgot": "Forgot password?",
       "signin.createAccount": "Create an account",
 
@@ -314,7 +315,9 @@
       "signup.password": "Password",
       "signup.confirmPassword": "Confirm password",
       "signup.submit": "Sign up",
+      "signup.facebook": "Sign up with Facebook",
       "signup.haveAccount": "Already have an account?",
+      "auth.or": "or",
 
       "forgot.title": "Forgot password — Pagewalker",
       "forgot.h1": "Reset password",
@@ -386,6 +389,7 @@
       "app.resetSent": "If an account exists for that email, we sent a reset link. Check your inbox and spam folder.",
       "app.resetInvalid": "This reset link is invalid or expired. Request a new link from Forgot password.",
       "app.passwordUpdated": "Password updated. Sign in on the Pagewalker app with your new password.",
+      "app.oauthFailed": "Facebook sign-in is currently unavailable. Please try again.",
       "app.configError": "We couldn't load account settings. Refresh the page, or try again in a moment.",
       "appShell.title": "Pagewalker — Web App",
       "appShell.metaDescription": "Pagewalker web app: library, discover, social, clubs, and reader tools.",
@@ -516,6 +520,7 @@
       "signin.email": "E-mail",
       "signin.password": "Jelszó",
       "signin.submit": "Bejelentkezés",
+      "signin.facebook": "Folytatás Facebookkal",
       "signin.forgot": "Elfelejtetted a jelszót?",
       "signin.createAccount": "Új fiók létrehozása",
 
@@ -527,7 +532,9 @@
       "signup.password": "Jelszó",
       "signup.confirmPassword": "Jelszó megerősítése",
       "signup.submit": "Regisztráció",
+      "signup.facebook": "Regisztráció Facebookkal",
       "signup.haveAccount": "Van már fiókod?",
+      "auth.or": "vagy",
 
       "forgot.title": "Elfelejtett jelszó — Pagewalker",
       "forgot.h1": "Jelszó visszaállítása",
@@ -599,6 +606,7 @@
       "app.resetSent": "Ha létezik fiók ezzel az e-mail címmel, küldtünk egy visszaállító linket. Nézd meg a beérkező leveleket és a spam mappát is.",
       "app.resetInvalid": "Ez a visszaállító link érvénytelen vagy lejárt. Kérj új linket az Elfelejtett jelszó oldalon.",
       "app.passwordUpdated": "A jelszót frissítettük. Jelentkezz be a Pagewalker appban az új jelszóval.",
+      "app.oauthFailed": "A Facebook bejelentkezés jelenleg nem elérhető. Próbáld újra.",
       "app.configError": "Nem tudtuk betölteni a fiókbeállításokat. Frissítsd az oldalt, vagy próbáld újra egy pillanat múlva.",
       "appShell.title": "Pagewalker — Web App",
       "appShell.metaDescription": "Pagewalker webapp: könyvtár, felfedezés, közösség, klubok és olvasó eszközök.",

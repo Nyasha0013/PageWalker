@@ -16,6 +16,27 @@ function hideBanner(el) {
   if (el) el.hidden = true;
 }
 
+async function initOAuthButtons() {
+  const buttons = document.querySelectorAll("[data-pw-oauth]");
+  if (!buttons.length) return;
+  const err = document.getElementById("pw-err");
+  const supabase = await getSupabase();
+  const redirectTo = new URL("/", window.location.origin).href;
+  for (let i = 0; i < buttons.length; i += 1) {
+    const btn = buttons[i];
+    btn.addEventListener("click", async () => {
+      hideBanner(err);
+      const provider = btn.getAttribute("data-pw-oauth");
+      if (!provider) return;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo },
+      });
+      if (error) showBanner(err, "error", error.message || tr("app.oauthFailed"));
+    });
+  }
+}
+
 async function initSignIn() {
   const form = document.getElementById("pw-form-signin");
   const err = document.getElementById("pw-err");
@@ -157,6 +178,7 @@ async function boot() {
   const err = document.getElementById("pw-err");
   try {
     await getSupabase();
+    await initOAuthButtons();
   } catch (e) {
     showBanner(err, "error", tr("app.configError"));
     return;

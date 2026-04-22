@@ -706,6 +706,28 @@ html[data-theme="dark"] .form-stack input {
   margin-top: 0.35rem;
 }
 
+.auth-divider {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.2rem;
+}
+
+.btn-facebook {
+  background: #1877f2;
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(24, 119, 242, 0.35);
+}
+
+.btn-facebook:hover {
+  background: #166fe5;
+  color: #ffffff;
+  box-shadow: 0 10px 28px rgba(24, 119, 242, 0.45);
+}
+
 .page-auth .subnav {
   font-size: 0.92rem;
   color: var(--text-secondary);
