@@ -25,6 +25,8 @@ const STATUS_LABELS = {
   dnf: "DNF",
 };
 let discoverQuery = "";
+let discoverGenre = "romance";
+let discoverMood = "";
 let libraryFilter = "all";
 let socialDraft = { title: "", body: "", rating: "5" };
 let clubsDraft = { name: "", description: "", inviteCode: "", emoji: "📚", maxMembers: "20" };
@@ -110,6 +112,66 @@ async function runSafeQuery(work, emptyText) {
 function normalizeAuthors(authors) {
   if (Array.isArray(authors)) return authors.join(", ");
   return String(authors || "");
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`request_failed_${response.status}`);
+  return response.json();
+}
+
+function getGoogleBooksKey() {
+  return window.PAGEWALKER_PUBLIC_CONFIG?.googleBooksApiKey || "";
+}
+
+function parseGoogleBook(item) {
+  const info = item?.volumeInfo || {};
+  const images = info?.imageLinks || {};
+  let cover = images?.thumbnail || images?.smallThumbnail || null;
+  if (cover) {
+    cover = String(cover).replace("http://", "https://").replace("zoom=1", "zoom=3");
+  }
+  const pubDate = String(info?.publishedDate || "");
+  return {
+    id: `google_${item?.id || Math.random().toString(36).slice(2)}`,
+    title: String(info?.title || "Unknown Title"),
+    author: normalizeAuthors(info?.authors) || "Unknown Author",
+    coverUrl: cover,
+    description: info?.description || null,
+    pageCount: info?.pageCount || null,
+    genres: Array.isArray(info?.categories) ? info.categories : [],
+    publishedYear: pubDate.length >= 4 ? pubDate.slice(0, 4) : null,
+    publisher: info?.publisher || null,
+    googleRating: info?.averageRating || null,
+    source: "google",
+  };
+}
+
+function parseGutendexBook(book) {
+  const formats = book?.formats || {};
+  let cover = null;
+  const keys = Object.keys(formats);
+  for (let i = 0; i < keys.length; i += 1) {
+    if (keys[i].includes("image")) {
+      cover = String(formats[keys[i]] || "").replace("http://", "https://");
+      break;
+    }
+  }
+  const authors = Array.isArray(book?.authors) ? book.authors : [];
+  let author = "Unknown Author";
+  if (authors.length) {
+    const raw = String(authors[0]?.name || "");
+    const parts = raw.split(", ");
+    author = parts.length >= 2 ? `${parts[1]} ${parts[0]}`.trim() : raw;
+  }
+  return {
+    id: `gutenberg_${book?.id || Math.random().toString(36).slice(2)}`,
+    title: String(book?.title || "Untitled"),
+    author,
+    coverUrl: cover,
+    source: "gutenberg",
+    isFree: true,
+  };
 }
 
 function renderBackToProfile() {
@@ -216,42 +278,35 @@ async function renderHome(_supabase, _session) {
 
 async function renderDiscover(supabase, session) {
   const safeQuery = discoverQuery.trim();
-  const catalog = await runSafeQuery(async () => {
-    let query = supabase
-      .from("catalog_books")
-      .select("id, title, authors, cover_url")
-      .order("title", { ascending: true })
-      .limit(24);
-    if (safeQuery) {
-      query = query.ilike("title", `%${safeQuery}%`);
-    }
-    const { data, error } = await query;
-    if (error) throw error;
-    return data || [];
-  }, t("appShell.missingCatalog", "Could not load catalog_books."));
-  const trending = await runSafeQuery(async () => {
-    const { data, error } = await supabase
-      .from("reviews")
-      .select("book_title, title, rating, star_rating")
-      .order("created_at", { ascending: false })
-      .limit(12);
-    if (error) throw error;
-    return data || [];
-  }, t("route.discover.trendingFallback", "Trending data is not available yet."));
-
-  const catalogRows = catalog.filter((book) => !book.__error);
-  const showCatalogError = catalog.some((book) => book.__error);
-  const trendingRows = trending.filter((row) => !row.__error && (row.book_title || row.title));
-  const trendingByBook = {};
-  for (let i = 0; i < trendingRows.length; i += 1) {
-    const name = String(trendingRows[i].book_title || trendingRows[i].title || "").trim();
-    if (!name) continue;
-    trendingByBook[name] = (trendingByBook[name] || 0) + 1;
-  }
-  const trendingItems = Object.entries(trendingByBook)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([name, count]) => `<li><strong>${escapeHtml(name)}</strong><span>${count} ${t("route.discover.recentMentions", "recent mentions")}</span></li>`);
+  const googleKey = getGoogleBooksKey();
+  const [trendingBooks, genreBooks, searchBooks, freeClassics] = await Promise.all([
+    runSafeQuery(async () => {
+      if (!googleKey) return [];
+      const json = await fetchJson(`https://www.googleapis.com/books/v1/volumes?q=subject:fiction&orderBy=relevance&maxResults=12&langRestrict=en&key=${googleKey}`);
+      return (json.items || []).map(parseGoogleBook);
+    }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
+    runSafeQuery(async () => {
+      if (!googleKey) return [];
+      const g = encodeURIComponent(discoverGenre);
+      const json = await fetchJson(`https://www.googleapis.com/books/v1/volumes?q=subject:${g}&orderBy=relevance&maxResults=12&langRestrict=en&key=${googleKey}`);
+      return (json.items || []).map(parseGoogleBook);
+    }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
+    runSafeQuery(async () => {
+      if (!googleKey || !safeQuery) return [];
+      const q = encodeURIComponent(safeQuery);
+      const json = await fetchJson(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=20&langRestrict=en&key=${googleKey}`);
+      return (json.items || []).map(parseGoogleBook);
+    }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
+    runSafeQuery(async () => {
+      const json = await fetchJson("https://gutendex.com/books?languages=en&copyright=false");
+      return (json.results || []).slice(0, 10).map(parseGutendexBook);
+    }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
+  ]);
+  const activeBooks = safeQuery ? searchBooks : genreBooks;
+  const trendingRows = trendingBooks.filter((b) => !b.__error);
+  const activeRows = activeBooks.filter((b) => !b.__error);
+  const classicsRows = freeClassics.filter((b) => !b.__error);
+  const genres = ["romance", "mystery", "adventure", "horror", "fantasy", "history", "drama", "sci-fi"];
 
   return `
     <section class="app-panel">
@@ -265,14 +320,45 @@ async function renderDiscover(supabase, session) {
         </label>
         <button type="submit" class="btn">${t("route.discover.searchAction", "Search")}</button>
       </form>
-      ${showCatalogError ? `<p class="muted">${t("route.discover.catalogUnavailableHint", "Catalog is unavailable right now, so we are showing recent trending titles instead.")}</p>` : ""}
+      <article class="app-panel">
+        <h3>${t("route.discover.moodTitle", "What's your vibe?")}</h3>
+        <div class="cta-actions">
+          ${["Make me cry", "Dark & twisted", "Cozy", "Slow burn", "Magic", "Mystery"].map((m) => `<button class="btn btn-outline" data-mood-chip="${escapeHtml(m)}">${escapeHtml(m)}</button>`).join("")}
+        </div>
+        <form id="pw-mood-form" class="form-stack">
+          <label>
+            <span>${t("route.discover.moodInputLabel", "Mood")}</span>
+            <input id="pw-mood-input" type="text" value="${escapeHtml(discoverMood)}" placeholder="${t("route.discover.moodPlaceholder", "Tell us what you want to feel")}"/>
+          </label>
+          <button type="submit" class="btn">${t("route.discover.moodAction", "Find my next read")}</button>
+        </form>
+        <div id="pw-mood-results"></div>
+      </article>
+      <article class="app-panel">
+        <h3>🔥 ${t("route.discover.trendingTitle", "Trending now")}</h3>
+        <div class="app-grid app-grid-3">
+          ${trendingRows.map((book) => `
+            <article class="app-panel">
+              <h4>${escapeHtml(book.title)}</h4>
+              <p>${escapeHtml(book.author)}</p>
+              <div class="cta-actions"><button class="btn btn-outline" data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button></div>
+            </article>
+          `).join("")}
+        </div>
+      </article>
+      <article class="app-panel">
+        <h3>${t("route.discover.genreTitle", "Explore by genre")}</h3>
+        <div class="cta-actions">
+          ${genres.map((g) => `<button class="btn btn-outline" data-genre-chip="${escapeHtml(g)}">${escapeHtml(g)}</button>`).join("")}
+        </div>
+      </article>
       <div class="app-grid app-grid-3">
         ${
-          catalogRows.map((book) => {
+          activeRows.map((book) => {
             return `
               <article class="app-panel">
                 <h3>${escapeHtml(book.title || "Untitled")}</h3>
-                <p>${escapeHtml(normalizeAuthors(book.authors) || t("route.discover.authorUnknown", "Unknown author"))}</p>
+                <p>${escapeHtml(book.author || t("route.discover.authorUnknown", "Unknown author"))}</p>
                 <div class="cta-actions">
                   <button class="btn btn-outline" data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button>
                   <button class="btn btn-outline" data-discover-add data-status="reading" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addReading", "Mark Reading")}</button>
@@ -282,7 +368,12 @@ async function renderDiscover(supabase, session) {
           }).join("")
         }
       </div>
-      ${catalogRows.length ? "" : `<article class="app-panel"><h3>${t("route.discover.trendingTitle", "Trending now")}</h3>${listToHtml(trendingItems)}</article>`}
+      <article class="app-panel">
+        <h3>📖 ${t("route.discover.freeClassics", "Free classics")}</h3>
+        <div class="app-grid app-grid-3">
+          ${classicsRows.map((book) => `<article class="app-panel"><h4>${escapeHtml(book.title)}</h4><p>${escapeHtml(book.author)}</p><p class="metric">${t("route.discover.freeBadge", "Free")}</p></article>`).join("")}
+        </div>
+      </article>
       <p class="muted">${t("route.discover.noteAuthed", "You are signed in. Use discover + library together.")}</p>
     </section>
   `;
@@ -295,14 +386,22 @@ async function renderLibrary(supabase, session) {
   const rows = await runSafeQuery(async () => {
     const { data, error } = await supabase
       .from("user_books")
-      .select("status, title, author")
+      .select("id, status, title, author, book_id, created_at, books(id,title,author,cover_url,description,page_count,genre)")
       .eq("user_id", session.user.id)
       .order("updated_at", { ascending: false })
-      .limit(12);
+      .limit(40);
     if (error) throw error;
     return data || [];
   }, t("appShell.missingUserBooks", "Could not load user_books."));
-  const cleanRows = rows.filter((r) => !r.__error);
+  const cleanRows = rows.filter((r) => !r.__error).map((r) => {
+    const b = r.books || {};
+    return {
+      ...r,
+      title: r.title || b.title || "Untitled",
+      author: r.author || b.author || "",
+      cover_url: b.cover_url || null,
+    };
+  });
   const counts = LIBRARY_STATUSES.reduce((acc, status) => {
     acc[status] = cleanRows.filter((x) => x.status === status).length;
     return acc;
@@ -347,7 +446,7 @@ async function renderSocial(supabase, session) {
   const reviews = await runSafeQuery(async () => {
     const { data, error } = await supabase
       .from("reviews")
-      .select("id, user_id, title, review_text, rating, content, star_rating, created_at, book_title")
+      .select("id, user_id, title, review_text, rating, content, star_rating, created_at, book_title, book_author, profiles(username, display_name, avatar_url)")
       .order("created_at", { ascending: false })
       .limit(25);
     if (error) throw error;
@@ -358,10 +457,15 @@ async function renderSocial(supabase, session) {
     const title = r.title || r.book_title || t("route.social.reviewTitle", "Review");
     const body = r.review_text || r.content || "";
     const ratingValue = r.rating ?? r.star_rating ?? "-";
+    const displayName =
+      r.profiles?.display_name ||
+      r.profiles?.username ||
+      t("route.social.anonymous", "Reader");
     const isMine = r.user_id && r.user_id === session.user.id;
     return `
       <article class="app-panel">
         <h3>${escapeHtml(title)}</h3>
+        <p class="muted">${escapeHtml(displayName)}</p>
         <p>${escapeHtml(body)}</p>
         <p class="metric">${t("route.social.rating", "Rating")}: ${escapeHtml(ratingValue)}</p>
         ${isMine ? `<div class="cta-actions"><button class="btn btn-outline" data-social-edit="${escapeHtml(r.id)}" data-social-title="${escapeHtml(title)}" data-social-body="${escapeHtml(body)}" data-social-rating="${escapeHtml(String(ratingValue === "-" ? 5 : ratingValue))}">${t("route.social.edit", "Edit")}</button><button class="btn btn-outline" data-social-delete="${escapeHtml(r.id)}">${t("route.social.delete", "Delete")}</button></div>` : ""}
@@ -590,7 +694,7 @@ async function renderProfile(supabase, session) {
   const profiles = await runSafeQuery(async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("username, full_name, bio")
+      .select("username, full_name, display_name, bio")
       .eq("id", session.user.id)
       .maybeSingle();
     if (error) throw error;
@@ -598,6 +702,21 @@ async function renderProfile(supabase, session) {
   }, t("appShell.missingProfile", "Could not load profile."));
 
   const profile = profiles[0] || {};
+  if (!profile?.username) {
+    try {
+      const emailPrefix = String(session.user.email || "reader")
+        .split("@")[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+      await supabase.from("profiles").upsert({
+        id: session.user.id,
+        username: emailPrefix || "reader",
+        display_name: emailPrefix || "reader",
+      });
+      profile.username = emailPrefix || "reader";
+      profile.display_name = emailPrefix || "reader";
+    } catch (_) {}
+  }
   return `
     ${authPanel}
     <section class="app-grid app-grid-3">
@@ -606,7 +725,7 @@ async function renderProfile(supabase, session) {
         <div class="profile-grid">
           <div><span class="muted">${t("route.profile.email", "Email")}</span><p>${escapeHtml(session.user.email || "-")}</p></div>
           <div><span class="muted">${t("route.profile.username", "Username")}</span><p>${escapeHtml(profile.username || "-")}</p></div>
-          <div><span class="muted">${t("route.profile.fullName", "Name")}</span><p>${escapeHtml(profile.full_name || "-")}</p></div>
+          <div><span class="muted">${t("route.profile.fullName", "Name")}</span><p>${escapeHtml(profile.full_name || profile.display_name || "-")}</p></div>
         </div>
         <p>${escapeHtml(profile.bio || t("route.profile.bioEmpty", "No bio yet."))}</p>
       </article>
@@ -669,6 +788,53 @@ function bindDiscoverActions(supabase, session, rerender) {
     event.preventDefault();
     discoverQuery = String(input?.value || "").trim();
     rerender();
+  });
+  const genreButtons = document.querySelectorAll("[data-genre-chip]");
+  for (let i = 0; i < genreButtons.length; i += 1) {
+    genreButtons[i].addEventListener("click", () => {
+      discoverGenre = String(genreButtons[i].getAttribute("data-genre-chip") || "romance");
+      discoverQuery = "";
+      rerender();
+    });
+  }
+  const moodButtons = document.querySelectorAll("[data-mood-chip]");
+  for (let i = 0; i < moodButtons.length; i += 1) {
+    moodButtons[i].addEventListener("click", () => {
+      const v = String(moodButtons[i].getAttribute("data-mood-chip") || "");
+      const moodInput = document.getElementById("pw-mood-input");
+      if (moodInput) moodInput.value = v;
+      discoverMood = v;
+    });
+  }
+  const moodForm = document.getElementById("pw-mood-form");
+  moodForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const moodInput = document.getElementById("pw-mood-input");
+    const mood = String(moodInput?.value || "").trim();
+    discoverMood = mood;
+    if (!mood) return;
+    const resultsRoot = document.getElementById("pw-mood-results");
+    if (resultsRoot) {
+      resultsRoot.innerHTML = `<p class="muted">${t("route.discover.loadingMood", "Finding recommendations...")}</p>`;
+    }
+    try {
+      const response = await fetch("/api/mood-recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mood }),
+      });
+      const data = await response.json();
+      const rows = Array.isArray(data.recommendations) ? data.recommendations : [];
+      if (resultsRoot) {
+        resultsRoot.innerHTML = rows.length
+          ? `<div class="app-grid app-grid-3">${rows.map((r) => `<article class="app-panel"><h4>${escapeHtml(r.title || "Book")}</h4><p>${escapeHtml(r.author || "")}</p><p>${escapeHtml(r.reason || "")}</p></article>`).join("")}</div>`
+          : `<p class="muted">${t("route.discover.noMoodResults", "No recommendations yet. Try another mood.")}</p>`;
+      }
+    } catch (_) {
+      if (resultsRoot) {
+        resultsRoot.innerHTML = `<p class="muted">${t("route.discover.noMoodResults", "No recommendations yet. Try another mood.")}</p>`;
+      }
+    }
   });
   const addButtons = document.querySelectorAll("[data-discover-add]");
   for (let i = 0; i < addButtons.length; i += 1) {

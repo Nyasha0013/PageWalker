@@ -5,7 +5,11 @@
 function configFromWindow() {
   const w = window.PAGEWALKER_PUBLIC_CONFIG;
   if (w && w.supabaseUrl && w.supabaseAnonKey) {
-    return { supabaseUrl: w.supabaseUrl, supabaseAnonKey: w.supabaseAnonKey };
+    return {
+      supabaseUrl: w.supabaseUrl,
+      supabaseAnonKey: w.supabaseAnonKey,
+      googleBooksApiKey: w.googleBooksApiKey || "",
+    };
   }
   return null;
 }
@@ -19,6 +23,7 @@ export async function loadPublicConfig() {
         return {
           supabaseUrl: data.supabaseUrl,
           supabaseAnonKey: data.supabaseAnonKey,
+          googleBooksApiKey: data.googleBooksApiKey || "",
         };
       }
     }
