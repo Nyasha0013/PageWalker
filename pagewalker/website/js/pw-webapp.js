@@ -112,6 +112,14 @@ function normalizeAuthors(authors) {
   return String(authors || "");
 }
 
+function renderBackToProfile() {
+  return `
+    <p>
+      <a class="btn btn-outline" href="/profile" data-link-route="/profile">${t("common.backProfile", "← Back to Profile")}</a>
+    </p>
+  `;
+}
+
 function formatDuration(totalSeconds) {
   const safe = Math.max(0, Number(totalSeconds || 0));
   const h = String(Math.floor(safe / 3600)).padStart(2, "0");
@@ -224,6 +232,7 @@ async function renderDiscover(supabase, session) {
 
   return `
     <section class="app-panel">
+      ${renderBackToProfile()}
       <h2>${t("route.discover.title", "Discover & search")}</h2>
       <p>${t("route.discover.body", "Browse catalog books and use app search from web.")}</p>
       <form id="pw-discover-search" class="form-stack">
@@ -282,6 +291,7 @@ async function renderLibrary(supabase, session) {
 
   return `
     <section class="app-panel">
+      ${renderBackToProfile()}
       <h2>${t("route.library.title", "Library")}</h2>
       <div class="cta-actions">
         <button class="btn btn-outline" data-library-filter="all">${t("route.library.filterAll", "All")} (${cleanRows.length})</button>
@@ -337,6 +347,7 @@ async function renderSocial(supabase, session) {
 
   return `
     <section class="app-panel">
+      ${renderBackToProfile()}
       <h2>${t("route.social.title", "Reviews & social")}</h2>
       <form id="pw-social-form" class="form-stack">
         <label>
@@ -405,6 +416,7 @@ async function renderClubs(supabase, session) {
 
   return `
     <section class="app-panel">
+      ${renderBackToProfile()}
       <h2>${t("route.clubs.title", "Book clubs")}</h2>
       <div class="app-grid app-grid-2">
         <article class="app-panel">
@@ -495,6 +507,7 @@ async function renderReader(supabase, session) {
 
   return `
     <section class="app-panel">
+      ${renderBackToProfile()}
       <h2>${t("route.reader.title", "Reader tools")}</h2>
       <p class="metric">${t("route.reader.minutes", "Total minutes (latest sessions)")}: ${totalMinutes}</p>
       <article class="app-panel">
