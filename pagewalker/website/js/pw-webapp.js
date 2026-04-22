@@ -1,6 +1,7 @@
 import { getSupabase } from "./pw-supabase.js";
 import { initUserMenu } from "./pw-user-menu.js";
 import { closeAuthNudge, guardAuthAction } from "./pw-auth-nudge.js";
+import { initAppDrawer } from "./pw-drawer.js";
 
 const APP_ROUTES = new Set([
   "/",
@@ -32,6 +33,7 @@ const STATUS_LABELS = {
 let discoverQuery = "";
 let discoverGenre = "romance";
 let discoverMood = "";
+const DISCOVER_MOOD_PRESETS = ["Make me cry", "Dark & twisted", "Cozy", "Slow burn", "Magic", "Mystery"];
 let libraryFilter = "all";
 let discoverPaging = {
   trendingPage: 1,
@@ -573,32 +575,54 @@ async function renderDiscover(supabase, session) {
   const classicsRows = (freeClassics?.books || []).filter((b) => !b.__error);
   const activeHasMore = safeQuery ? !!searchBooks?.hasMore : !!genreBooks?.hasMore;
   const genres = ["romance", "mystery", "adventure", "horror", "fantasy", "history", "drama", "sci-fi"];
+  const moodInPreset = Boolean(discoverMood && DISCOVER_MOOD_PRESETS.includes(discoverMood));
+  const moodSelectValue = !discoverMood ? "" : moodInPreset ? discoverMood : "__custom";
+  const moodCustomValue = !moodInPreset && discoverMood ? discoverMood : "";
 
   return `
     <section class="app-panel">
       <h2>${t("route.discover.title", "Discover & search")}</h2>
       <p>${t("route.discover.body", "Browse catalog books and use app search from web.")}</p>
-      <form id="pw-discover-search" class="form-stack pw-sticky-bar">
-        <label>
-          <span>${t("route.discover.searchLabel", "Search books")}</span>
-          <input id="pw-discover-query" type="text" value="${escapeHtml(safeQuery)}" placeholder="${t("route.discover.searchPlaceholder", "Search by title")}" />
-        </label>
-        <button type="submit" class="btn">${t("route.discover.searchAction", "Search")}</button>
-      </form>
-      <article class="app-panel pw-sticky-bar">
-        <h3>${t("route.discover.moodTitle", "What's your vibe?")}</h3>
-        <div class="cta-actions">
-          ${["Make me cry", "Dark & twisted", "Cozy", "Slow burn", "Magic", "Mystery"].map((m) => `<button class="btn btn-outline" data-mood-chip="${escapeHtml(m)}">${escapeHtml(m)}</button>`).join("")}
+      <div class="pw-discover-tools">
+        <div class="pw-discover-tiles">
+          <article class="app-panel pw-discover-tile">
+            <h3 class="pw-discover-tile__title">${t("route.discover.searchLabel", "Search books")}</h3>
+            <form id="pw-discover-search" class="pw-discover-tile__body form-stack">
+              <label>
+                <span class="pw-discover-sr-only">${t("route.discover.searchLabel", "Search books")}</span>
+                <input id="pw-discover-query" type="search" autocomplete="off" value="${escapeHtml(safeQuery)}" placeholder="${t("route.discover.searchPlaceholder", "Search by title")}" />
+              </label>
+              <button type="submit" class="btn">${t("route.discover.searchAction", "Search")}</button>
+            </form>
+          </article>
+          <article class="app-panel pw-discover-tile">
+            <h3 class="pw-discover-tile__title">${t("route.discover.moodTitle", "What's your vibe?")}</h3>
+            <form id="pw-mood-form" class="pw-discover-tile__body form-stack">
+              <label class="form-stack" style="gap:0.35rem">
+                <span class="pw-discover-sr-only">${t("route.discover.moodInputLabel", "Mood")}</span>
+                <select id="pw-mood-select" class="pw-select" aria-label="${escapeHtml(t("route.discover.moodTitle", "What's your vibe?"))}">
+                  <option value="">${t("route.discover.moodSelectHint", "Choose a vibe…")}</option>
+                  ${DISCOVER_MOOD_PRESETS.map(
+                    (m) =>
+                      `<option value="${escapeHtml(m)}"${moodSelectValue === m ? " selected" : ""}>${escapeHtml(m)}</option>`,
+                  ).join("")}
+                  <option value="__custom" ${moodSelectValue === "__custom" ? " selected" : ""}>${t("route.discover.moodCustom", "Custom…")}</option>
+                </select>
+                <input
+                  id="pw-mood-input"
+                  type="text"
+                  class="pw-mood-custom-input"
+                  value="${escapeHtml(moodCustomValue)}"
+                  placeholder="${t("route.discover.moodPlaceholder", "Describe your mood")}"
+                  ${moodSelectValue === "__custom" ? "" : " hidden"}
+                />
+              </label>
+              <button type="submit" class="btn">${t("route.discover.moodAction", "Find my next read")}</button>
+            </form>
+          </article>
         </div>
-        <form id="pw-mood-form" class="form-stack">
-          <label>
-            <span>${t("route.discover.moodInputLabel", "Mood")}</span>
-            <input id="pw-mood-input" type="text" value="${escapeHtml(discoverMood)}" placeholder="${t("route.discover.moodPlaceholder", "Tell us what you want to feel")}"/>
-          </label>
-          <button type="submit" class="btn">${t("route.discover.moodAction", "Find my next read")}</button>
-        </form>
-        <div id="pw-mood-results"></div>
-      </article>
+        <div id="pw-mood-results" class="pw-mood-results-below"></div>
+      </div>
       <article class="app-panel">
         <h3>🔥 ${t("route.discover.trendingTitle", "Trending now")}</h3>
         <div class="pw-poster-grid">
@@ -1267,20 +1291,23 @@ function bindDiscoverActions(supabase, session, rerender) {
       rerender();
     });
   }
-  const moodButtons = document.querySelectorAll("[data-mood-chip]");
-  for (let i = 0; i < moodButtons.length; i += 1) {
-    moodButtons[i].addEventListener("click", () => {
-      const v = String(moodButtons[i].getAttribute("data-mood-chip") || "");
-      const moodInput = document.getElementById("pw-mood-input");
-      if (moodInput) moodInput.value = v;
-      discoverMood = v;
-    });
-  }
+  const moodSelect = document.getElementById("pw-mood-select");
+  const moodInput = document.getElementById("pw-mood-input");
+  const syncMoodCustom = () => {
+    if (!moodInput || !moodSelect) return;
+    if (moodSelect.value === "__custom") moodInput.removeAttribute("hidden");
+    else moodInput.setAttribute("hidden", "");
+  };
+  moodSelect?.addEventListener("change", syncMoodCustom);
+  syncMoodCustom();
   const moodForm = document.getElementById("pw-mood-form");
   moodForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const moodInput = document.getElementById("pw-mood-input");
-    const mood = String(moodInput?.value || "").trim();
+    const sel = document.getElementById("pw-mood-select");
+    const mInput = document.getElementById("pw-mood-input");
+    let mood = "";
+    if (sel?.value === "__custom") mood = String(mInput?.value || "").trim();
+    else mood = String(sel?.value || "").trim();
     discoverMood = mood;
     if (!mood) return;
     const resultsRoot = document.getElementById("pw-mood-results");
@@ -1825,6 +1852,7 @@ async function boot() {
   }
 
   const userMenu = initUserMenu(supabase);
+  const appDrawer = initAppDrawer();
   window.pwSyncNav = function pwSyncNav() {
     const route = APP_ROUTES.has(window.location.pathname) ? window.location.pathname : "/";
     setActiveRoute(route);
@@ -1833,6 +1861,7 @@ async function boot() {
   const render = async () => {
     userMenu.close();
     closeAuthNudge();
+    appDrawer.close();
     await renderRoute(supabase, session);
   };
 

@@ -963,12 +963,197 @@ html[data-theme="dark"] .form-stack input {
   gap: 0.75rem 1.25rem;
 }
 
+.app-header-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pw-header-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.pw-header-menu:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--card-alt);
+}
+
+.pw-header-menu:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.pw-header-menu svg {
+  display: block;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Left app drawer: full nav, reduces header clutter */
+.pw-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.pw-drawer-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.pw-app-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 210;
+  width: min(22.5rem, 92vw);
+  max-width: 100%;
+  background: var(--header-bg);
+  border-right: 1px solid var(--header-border);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.pw-app-drawer.is-open {
+  transform: translateX(0);
+}
+
+body.pw-app-drawer-open {
+  overflow: hidden;
+}
+
+.pw-app-drawer__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.pw-app-drawer__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pw-drawer-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pw-drawer-close:hover {
+  color: var(--text);
+  background: var(--primary-soft);
+}
+
+.pw-app-drawer__nav {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.4rem 0.35rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+a.pw-drawer__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.75rem 0.7rem;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+a.pw-drawer__item:hover {
+  background: var(--primary-soft);
+  text-decoration: none;
+}
+
+a.pw-drawer__item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+a.pw-drawer__item[data-active] {
+  background: var(--primary-soft);
+  border-color: var(--border-strong);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.pw-drawer__label {
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: var(--text);
+}
+
+.pw-drawer__desc {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 .app-header-right {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 /* ───── Web app: account avatar + dropdown (index shell) ───── */
@@ -1135,6 +1320,65 @@ html[data-theme="dark"] .form-stack input {
 .pw-user-menu__actions--guest .btn {
   text-align: center;
   text-decoration: none;
+}
+
+.pw-discover-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pw-discover-tiles {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 700px) {
+  .pw-discover-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .pw-discover-tile {
+    aspect-ratio: 1;
+    min-height: 0;
+    max-height: min(20rem, 40vw);
+  }
+}
+
+.pw-discover-tile {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pw-discover-tile__title {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+  font-family: var(--font-display);
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.pw-discover-tile__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pw-mood-results-below {
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
 }
 
 /* ───── Auth nudge (guests on Add to TBR, etc.) ───── */
