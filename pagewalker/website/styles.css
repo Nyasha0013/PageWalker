@@ -1297,6 +1297,10 @@ html[data-theme="dark"] .form-stack input {
   place-items: center;
 }
 
+.pw-modal[hidden] {
+  display: none !important;
+}
+
 .pw-modal-backdrop {
   position: absolute;
   inset: 0;
