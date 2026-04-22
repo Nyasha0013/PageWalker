@@ -540,7 +540,7 @@
       "route.profile.photoChoose": "Upload photo",
       "route.profile.photoRemove": "Remove photo",
       "route.profile.photoHint":
-        "JPG, PNG, or WebP, up to 2 MB. Shown in the header and menu next to your name.",
+        "JPG, PNG, or WebP, up to 2 MB. Shown in the header and menu next to your name. On a phone, you can use your camera or photo library when you pick a file.",
       "route.profile.photoTypeError": "Please choose a JPG, PNG, or WebP image.",
       "route.profile.photoSizeError": "Image must be 2 MB or smaller.",
       "route.profile.photoUploading": "Uploading…",
@@ -865,7 +865,7 @@
       "route.profile.photoChoose": "Fénykép feltöltése",
       "route.profile.photoRemove": "Fénykép eltávolítása",
       "route.profile.photoHint":
-        "JPG, PNG vagy WebP, legfeljebb 2 MB. A fejlécben és a menüben jelenik meg a neved mellett.",
+        "JPG, PNG vagy WebP, legfeljebb 2 MB. A fejlécben és a menüben jelenik meg a neved mellett. Telefonon a fájl kiválasztásakor a kamera vagy a galéria is használható.",
       "route.profile.photoTypeError": "Válassz JPG, PNG vagy WebP képet.",
       "route.profile.photoSizeError": "A kép legfeljebb 2 MB lehet.",
       "route.profile.photoUploading": "Feltöltés…",
