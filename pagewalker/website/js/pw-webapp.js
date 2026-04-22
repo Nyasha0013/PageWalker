@@ -1286,7 +1286,7 @@ async function renderReader(supabase, session) {
     runSafeQuery(async () => {
       const { data, error } = await supabase
         .from("reading_sessions")
-        .select("minutes_read, duration_seconds, started_at, ended_at, pages_read")
+        .select("duration_seconds, started_at, ended_at, pages_read, created_at")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false })
         .limit(30);
@@ -1306,7 +1306,7 @@ async function renderReader(supabase, session) {
   ]);
 
   const totalMinutes = sessions.reduce((sum, x) => {
-    if (x.minutes_read != null) return sum + Number(x.minutes_read || 0);
+    if (x.__error) return sum;
     return sum + Math.round(Number(x.duration_seconds || 0) / 60);
   }, 0);
   const historyItems = history.map((h) => {
@@ -1317,7 +1317,7 @@ async function renderReader(supabase, session) {
     .filter((x) => !x.__error)
     .slice(0, 6)
     .map((x) => {
-      const seconds = Number(x.duration_seconds || Number(x.minutes_read || 0) * 60);
+      const seconds = Number(x.duration_seconds || 0);
       const pages = Number(x.pages_read || 0);
       return `<li><strong>${formatDuration(seconds)}</strong><span>${pages > 0 ? `${pages} ${t("route.reader.pages", "pages")} · ` : ""}${escapeHtml(x.ended_at || x.started_at || "")}</span></li>`;
     });
@@ -1987,8 +1987,7 @@ function bindReaderActions(supabase, session, rerender) {
         user_id: session.user.id,
         started_at: startedAt.toISOString(),
         ended_at: endedAt.toISOString(),
-        duration_seconds: readerTimer.elapsedSeconds,
-        minutes_read: Math.max(1, Math.round(readerTimer.elapsedSeconds / 60)),
+        duration_seconds: Math.round(readerTimer.elapsedSeconds),
         pages_read: pagesRead,
       };
       const { error } = await supabase.from("reading_sessions").insert(payload);
