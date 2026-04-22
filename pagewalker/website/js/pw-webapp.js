@@ -1236,7 +1236,6 @@ async function renderProfile(supabase, session) {
             <button type="button" class="btn btn-outline" id="pw-profile-photo-remove"${!avatarUrl ? " hidden" : ""}>${t("route.profile.photoRemove", "Remove photo")}</button>
           </div>
         </div>
-        <p class="muted" id="pw-profile-photo-hint">${t("route.profile.photoHint", "JPG, PNG, or WebP, up to 2 MB. Shown in the header and menu next to your name. On a phone, you can use your camera or photo library when you pick a file.")}</p>
         <p class="muted" id="pw-profile-photo-status" role="status" hidden></p>
         <div class="profile-grid">
           <div><span class="muted">${t("route.profile.email", "Email")}</span><p>${escapeHtml(session.user.email || "-")}</p></div>
