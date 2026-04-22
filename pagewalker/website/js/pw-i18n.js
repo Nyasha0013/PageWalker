@@ -314,7 +314,6 @@
       "signin.password": "Password",
       "signin.submit": "Sign in",
       "signin.google": "Continue with Google",
-      "signin.facebook": "Continue with Facebook",
       "signin.forgot": "Forgot password?",
       "signin.createAccount": "Create an account",
 
@@ -327,7 +326,6 @@
       "signup.confirmPassword": "Confirm password",
       "signup.submit": "Sign up",
       "signup.google": "Sign up with Google",
-      "signup.facebook": "Sign up with Facebook",
       "signup.haveAccount": "Already have an account?",
       "auth.or": "or",
 
@@ -538,7 +536,6 @@
       "signin.password": "Jelszó",
       "signin.submit": "Bejelentkezés",
       "signin.google": "Folytatás Google-lel",
-      "signin.facebook": "Folytatás Facebookkal",
       "signin.forgot": "Elfelejtetted a jelszót?",
       "signin.createAccount": "Új fiók létrehozása",
 
@@ -551,7 +548,6 @@
       "signup.confirmPassword": "Jelszó megerősítése",
       "signup.submit": "Regisztráció",
       "signup.google": "Regisztráció Google-lel",
-      "signup.facebook": "Regisztráció Facebookkal",
       "signup.haveAccount": "Van már fiókod?",
       "auth.or": "vagy",
 
