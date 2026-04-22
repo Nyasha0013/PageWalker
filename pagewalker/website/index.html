@@ -1,26 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-pw-page="web-app">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#ff6b1a" />
-    <meta name="description" data-i18n-meta="home.metaDescription"
-      content="Pagewalker — discover books, track reading, join book clubs, and connect with readers. Official site." />
+    <meta name="description" data-i18n-meta="appShell.metaDescription" content="Pagewalker web app: library, discover, social, clubs, and reader tools." />
     <meta property="og:title" content="Pagewalker" />
-    <meta property="og:description" data-i18n-meta="home.metaDescription"
-      content="Pagewalker — discover books, track reading, join book clubs, and connect with readers." />
+    <meta property="og:description" data-i18n-meta="appShell.metaDescription" content="Pagewalker web app: library, discover, social, clubs, and reader tools." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://pagewalker.org/" />
     <meta property="og:locale" content="en_US" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Pagewalker" />
-    <meta name="twitter:description" data-i18n-meta="home.metaDescription"
-      content="Book discovery, reading tracking, and reader friends — one happy shelf at a time." />
+    <meta name="twitter:description" data-i18n-meta="appShell.metaDescription" content="Pagewalker web app: library, discover, social, clubs, and reader tools." />
     <link rel="canonical" href="https://pagewalker.org/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="manifest" href="/site.webmanifest" />
-    <title data-i18n-title="home.title">Pagewalker — Reading, together</title>
+    <title data-i18n-title="appShell.title">Pagewalker — Web App</title>
     <script>
       (function () {
         try {
@@ -38,16 +35,25 @@
   <body>
     <a class="skip-link" href="#main" data-i18n="common.skip">Skip to content</a>
     <header class="site-header">
-      <div class="wrap inner">
-        <a class="logo" href="/">Pagewalker</a>
-        <nav class="nav" aria-label="Main">
-          <a href="/" data-i18n="nav.home">Home</a>
-          <a href="/updates" data-i18n="nav.updates">Updates</a>
-          <a href="/sign-in" data-i18n="nav.signIn">Sign in</a>
-          <a href="/sign-up" data-i18n="nav.signUp">Sign up</a>
-          <a href="/privacy" data-i18n="nav.privacy">Privacy</a>
-          <a href="/terms" data-i18n="nav.terms">Terms</a>
-          <a href="mailto:nkimwalker@gmail.com" data-i18n="nav.support">Support</a>
+      <div class="wrap inner app-header-inner">
+        <a class="logo" href="/" data-link-route="/">Pagewalker</a>
+        <nav class="nav app-nav" aria-label="Main">
+          <a href="/" data-link-route="/" data-i18n="appNav.home">Home</a>
+          <a href="/discover" data-link-route="/discover" data-i18n="appNav.discover">Discover</a>
+          <a href="/library" data-link-route="/library" data-i18n="appNav.library">Library</a>
+          <a href="/social" data-link-route="/social" data-i18n="appNav.social">Social</a>
+          <a href="/clubs" data-link-route="/clubs" data-i18n="appNav.clubs">Clubs</a>
+          <a href="/reader" data-link-route="/reader" data-i18n="appNav.reader">Reader</a>
+          <a href="/profile" data-link-route="/profile" data-i18n="appNav.profile">Profile</a>
+        </nav>
+        <div class="app-header-right">
+          <nav class="nav app-nav app-nav-secondary" aria-label="Info">
+            <a href="/about" data-i18n="nav.about">About</a>
+            <a href="/updates" data-i18n="nav.updates">Updates</a>
+            <a href="/privacy" data-i18n="nav.privacy">Privacy</a>
+            <a href="/terms" data-i18n="nav.terms">Terms</a>
+            <a href="mailto:nkimwalker@gmail.com" data-i18n="nav.support">Support</a>
+          </nav>
           <div class="site-controls">
             <select class="pw-select pw-lang-select" data-i18n-attr="aria-label:toolbar.language" aria-label="Language">
               <option value="en">English</option>
@@ -59,103 +65,32 @@
               <svg data-icon="system" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
             </button>
           </div>
-        </nav>
+        </div>
       </div>
     </header>
 
-    <main id="main">
-      <section class="hero wrap">
-        <div class="hero-inner reveal">
-          <h1>
-            <span data-i18n="home.heroLine1">Walk your shelves.</span><br />
-            <span class="accent" data-i18n="home.heroLine2">Share the story.</span>
-          </h1>
-          <p class="lede" data-i18n="home.heroLede">
-            Your cozy corner for TBR piles, reading streaks, spicy reviews, and book-club
-            chaos — all the bookish energy, none of the pirated pages.
-          </p>
-          <div class="hero-actions">
-            <a class="badge-play"
-              href="https://play.google.com/store/apps/details?id=com.pagewalker.app"
-              rel="noopener noreferrer"
-              data-i18n-attr="aria-label:home.playAlt"
-              aria-label="Get it on Google Play">
-              <img
-                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-                data-i18n-attr="alt:home.playAlt"
-                alt="Get it on Google Play"
-                width="646" height="250" />
-            </a>
-          </div>
-          <p class="hero-tagline" data-i18n="home.heroTagline">
-            Free on Google Play · same login here &amp; in the app
-          </p>
-          <p class="hero-aux">
-            <a href="/updates" data-i18n="home.whatsNew">What's new</a>
-            ·
-            <a href="/sign-in" data-i18n="home.signInWeb">Sign in on the web</a>
-          </p>
+    <main id="main" class="wrap web-app-main">
+      <div id="pw-err" class="pw-banner" hidden></div>
+      <div id="pw-ok" class="pw-banner pw-banner--success" hidden></div>
+      <section class="webapp-hero">
+        <h1 data-i18n="appShell.heroTitle">Your full Pagewalker experience on web</h1>
+        <p data-i18n="appShell.heroLede">Sign in once and move across library, discover, social, clubs, and reader tools.</p>
+        <div class="webapp-auth-row">
+          <span id="pw-auth-state" class="badge-outline" data-i18n="appShell.authGuest">Guest mode</span>
+          <button id="pw-btn-signin" class="btn" data-i18n="appShell.signIn">Sign in</button>
+          <button id="pw-btn-signup" class="btn btn-outline" data-i18n="appShell.signUp">Sign up</button>
+          <button id="pw-btn-signout" class="btn btn-outline" hidden data-i18n="appShell.signOut">Sign out</button>
         </div>
       </section>
 
-      <section class="features wrap" aria-labelledby="features-heading">
-        <h2 id="features-heading" class="reveal" data-i18n="home.featuresHeading">Your reading universe</h2>
-        <div class="grid">
-          <div class="card reveal reveal-delay-1">
-            <span class="card-emoji" aria-hidden="true">📚</span>
-            <h3 data-i18n="home.feature1Title">Discover &amp; stack</h3>
-            <p data-i18n="home.feature1Desc">Hunt your next obsession, curate your TBR, and flex your finished pile like the main character you are.</p>
-          </div>
-          <div class="card reveal reveal-delay-2">
-            <span class="card-emoji" aria-hidden="true">✨</span>
-            <h3 data-i18n="home.feature2Title">Track the vibe</h3>
-            <p data-i18n="home.feature2Desc">Sessions, streaks, and yearly wraps so your reading era gets the spotlight.</p>
-          </div>
-          <div class="card reveal reveal-delay-3">
-            <span class="card-emoji" aria-hidden="true">💌</span>
-            <h3 data-i18n="home.feature3Title">Gossip &amp; clubs</h3>
-            <p data-i18n="home.feature3Desc">Hot takes, profiles, and book-club rooms for when you need to process that ending together.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="quotes wrap" aria-labelledby="quotes-heading">
-        <h2 id="quotes-heading" class="reveal" data-i18n="home.quotesHeading">Little reading joys</h2>
-        <p class="quotes-intro reveal" data-i18n="home.quotesIntro">Tiny reminders for when you need one more chapter.</p>
-        <div class="quote-grid">
-          <figure class="quote-card reveal reveal-delay-1">
-            <blockquote data-i18n="home.quote1">"Stack the TBR. Slay the slump. Repeat."</blockquote>
-            <figcaption data-i18n="home.quote1Cap">— The Pagewalker mood</figcaption>
-          </figure>
-          <figure class="quote-card reveal reveal-delay-2">
-            <blockquote data-i18n="home.quote2">"Your plot-twist era starts on page one."</blockquote>
-            <figcaption data-i18n="home.quote2Cap">— For night-owl readers</figcaption>
-          </figure>
-          <figure class="quote-card reveal reveal-delay-3">
-            <blockquote data-i18n="home.quote3">"Stars, shelves, and a little bit of chaos."</blockquote>
-            <figcaption data-i18n="home.quote3Cap">— Book club optional, drama guaranteed</figcaption>
-          </figure>
-        </div>
-      </section>
-
-      <section class="cta-band" aria-labelledby="cta-heading">
-        <div class="wrap cta-inner reveal">
-          <h2 id="cta-heading" data-i18n="home.ctaHeading">Start your next chapter</h2>
-          <p class="cta-lede" data-i18n="home.ctaLede">Get the app on Google Play, read release notes, or reach out for support.</p>
-          <div class="cta-actions">
-            <a class="btn" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer" data-i18n="home.ctaPlay">Get it on Google Play</a>
-            <a class="btn btn-outline" href="/updates" data-i18n="home.ctaUpdates">Read updates</a>
-            <a class="btn btn-outline" href="mailto:nkimwalker@gmail.com?subject=Pagewalker" data-i18n="home.ctaHello">Say hello</a>
-          </div>
-        </div>
-      </section>
+      <section id="pw-route-content" class="webapp-content"></section>
     </main>
 
     <footer>
       <div class="wrap inner">
         <div class="links">
+          <a href="/about" data-i18n="nav.about">About</a>
           <a href="/updates" data-i18n="nav.updates">Updates</a>
-          <a href="/sign-in" data-i18n="nav.signIn">Sign in</a>
           <a href="/privacy" data-i18n="nav.privacy">Privacy</a>
           <a href="/terms" data-i18n="nav.terms">Terms</a>
           <a href="mailto:nkimwalker@gmail.com">nkimwalker@gmail.com</a>
@@ -166,5 +101,7 @@
 
     <script src="/js/pw-i18n.js"></script>
     <script src="/js/pw-theme.js"></script>
+    <script src="/js/public-config.js"></script>
+    <script type="module" src="/js/pw-webapp.js"></script>
   </body>
 </html>

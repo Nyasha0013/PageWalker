@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://pagewalker.org/</loc><changefreq>weekly</changefreq><priority>1</priority></url>
+  <url><loc>https://pagewalker.org/discover</loc><changefreq>daily</changefreq><priority>0.95</priority></url>
+  <url><loc>https://pagewalker.org/library</loc><changefreq>daily</changefreq><priority>0.95</priority></url>
+  <url><loc>https://pagewalker.org/social</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pagewalker.org/clubs</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pagewalker.org/reader</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pagewalker.org/profile</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://pagewalker.org/about</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
   <url><loc>https://pagewalker.org/updates</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
   <url><loc>https://pagewalker.org/sign-in</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://pagewalker.org/sign-up</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
