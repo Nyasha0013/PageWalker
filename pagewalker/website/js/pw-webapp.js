@@ -661,7 +661,7 @@ async function upsertUserBookStatus(supabase, userId, book, status) {
 async function fetchReviewsWithAuthorRows(supabase, limit) {
   const { data, error } = await supabase
     .from("reviews")
-    .select("id, user_id, title, review_text, rating, content, star_rating, created_at, book_title, book_author")
+    .select("id, user_id, title, review_text, content, star_rating, created_at, book_title, book_author")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -736,7 +736,7 @@ async function renderHome(_supabase, _session) {
       <div class="pw-review-feed">
         ${reviewRows.length ? reviewRows.map((review) => `
           <article class="pw-review-row">
-            <p><strong>${escapeHtml(review.book_title || review.title || "Book")}</strong> · ${toStars(review.rating)}</p>
+            <p><strong>${escapeHtml(review.book_title || review.title || "Book")}</strong> · ${toStars(review.rating ?? review.star_rating)}</p>
             <p>${escapeHtml(truncateText(review.review_text || "", 130))}</p>
             <p class="muted">by ${escapeHtml(review.profiles?.display_name || review.profiles?.username || "Reader")}</p>
           </article>
@@ -2051,7 +2051,6 @@ function bindSocialActions(supabase, session, rerender) {
           .update({
             title,
             review_text: body,
-            rating,
             content: body,
             star_rating: rating,
             updated_at: new Date().toISOString(),
@@ -2065,7 +2064,6 @@ function bindSocialActions(supabase, session, rerender) {
           user_id: session.user.id,
           title,
           review_text: body,
-          rating,
           content: body,
           star_rating: rating,
           created_at: new Date().toISOString(),
