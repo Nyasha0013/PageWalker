@@ -186,13 +186,60 @@ function formatDuration(totalSeconds) {
   return `${h}:${m}:${s}`;
 }
 
+function truncateText(value, max = 220) {
+  const text = String(value || "").trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max).trim()}...`;
+}
+
+function toStars(value) {
+  const rating = Math.max(0, Math.min(5, Number(value || 0)));
+  const rounded = Math.round(rating);
+  return `${"★".repeat(rounded)}${"☆".repeat(5 - rounded)}`;
+}
+
+function fixCoverUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  return raw.replace("http://", "https://").replace("zoom=1", "zoom=3");
+}
+
+function firstGenre(genres) {
+  if (Array.isArray(genres) && genres.length) return String(genres[0]);
+  return "";
+}
+
+function renderBookPosterCard(book, opts = {}) {
+  const cover = fixCoverUrl(book.coverUrl || book.cover_url);
+  const title = escapeHtml(book.title || "Untitled");
+  const author = escapeHtml(book.author || "Unknown Author");
+  const year = escapeHtml(book.publishedYear || "");
+  const genre = escapeHtml(firstGenre(book.genres) || "");
+  const rating = book.googleRating != null ? `${Number(book.googleRating).toFixed(1)} ★` : "";
+  const footer = [year, genre, rating].filter(Boolean).join(" · ");
+  const action = opts.actionHtml || "";
+  return `
+    <article class="pw-poster-card">
+      <div class="pw-poster-media">
+        ${cover ? `<img src="${escapeHtml(cover)}" alt="${title} cover" loading="lazy" />` : `<div class="pw-poster-fallback">PW</div>`}
+      </div>
+      <div class="pw-poster-copy">
+        <h4>${title}</h4>
+        <p>${author}</p>
+        ${footer ? `<p class="muted">${footer}</p>` : ""}
+        ${action}
+      </div>
+    </article>
+  `;
+}
+
 async function upsertUserBookStatus(supabase, userId, book, status) {
   const payload = {
     user_id: userId,
     status,
     title: book.title || "Untitled",
-    author: normalizeAuthors(book.authors) || null,
-    cover_url: book.cover_url || null,
+    author: normalizeAuthors(book.authors || book.author) || null,
+    cover_url: book.cover_url || book.coverUrl || null,
   };
   const upsertRes = await supabase
     .from("user_books")
@@ -223,6 +270,24 @@ async function upsertUserBookStatus(supabase, userId, book, status) {
 }
 
 async function renderHome(_supabase, _session) {
+  const [trendingBooks, latestReviews] = await Promise.all([
+    runSafeQuery(async () => {
+      const json = await fetchJson("/api/books?type=trending");
+      return (json.items || []).slice(0, 6).map(parseGoogleBook);
+    }, "Trending unavailable."),
+    runSafeQuery(async () => {
+      const supabase = await getSupabase();
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("title, review_text, rating, book_title, profiles(display_name,username)")
+        .order("created_at", { ascending: false })
+        .limit(4);
+      if (error) throw error;
+      return data || [];
+    }, "Reviews unavailable."),
+  ]);
+  const trendRows = trendingBooks.filter((x) => !x.__error);
+  const reviewRows = latestReviews.filter((x) => !x.__error);
   return `
     <section class="hero">
       <div class="hero-inner">
@@ -239,19 +304,34 @@ async function renderHome(_supabase, _session) {
         <p class="hero-tagline">${t("home.heroTagline", "Free on Google Play · same login here & in the app")}</p>
       </div>
     </section>
-    <section class="app-grid app-grid-3">
-      <article class="app-panel">
-        <h3>${t("home.feature1Title", "Discover & stack")}</h3>
-        <p>${t("home.feature1Desc", "Hunt your next obsession, curate your TBR, and flex your finished pile like the main character you are.")}</p>
-      </article>
-      <article class="app-panel">
-        <h3>${t("home.feature2Title", "Track the vibe")}</h3>
-        <p>${t("home.feature2Desc", "Sessions, streaks, and yearly wraps so your reading era gets the spotlight.")}</p>
-      </article>
-      <article class="app-panel">
-        <h3>${t("home.feature3Title", "Gossip & clubs")}</h3>
-        <p>${t("home.feature3Desc", "Hot takes, profiles, and book-club rooms for when you need to process that ending together.")}</p>
-      </article>
+    <section class="app-panel pw-editorial">
+      <p class="pw-kicker">The Pagewalker edit</p>
+      <h2>A reading home inspired by your best ideas</h2>
+      <p>Discover books in a poster-first view, keep a diary of your reading life, and share reviews with your community in one place.</p>
+    </section>
+    <section class="app-panel">
+      <div class="pw-section-head">
+        <h3>Hot this week</h3>
+        <a href="/discover" data-link-route="/discover">See more</a>
+      </div>
+      <div class="pw-poster-grid">
+        ${trendRows.map((book) => renderBookPosterCard(book)).join("")}
+      </div>
+    </section>
+    <section class="app-panel">
+      <div class="pw-section-head">
+        <h3>Reader buzz</h3>
+        <a href="/social" data-link-route="/social">Go to Social</a>
+      </div>
+      <div class="pw-review-feed">
+        ${reviewRows.length ? reviewRows.map((review) => `
+          <article class="pw-review-row">
+            <p><strong>${escapeHtml(review.book_title || review.title || "Book")}</strong> · ${toStars(review.rating)}</p>
+            <p>${escapeHtml(truncateText(review.review_text || "", 130))}</p>
+            <p class="muted">by ${escapeHtml(review.profiles?.display_name || review.profiles?.username || "Reader")}</p>
+          </article>
+        `).join("") : `<p class="muted">Reviews will appear here as readers post.</p>`}
+      </div>
     </section>
     <section class="cta-band">
       <div class="cta-inner">
@@ -329,14 +409,10 @@ async function renderDiscover(supabase, session) {
       </article>
       <article class="app-panel">
         <h3>🔥 ${t("route.discover.trendingTitle", "Trending now")}</h3>
-        <div class="app-grid app-grid-3">
-          ${trendingRows.map((book) => `
-            <article class="app-panel">
-              <h4>${escapeHtml(book.title)}</h4>
-              <p>${escapeHtml(book.author)}</p>
-              <div class="cta-actions"><button class="btn btn-outline" data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button></div>
-            </article>
-          `).join("")}
+        <div class="pw-poster-grid">
+          ${trendingRows.map((book) => renderBookPosterCard(book, {
+            actionHtml: `<div class="cta-actions"><button class="btn btn-outline" data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button></div>`,
+          })).join("")}
         </div>
       </article>
       <article class="app-panel">
@@ -345,26 +421,24 @@ async function renderDiscover(supabase, session) {
           ${genres.map((g) => `<button class="btn btn-outline" data-genre-chip="${escapeHtml(g)}">${escapeHtml(g)}</button>`).join("")}
         </div>
       </article>
-      <div class="app-grid app-grid-3">
+      <div class="pw-poster-grid">
         ${
           activeRows.map((book) => {
-            return `
-              <article class="app-panel">
-                <h3>${escapeHtml(book.title || "Untitled")}</h3>
-                <p>${escapeHtml(book.author || t("route.discover.authorUnknown", "Unknown author"))}</p>
-                <div class="cta-actions">
-                  <button class="btn btn-outline" data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button>
-                  <button class="btn btn-outline" data-discover-add data-status="reading" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addReading", "Mark Reading")}</button>
-                </div>
-              </article>
-            `;
+            return renderBookPosterCard(book, {
+              actionHtml: `<div class="cta-actions">
+                <button class="btn btn-outline" data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button>
+                <button class="btn btn-outline" data-discover-add data-status="reading" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addReading", "Mark Reading")}</button>
+              </div>`,
+            });
           }).join("")
         }
       </div>
       <article class="app-panel">
         <h3>📖 ${t("route.discover.freeClassics", "Free classics")}</h3>
-        <div class="app-grid app-grid-3">
-          ${classicsRows.map((book) => `<article class="app-panel"><h4>${escapeHtml(book.title)}</h4><p>${escapeHtml(book.author)}</p><p class="metric">${t("route.discover.freeBadge", "Free")}</p></article>`).join("")}
+        <div class="pw-poster-grid">
+          ${classicsRows.map((book) => renderBookPosterCard(book, {
+            actionHtml: `<p class="metric">${t("route.discover.freeBadge", "Free")}</p>`,
+          })).join("")}
         </div>
       </article>
       <p class="muted">${t("route.discover.noteAuthed", "You are signed in. Use discover + library together.")}</p>
@@ -413,18 +487,18 @@ async function renderLibrary(supabase, session) {
         ${LIBRARY_STATUSES.map((status) => `<button class="btn btn-outline" data-library-filter="${status}">${STATUS_LABELS[status]} (${counts[status] || 0})</button>`).join("")}
       </div>
       ${filteredRows.length ? "" : `<p class="muted">${t("route.library.emptyHint", "No books in this shelf yet. Add one from Discover.")}</p>`}
-      <div class="app-grid app-grid-3">
+      <div class="pw-poster-grid">
         ${
-          filteredRows.map((r) => `
-            <article class="app-panel">
-              <h3>${escapeHtml(r.title || "Untitled")}</h3>
-              <p>${escapeHtml(r.author || "")}</p>
-              <p class="metric">${t("route.library.status", "Status")}: ${escapeHtml(STATUS_LABELS[r.status] || r.status || "-")}</p>
-              <div class="cta-actions">
-                ${LIBRARY_STATUSES.map((status) => `<button class="btn btn-outline" data-library-status="${status}" data-library-title="${escapeHtml(r.title || "")}">${STATUS_LABELS[status]}</button>`).join("")}
-              </div>
-            </article>
-          `).join("")
+          filteredRows.map((r) => renderBookPosterCard({
+            title: r.title,
+            author: r.author,
+            cover_url: r.cover_url,
+          }, {
+            actionHtml: `<p class="metric">${t("route.library.status", "Status")}: ${escapeHtml(STATUS_LABELS[r.status] || r.status || "-")}</p>
+            <div class="cta-actions">
+              ${LIBRARY_STATUSES.map((status) => `<button class="btn btn-outline" data-library-status="${status}" data-library-title="${escapeHtml(r.title || "")}">${STATUS_LABELS[status]}</button>`).join("")}
+            </div>`,
+          })).join("")
         }
       </div>
       ${rows.some((r) => r.__error) ? `<p class="muted">${escapeHtml(rows.find((r) => r.__error)?.text || "")}</p>` : ""}
@@ -456,11 +530,16 @@ async function renderSocial(supabase, session) {
       t("route.social.anonymous", "Reader");
     const isMine = r.user_id && r.user_id === session.user.id;
     return `
-      <article class="app-panel">
+      <article class="app-panel pw-review-card">
+        <p class="muted">${escapeHtml(displayName)} reviewed</p>
         <h3>${escapeHtml(title)}</h3>
-        <p class="muted">${escapeHtml(displayName)}</p>
-        <p>${escapeHtml(body)}</p>
-        <p class="metric">${t("route.social.rating", "Rating")}: ${escapeHtml(ratingValue)}</p>
+        <p class="metric">${toStars(ratingValue)} · ${escapeHtml(String(ratingValue))}/5</p>
+        <p data-review-full hidden>${escapeHtml(body)}</p>
+        <p data-review-short>${escapeHtml(truncateText(body, 220))}</p>
+        ${String(body).length > 220 ? `<button class="btn btn-outline" data-review-toggle>Read more</button>` : ""}
+        <div class="pw-review-actions">
+          <span>Like</span><span>Comment</span><span>Spoiler</span>
+        </div>
         ${isMine ? `<div class="cta-actions"><button class="btn btn-outline" data-social-edit="${escapeHtml(r.id)}" data-social-title="${escapeHtml(title)}" data-social-body="${escapeHtml(body)}" data-social-rating="${escapeHtml(String(ratingValue === "-" ? 5 : ratingValue))}">${t("route.social.edit", "Edit")}</button><button class="btn btn-outline" data-social-delete="${escapeHtml(r.id)}">${t("route.social.delete", "Delete")}</button></div>` : ""}
       </article>
     `;
@@ -710,6 +789,33 @@ async function renderProfile(supabase, session) {
       profile.display_name = emailPrefix || "reader";
     } catch (_) {}
   }
+  const [userBooks, diaryRows] = await Promise.all([
+    runSafeQuery(async () => {
+      const { data, error } = await supabase
+        .from("user_books")
+        .select("title,author,status,created_at,books(cover_url)")
+        .eq("user_id", session.user.id)
+        .order("updated_at", { ascending: false })
+        .limit(40);
+      if (error) throw error;
+      return data || [];
+    }, "Books unavailable."),
+    runSafeQuery(async () => {
+      const { data, error } = await supabase
+        .from("reading_history")
+        .select("book_title,book_author,last_read_at,is_finished")
+        .eq("user_id", session.user.id)
+        .order("last_read_at", { ascending: false })
+        .limit(8);
+      if (error) throw error;
+      return data || [];
+    }, "Diary unavailable."),
+  ]);
+  const favBooks = userBooks.filter((x) => !x.__error && x.status === "read").slice(0, 4);
+  const listCounts = LIBRARY_STATUSES.reduce((acc, status) => {
+    acc[status] = userBooks.filter((x) => !x.__error && x.status === status).length;
+    return acc;
+  }, {});
   return `
     ${authPanel}
     <section class="app-grid app-grid-3">
@@ -736,6 +842,39 @@ async function renderProfile(supabase, session) {
       <article class="app-panel">
         <h3>${t("route.profile.securityTitle", "Guest-safe web mode")}</h3>
         <p>${t("route.profile.securityBody", "Guests can browse public information and auth entry points; in-depth sections require sign-in.")}</p>
+      </article>
+    </section>
+    <section class="app-panel">
+      <h3>Top 4 favorites</h3>
+      <div class="pw-favorites-grid">
+        ${Array.from({ length: 4 }).map((_, i) => {
+          const book = favBooks[i];
+          const cover = fixCoverUrl(book?.books?.cover_url);
+          return `
+            <div class="pw-fav-slot">
+              ${book ? `${cover ? `<img src="${escapeHtml(cover)}" alt="${escapeHtml(book.title)} cover" loading="lazy" />` : "<span>Book</span>"}` : `<span>+</span>`}
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </section>
+    <section class="app-grid app-grid-2">
+      <article class="app-panel">
+        <h3>Diary</h3>
+        ${diaryRows.some((x) => !x.__error) ? `
+          <ul class="app-list">
+            ${diaryRows.filter((x) => !x.__error).map((row) => `<li><strong>${escapeHtml(row.book_title || "Book")}</strong><span>${escapeHtml(row.book_author || "")} · ${row.is_finished ? "Finished" : "In progress"} · ${escapeHtml(row.last_read_at || "")}</span></li>`).join("")}
+          </ul>
+        ` : `<p class="muted">Your diary entries will show up here.</p>`}
+      </article>
+      <article class="app-panel">
+        <h3>My Lists</h3>
+        <div class="pw-list-collage">
+          <div><strong>TBR</strong><span>${listCounts.tbr || 0}</span></div>
+          <div><strong>Reading</strong><span>${listCounts.reading || 0}</span></div>
+          <div><strong>Read</strong><span>${listCounts.read || 0}</span></div>
+          <div><strong>DNF</strong><span>${listCounts.dnf || 0}</span></div>
+        </div>
       </article>
     </section>
   `;
@@ -971,6 +1110,21 @@ function bindSocialActions(supabase, session, rerender) {
       } catch (error) {
         showBanner("error", error?.message || t("appShell.missingData", "Something went wrong."));
       }
+    });
+  }
+
+  const toggleButtons = document.querySelectorAll("[data-review-toggle]");
+  for (let i = 0; i < toggleButtons.length; i += 1) {
+    toggleButtons[i].addEventListener("click", () => {
+      const card = toggleButtons[i].closest(".pw-review-card");
+      if (!card) return;
+      const full = card.querySelector("[data-review-full]");
+      const short = card.querySelector("[data-review-short]");
+      if (!full || !short) return;
+      const expanded = !full.hidden;
+      full.hidden = expanded;
+      short.hidden = !expanded;
+      toggleButtons[i].textContent = expanded ? "Read more" : "Show less";
     });
   }
 }
