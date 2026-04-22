@@ -1,5 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "pagewalker/website",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/discover", "destination": "/index.html" },
+    { "source": "/library", "destination": "/index.html" },
+    { "source": "/social", "destination": "/index.html" },
+    { "source": "/clubs", "destination": "/index.html" },
+    { "source": "/reader", "destination": "/index.html" },
+    { "source": "/profile", "destination": "/index.html" }
+  ]
 }
