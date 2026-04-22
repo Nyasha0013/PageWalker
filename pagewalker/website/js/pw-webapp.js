@@ -46,6 +46,7 @@ let discoverPaging = {
 let libraryPage = 1;
 let socialDraft = { title: "", body: "", rating: "5" };
 let socialComposerExpanded = false;
+let bookPageReviewPanelOpen = false;
 let clubsDraft = { name: "", description: "", inviteCode: "", emoji: "📚", maxMembers: "20" };
 let readerTimer = {
   running: false,
@@ -408,6 +409,14 @@ function truncateText(value, max = 220) {
   return `${text.slice(0, max).trim()}...`;
 }
 
+/** Book APIs often return HTML in descriptions; we show plain text in the app shell. */
+function stripHtmlToPlainText(value) {
+  return String(value || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function toStars(value) {
   const rating = Math.max(0, Math.min(5, Number(value || 0)));
   const rounded = Math.round(rating);
@@ -491,11 +500,22 @@ function buildBookShareUrl(book) {
   return `${origin}/book?data=${encoded}`;
 }
 
-function buildBookPageHtml(source) {
+function buildBookPageHtml(source, pageOpts = {}) {
+  const { reviews: rawReviews = [], session: pageSession = null, panelOpen = false, reviewsError = "" } = pageOpts;
+  const bookIdStr = String(source?.id || "").trim();
+  const cleanReviews = (Array.isArray(rawReviews) ? rawReviews : []).filter((r) => r && !r.__error);
+  const myReview = pageSession?.user
+    ? cleanReviews.find((r) => r.user_id === pageSession.user.id) || null
+    : null;
+  const myBody = String(myReview?.review_text || myReview?.content || "").trim();
+  const myStars = myReview
+    ? String(Math.max(1, Math.min(5, Math.round(Number(myReview.star_rating) || 5))))
+    : "5";
+
   const cover = fixCoverUrl(source.coverUrl);
   const title = escapeHtml(source.title || "Untitled");
   const author = escapeHtml(source.author || "Unknown Author");
-  const desc = String(source.description || "").trim();
+  const descPlain = stripHtmlToPlainText(String(source.description || ""));
   const metaLine = [
     source.publishedYear ? escapeHtml(String(source.publishedYear)) : "",
     source.publisher ? escapeHtml(String(source.publisher)) : "",
@@ -515,6 +535,21 @@ function buildBookPageHtml(source) {
     coverUrl: source.coverUrl || null,
   };
   const bookAttr = escapeHtml(JSON.stringify(bookForLibrary));
+
+  const reviewCards = cleanReviews.map((r) => {
+    const body = r.review_text || r.content || "";
+    const ratingValue = r.star_rating ?? "-";
+    const displayName =
+      r.profiles?.display_name || r.profiles?.username || t("route.social.anonymous", "Reader");
+    return `
+    <article class="app-panel pw-book-review-row">
+      <p class="muted">${escapeHtml(displayName)}</p>
+      <p class="metric">${toStars(ratingValue)} · ${escapeHtml(String(ratingValue))}/5</p>
+      <p>${escapeHtml(truncateText(body, 500))}</p>
+    </article>
+  `;
+  });
+
   return `
     <section class="app-panel">
       <section class="pw-book-page-hero">
@@ -534,12 +569,62 @@ function buildBookPageHtml(source) {
             <button type="button" class="btn btn-outline" data-require-auth data-book-page-review data-book='${bookAttr}'>${t("route.book.giveReview", "Give a review")}</button>
             <button type="button" class="btn" data-require-auth data-book-page-add data-book='${bookAttr}'>${t("route.discover.addTbr", "Add to TBR")}</button>
           </div>
+          <div
+            id="pw-book-review-composer"
+            class="pw-book-review-composer app-panel"
+            ${panelOpen ? "" : "hidden"}
+            data-book-id="${escapeHtml(bookIdStr)}"
+          >
+            <h3 class="pw-book-review-composer__title">${t("route.book.reviewHere", "Write your review")}</h3>
+            <form id="pw-book-review-form" class="form-stack">
+              <input type="hidden" id="pw-book-review-book-id" value="${escapeHtml(bookIdStr)}" />
+              <input type="hidden" id="pw-book-review-edit-id" value="${myReview ? escapeHtml(myReview.id) : ""}" />
+              <label>
+                <span>${t("route.book.reviewText", "Your review")}</span>
+                <textarea id="pw-book-review-body" rows="4" maxlength="2000" required placeholder="${t("route.book.reviewPlaceholder", "What did you think?")}">${escapeHtml(myBody)}</textarea>
+              </label>
+              <label>
+                <span>${t("route.social.formRating", "Rating")}</span>
+                <select id="pw-book-review-stars" class="pw-select" aria-label="${t("route.social.formRating", "Rating")}">
+                  ${[1, 2, 3, 4, 5]
+                    .map(
+                      (x) =>
+                        `<option value="${x}"${String(x) === myStars ? " selected" : ""}>${x}</option>`,
+                    )
+                    .join("")}
+                </select>
+              </label>
+              <div class="cta-actions">
+                <button type="submit" class="btn">${t("route.book.postReview", "Post review")}</button>
+                <button type="button" class="btn btn-outline" id="pw-book-review-cancel">${t("common.cancel", "Cancel")}</button>
+              </div>
+            </form>
+            <p class="muted pw-book-review-composer__hint">${t(
+              "route.book.reviewVisibleHint",
+              "Your review appears in the list below for this book.",
+            )}</p>
+          </div>
         </div>
       </section>
       <article class="app-panel">
-        <h3>About this book</h3>
-        <p>${escapeHtml(desc || "No description yet.")}</p>
+        <h3>${t("route.book.about", "About this book")}</h3>
+        <p>${descPlain ? escapeHtml(descPlain) : t("route.book.noDescription", "No description yet.")}</p>
       </article>
+      ${
+        bookIdStr
+          ? `<section class="app-panel pw-book-reviews">
+        <h3>${t("route.book.reviewsForBook", "Reviews for this book")}</h3>
+        ${reviewsError ? `<p class="muted">${escapeHtml(reviewsError)}</p>` : ""}
+        ${
+          cleanReviews.length
+            ? `<div class="pw-book-reviews__list">${reviewCards.join("")}</div>`
+            : !reviewsError
+              ? `<p class="muted">${t("route.book.noReviewsYet", "No reviews yet. Be the first to add one above.")}</p>`
+              : ""
+        }
+      </section>`
+          : ""
+      }
     </section>
   `;
 }
@@ -569,7 +654,10 @@ function openBookModal(book) {
   const title = escapeHtml(book.title || "Untitled");
   const author = escapeHtml(book.author || "Unknown Author");
   const cover = fixCoverUrl(book.coverUrl);
-  const description = escapeHtml(book.description || "No description yet.");
+  const descPlain = stripHtmlToPlainText(String(book.description || ""));
+  const description = descPlain
+    ? escapeHtml(descPlain)
+    : escapeHtml("No description yet.");
   const meta = [
     book.publishedYear ? escapeHtml(String(book.publishedYear)) : "",
     book.publisher ? escapeHtml(String(book.publisher)) : "",
@@ -662,6 +750,33 @@ async function fetchReviewsWithAuthorRows(supabase, limit) {
   const { data, error } = await supabase
     .from("reviews")
     .select("id, user_id, title, review_text, content, star_rating, created_at, book_title, book_author")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  if (!data?.length) return [];
+  const userIds = [...new Set(data.map((r) => r.user_id).filter(Boolean))];
+  if (!userIds.length) {
+    return data.map((r) => ({ ...r, profiles: null }));
+  }
+  const { data: profs, error: pErr } = await supabase
+    .from("profiles")
+    .select("id, username, display_name, avatar_url")
+    .in("id", userIds);
+  if (pErr) {
+    return data.map((r) => ({ ...r, profiles: null }));
+  }
+  const byId = Object.fromEntries((profs || []).map((p) => [p.id, p]));
+  return data.map((r) => ({ ...r, profiles: byId[r.user_id] || null }));
+}
+
+/** Reviews for a single catalog book (book details page). */
+async function fetchReviewsForBook(supabase, bookId, limit = 40) {
+  const id = String(bookId || "").trim();
+  if (!id) return [];
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("id, user_id, title, review_text, content, star_rating, created_at, book_title, book_author, book_id")
+    .eq("book_id", id)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -1720,13 +1835,25 @@ async function renderProfile(supabase, session) {
   `;
 }
 
-async function renderBookRoute() {
+async function renderBookRoute(supabase, session) {
   const params = new URLSearchParams(window.location.search);
   const stableId = String(params.get("id") || "").trim();
   if (stableId) {
     try {
       const fetched = await fetchJson(`/api/books?type=detail&id=${encodeURIComponent(stableId)}`);
-      return buildBookPageHtml(fetched);
+      const bid = String(fetched?.id || stableId).trim();
+      const raw = await runSafeQuery(
+        () => fetchReviewsForBook(supabase, bid, 40),
+        t("appShell.missingReviews", "Could not load reviews."),
+      );
+      const reviewsError = raw.find((r) => r?.__error)?.text || "";
+      const list = raw.filter((r) => r && !r.__error);
+      return buildBookPageHtml(fetched, {
+        reviews: list,
+        session,
+        panelOpen: bookPageReviewPanelOpen,
+        reviewsError,
+      });
     } catch (error) {
       const msg = String(error?.message || "");
       const notFound = msg.includes("request_failed_404");
@@ -1757,7 +1884,14 @@ async function renderBookRoute() {
       </section>
     `;
   }
-  return buildBookPageHtml(book);
+  const bid = String(book?.id || "").trim();
+  const rRaw = await runSafeQuery(
+    () => fetchReviewsForBook(supabase, bid, 40),
+    t("appShell.missingReviews", "Could not load reviews."),
+  );
+  const reviewsError = rRaw.find((r) => r?.__error)?.text || "";
+  const list = rRaw.filter((r) => r && !r.__error);
+  return buildBookPageHtml(book, { reviews: list, session, panelOpen: bookPageReviewPanelOpen, reviewsError });
 }
 
 function renderProtectedRouteGate(route) {
@@ -1966,22 +2100,97 @@ function bindBookPageActions(supabase, session, rerender) {
   reviewBtn?.addEventListener("click", (event) => {
     event.preventDefault();
     if (!guardAuthAction(reviewBtn, session)) return;
-    const raw = reviewBtn.getAttribute("data-book");
-    if (!raw) return;
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return;
-    }
-    const bookTitle = parsed.title || "Untitled";
-    socialDraft = { title: bookTitle, body: "", rating: "5" };
-    socialComposerExpanded = true;
-    if (window.location.pathname !== "/social") {
-      window.history.pushState({}, "", "/social");
-    }
+    bookPageReviewPanelOpen = true;
     rerender();
   });
+
+  const cancelBookReview = document.getElementById("pw-book-review-cancel");
+  cancelBookReview?.addEventListener("click", () => {
+    bookPageReviewPanelOpen = false;
+    rerender();
+  });
+
+  const bookReviewForm = document.getElementById("pw-book-review-form");
+  bookReviewForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!session?.user) {
+      showBanner("error", t("route.authRequired", "Please sign in to post."));
+      return;
+    }
+    const bookId = String(document.getElementById("pw-book-review-book-id")?.value || "").trim();
+    const body = String(document.getElementById("pw-book-review-body")?.value || "").trim();
+    const stars = Number(document.getElementById("pw-book-review-stars")?.value || 5);
+    const editId = String(document.getElementById("pw-book-review-edit-id")?.value || "").trim();
+    const rawAttr =
+      reviewBtn?.getAttribute("data-book") ||
+      document.querySelector("[data-book-page-add]")?.getAttribute("data-book");
+    let bookMeta = { title: "Untitled", author: "" };
+    try {
+      if (rawAttr) bookMeta = JSON.parse(rawAttr);
+    } catch {
+      /* ignore */
+    }
+    if (!bookId) {
+      showBanner("error", t("appShell.missingData", "Something went wrong."));
+      return;
+    }
+    if (!body) {
+      showBanner("error", t("route.book.reviewTextRequired", "Write something for your review."));
+      return;
+    }
+    try {
+      if (editId) {
+        const { error: uErr } = await supabase
+          .from("reviews")
+          .update({
+            review_text: body,
+            content: body,
+            title: bookMeta.title,
+            star_rating: stars,
+            book_title: bookMeta.title,
+            book_author: bookMeta.author || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editId)
+          .eq("user_id", session.user.id);
+        if (uErr) throw uErr;
+        showBanner("success", t("route.social.updated", "Review updated."));
+      } else {
+        const payload = {
+          user_id: session.user.id,
+          book_id: bookId,
+          title: bookMeta.title,
+          book_title: bookMeta.title,
+          book_author: bookMeta.author || null,
+          review_text: body,
+          content: body,
+          star_rating: Math.max(1, Math.min(5, stars || 5)),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        let { error } = await supabase.from("reviews").insert(payload);
+        if (error && String(error.message || "").toLowerCase().includes("book_id")) {
+          const retry = await supabase
+            .from("reviews")
+            .insert({ ...payload, book_id: "web-review" });
+          error = retry.error;
+        }
+        if (error) throw error;
+        showBanner("success", t("route.social.published", "Review published."));
+      }
+      bookPageReviewPanelOpen = false;
+      rerender();
+    } catch (error) {
+      showBanner("error", error?.message || t("appShell.missingData", "Something went wrong."));
+    }
+  });
+
+  if (bookPageReviewPanelOpen) {
+    requestAnimationFrame(() => {
+      document.getElementById("pw-book-review-composer")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      document.getElementById("pw-book-review-body")?.focus();
+    });
+  }
 }
 
 function bindBookModalActions() {
@@ -2432,7 +2641,7 @@ function bindClubsActions(supabase, session, rerender) {
 
 async function renderCurrentRoute(supabase, session, route) {
   if (route === "/") return renderHome(supabase, session);
-  if (route === "/book") return renderBookRoute();
+  if (route === "/book") return renderBookRoute(supabase, session);
   if (route === "/discover") return renderDiscover(supabase, session);
   if (route === "/library") return renderLibrary(supabase, session);
   if (route === "/social") return renderSocial(supabase, session);
@@ -2451,6 +2660,9 @@ async function renderRoute(supabase, session) {
   if (!root) return;
 
   hideBanners();
+  if (route !== "/book") {
+    bookPageReviewPanelOpen = false;
+  }
   if (!session?.user && PROTECTED_ROUTES.has(route)) {
     root.innerHTML = renderProtectedRouteGate(route);
     bindLockedGateActions();
