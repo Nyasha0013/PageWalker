@@ -2,7 +2,14 @@
   "use strict";
   var STORAGE_KEY = "pw-lang";
   var DEFAULT_LANG = "en";
-  var SUPPORTED = ["en", "hu"];
+  var SUPPORTED = ["en", "hu", "it", "fr", "de"];
+  var LANGUAGE_LABELS = {
+    en: "English",
+    hu: "Magyar",
+    it: "Italiano",
+    fr: "Français",
+    de: "Deutsch",
+  };
 
   var privacyEn = [
     "PRIVACY POLICY",
@@ -683,6 +690,39 @@
       "homeCard.yourReviews": "Értékeléseid",
       "homeCard.joinedClubs": "Csatlakozott klubok",
     },
+    it: {
+      "meta.lang": "it",
+      "toolbar.language": "Lingua",
+      "toolbar.theme": "Tema",
+      "toolbar.themeAria.light": "Tema chiaro — clicca per passare a scuro",
+      "toolbar.themeAria.dark": "Tema scuro — clicca per passare a sistema",
+      "toolbar.themeAria.system": "Tema sistema — clicca per passare a chiaro",
+      "toolbar.themeMode.light": "Modalita chiara",
+      "toolbar.themeMode.dark": "Modalita scura",
+      "toolbar.themeMode.system": "Modalita sistema",
+    },
+    fr: {
+      "meta.lang": "fr",
+      "toolbar.language": "Langue",
+      "toolbar.theme": "Theme",
+      "toolbar.themeAria.light": "Theme clair — cliquer pour passer au sombre",
+      "toolbar.themeAria.dark": "Theme sombre — cliquer pour passer au systeme",
+      "toolbar.themeAria.system": "Theme systeme — cliquer pour passer au clair",
+      "toolbar.themeMode.light": "Mode clair",
+      "toolbar.themeMode.dark": "Mode sombre",
+      "toolbar.themeMode.system": "Mode systeme",
+    },
+    de: {
+      "meta.lang": "de",
+      "toolbar.language": "Sprache",
+      "toolbar.theme": "Thema",
+      "toolbar.themeAria.light": "Helles Thema — klicken fur dunkel",
+      "toolbar.themeAria.dark": "Dunkles Thema — klicken fur System",
+      "toolbar.themeAria.system": "Systemthema — klicken fur hell",
+      "toolbar.themeMode.light": "Heller Modus",
+      "toolbar.themeMode.dark": "Dunkler Modus",
+      "toolbar.themeMode.system": "Systemmodus",
+    },
   };
 
   function getLang() {
@@ -692,6 +732,9 @@
     } catch (_) {}
     var nav = (navigator.language || navigator.userLanguage || "en").toLowerCase();
     if (nav.indexOf("hu") === 0) return "hu";
+    if (nav.indexOf("it") === 0) return "it";
+    if (nav.indexOf("fr") === 0) return "fr";
+    if (nav.indexOf("de") === 0) return "de";
     return DEFAULT_LANG;
   }
 
@@ -737,7 +780,18 @@
 
     var selects = document.querySelectorAll(".pw-lang-select");
     for (var s = 0; s < selects.length; s++) {
-      if (selects[s].value !== lang) selects[s].value = lang;
+      var sel = selects[s];
+      if (sel.options.length !== SUPPORTED.length) {
+        sel.innerHTML = "";
+        for (var l = 0; l < SUPPORTED.length; l++) {
+          var code = SUPPORTED[l];
+          var opt = document.createElement("option");
+          opt.value = code;
+          opt.textContent = LANGUAGE_LABELS[code] || code.toUpperCase();
+          sel.appendChild(opt);
+        }
+      }
+      if (sel.value !== lang) sel.value = lang;
     }
     document.dispatchEvent(new CustomEvent("pw:i18n-ready", { detail: { lang: lang } }));
   }
