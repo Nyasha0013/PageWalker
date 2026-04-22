@@ -93,6 +93,8 @@ function ensureAppPath() {
   window.history.replaceState({}, "", "/");
 }
 
+const DISCOVER_TAB_IDS = ["trending", "genre", "classics", "search"];
+
 function setActiveRoute(route) {
   const mainLinks = document.querySelectorAll("a.pw-drawer__item[data-link-route]");
   for (let i = 0; i < mainLinks.length; i += 1) {
@@ -101,34 +103,35 @@ function setActiveRoute(route) {
   }
   const discoverGroup = document.getElementById("pw-drawer-discover");
   discoverGroup?.toggleAttribute("data-nav-active", route === "/discover");
-  const sublinks = document.querySelectorAll("a.pw-drawer__sublink");
+  const discoverJumpLinks = document.querySelectorAll("a.pw-drawer__sublink, a.pw-discover-tablink");
   const hash = String(window.location.hash || "").replace(/^#/, "");
-  for (let i = 0; i < sublinks.length; i += 1) {
-    const jump = sublinks[i].getAttribute("data-discover-jump") || "";
-    const active = route === "/discover" && Boolean(jump) && jump === hash;
-    sublinks[i].toggleAttribute("data-active", active);
+  const effectiveDiscoverTab = hash && DISCOVER_TAB_IDS.includes(hash) ? hash : "trending";
+  for (let i = 0; i < discoverJumpLinks.length; i += 1) {
+    const jump = discoverJumpLinks[i].getAttribute("data-discover-jump") || "";
+    const active = route === "/discover" && Boolean(jump) && jump === effectiveDiscoverTab;
+    discoverJumpLinks[i].toggleAttribute("data-active", active);
   }
-  const otherNav = document.querySelectorAll("[data-link-route]:not(a.pw-drawer__item):not(a.pw-drawer__sublink)");
+  const otherNav = document.querySelectorAll(
+    "[data-link-route]:not(a.pw-drawer__item):not(a.pw-drawer__sublink):not(a.pw-discover-tablink)",
+  );
   for (let i = 0; i < otherNav.length; i += 1) {
     const path = otherNav[i].getAttribute("data-link-route");
     otherNav[i].toggleAttribute("data-active", path === route);
   }
 }
 
-function scrollDiscoverToHash() {
+function discoverTabFromHash() {
   const raw = String(window.location.hash || "").replace(/^#/, "");
-  if (!raw) return;
-  const id =
-    raw === "trending"
-      ? "pw-discover-trending"
-      : raw === "genre"
-        ? "pw-discover-genre"
-        : raw === "classics"
-          ? "pw-discover-classics"
-          : "";
-  if (!id) return;
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (DISCOVER_TAB_IDS.includes(raw)) return raw;
+  return "trending";
+}
+
+/** One panel visible at a time; driven by /discover#(trending|genre|classics|search). */
+function applyDiscoverPanelFromHash() {
+  const root = document.getElementById("pw-discover-root");
+  if (!root) return;
+  root.setAttribute("data-pw-active", discoverTabFromHash());
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function escapeHtml(value) {
@@ -943,61 +946,60 @@ async function renderDiscover(supabase, session) {
     }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
     runSafeQuery(() => loadClassicsPages(discoverPaging.classicsPage), t("route.discover.trendingFallback", "Trending data is not available yet.")),
   ]);
-  const activeBooks = safeQuery ? searchBooks : genreBooks;
   const trendingRows = (trendingBooks?.books || []).filter((b) => !b.__error);
-  const activeRows = (activeBooks?.books || []).filter((b) => !b.__error);
+  const genreRows = (genreBooks?.books || []).filter((b) => !b.__error);
+  const searchRows = (searchBooks?.books || []).filter((b) => !b.__error);
   const classicsRows = (freeClassics?.books || []).filter((b) => !b.__error);
-  const activeHasMore = safeQuery ? !!searchBooks?.hasMore : !!genreBooks?.hasMore;
+  const genreHasMore = Boolean(genreBooks?.hasMore);
+  const searchHasMore = Boolean(searchBooks?.hasMore);
+  const bookCardBlock = (book) => renderBookPosterCard(book, {
+    actionHtml: `<div class="cta-actions">
+                <button type="button" class="btn btn-outline" data-require-auth data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button>
+                <button type="button" class="btn btn-outline" data-require-auth data-discover-add data-status="reading" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addReading", "Mark Reading")}</button>
+              </div>`,
+  });
   const genres = ["romance", "mystery", "adventure", "horror", "fantasy", "history", "drama", "sci-fi"];
   const moodInPreset = Boolean(discoverMood && DISCOVER_MOOD_PRESETS.includes(discoverMood));
   const moodSelectValue = !discoverMood ? "" : moodInPreset ? discoverMood : "__custom";
   const moodCustomValue = !moodInPreset && discoverMood ? discoverMood : "";
 
   return `
-    <section class="app-panel">
+    <section class="app-panel pw-discover-page" id="pw-discover-root" data-pw-active="trending">
       <h2>${t("route.discover.title", "Discover & search")}</h2>
-      <p>${t("route.discover.body", "Browse catalog books and use app search from web.")}</p>
-      <div class="pw-discover-tools">
-        <div class="pw-discover-tiles">
-          <article class="app-panel pw-discover-tile">
-            <h3 class="pw-discover-tile__title">${t("route.discover.searchLabel", "Search books")}</h3>
-            <form id="pw-discover-search" class="pw-discover-tile__body form-stack">
-              <label>
-                <span class="pw-discover-sr-only">${t("route.discover.searchLabel", "Search books")}</span>
-                <input id="pw-discover-query" type="search" autocomplete="off" value="${escapeHtml(safeQuery)}" placeholder="${t("route.discover.searchPlaceholder", "Search by title")}" />
-              </label>
-              <button type="submit" class="btn">${t("route.discover.searchAction", "Search")}</button>
-            </form>
-          </article>
-          <article class="app-panel pw-discover-tile">
-            <h3 class="pw-discover-tile__title">${t("route.discover.moodTitle", "What's your vibe?")}</h3>
-            <form id="pw-mood-form" class="pw-discover-tile__body form-stack">
-              <label class="form-stack" style="gap:0.35rem">
-                <span class="pw-discover-sr-only">${t("route.discover.moodInputLabel", "Mood")}</span>
-                <select id="pw-mood-select" class="pw-select" aria-label="${escapeHtml(t("route.discover.moodTitle", "What's your vibe?"))}">
-                  <option value="">${t("route.discover.moodSelectHint", "Choose a vibe…")}</option>
-                  ${DISCOVER_MOOD_PRESETS.map(
-                    (m) =>
-                      `<option value="${escapeHtml(m)}"${moodSelectValue === m ? " selected" : ""}>${escapeHtml(m)}</option>`,
-                  ).join("")}
-                  <option value="__custom" ${moodSelectValue === "__custom" ? " selected" : ""}>${t("route.discover.moodCustom", "Custom…")}</option>
-                </select>
-                <input
-                  id="pw-mood-input"
-                  type="text"
-                  class="pw-mood-custom-input"
-                  value="${escapeHtml(moodCustomValue)}"
-                  placeholder="${t("route.discover.moodPlaceholder", "Describe your mood")}"
-                  ${moodSelectValue === "__custom" ? "" : " hidden"}
-                />
-              </label>
-              <button type="submit" class="btn">${t("route.discover.moodAction", "Find my next read")}</button>
-            </form>
-          </article>
-        </div>
-        <div id="pw-mood-results" class="pw-mood-results-below"></div>
-      </div>
-      <article class="app-panel" id="pw-discover-trending">
+      <p class="pw-discover-page__lede">${t("route.discover.body", "Browse catalog books and use app search from web.")}</p>
+      <p class="pw-discover-page__tab-hint muted">${t("route.discover.tabHint", "Use the menu or the tabs here — one area at a time.")}</p>
+      <nav class="pw-discover-tabstrip" aria-label="${t("route.discover.tabstripLabel", "Discover areas")}">
+        <a
+          class="btn btn-outline pw-discover-tablink"
+          data-link-route="/discover"
+          href="/discover#trending"
+          data-discover-jump="trending"
+        >${t("drawer.discover.trending", "Trending")}</a>
+        <a
+          class="btn btn-outline pw-discover-tablink"
+          data-link-route="/discover"
+          href="/discover#genre"
+          data-discover-jump="genre"
+        >${t("drawer.discover.genre", "Genre exploration")}</a>
+        <a
+          class="btn btn-outline pw-discover-tablink"
+          data-link-route="/discover"
+          href="/discover#classics"
+          data-discover-jump="classics"
+        >${t("drawer.discover.classics", "Classics")}</a>
+        <a
+          class="btn btn-outline pw-discover-tablink"
+          data-link-route="/discover"
+          href="/discover#search"
+          data-discover-jump="search"
+        >${t("drawer.discover.search", "Search & mood")}</a>
+      </nav>
+      <div class="pw-discover-panels" role="tabpanel" aria-label="${t("route.discover.title", "Discover & search")}">
+        <section
+          class="app-panel pw-discover-panel"
+          data-pw-discover-panel="trending"
+          id="pw-discover-trending"
+        >
         <h3>🔥 ${t("route.discover.trendingTitle", "Trending now")}</h3>
         <div class="pw-poster-grid">
           ${trendingRows.map((book) => renderBookPosterCard(book, {
@@ -1005,27 +1007,24 @@ async function renderDiscover(supabase, session) {
           })).join("")}
         </div>
         ${trendingBooks?.hasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="trending">Load more</button></div>` : ""}
-      </article>
-      <article class="app-panel" id="pw-discover-genre">
-        <h3>${t("route.discover.genreTitle", "Explore by genre")}</h3>
-        <div class="cta-actions">
-          ${genres.map((g) => `<button class="btn btn-outline" data-genre-chip="${escapeHtml(g)}">${escapeHtml(g)}</button>`).join("")}
-        </div>
-      </article>
-      <div class="pw-poster-grid">
-        ${
-          activeRows.map((book) => {
-            return renderBookPosterCard(book, {
-              actionHtml: `<div class="cta-actions">
-                <button type="button" class="btn btn-outline" data-require-auth data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button>
-                <button type="button" class="btn btn-outline" data-require-auth data-discover-add data-status="reading" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addReading", "Mark Reading")}</button>
-              </div>`,
-            });
-          }).join("")
-        }
-      </div>
-      ${activeHasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="${safeQuery ? "search" : "genre"}">Load more</button></div>` : ""}
-      <article class="app-panel" id="pw-discover-classics">
+        </section>
+        <section class="pw-discover-panel pw-discover-panel--stack" data-pw-discover-panel="genre" id="pw-discover-genre">
+          <article class="app-panel">
+            <h3>${t("route.discover.genreTitle", "Explore by genre")}</h3>
+            <div class="cta-actions">
+              ${genres.map((g) => `<button class="btn btn-outline" data-genre-chip="${escapeHtml(g)}">${escapeHtml(g)}</button>`).join("")}
+            </div>
+          </article>
+          <div class="pw-poster-grid">
+            ${genreRows.map((book) => bookCardBlock(book)).join("")}
+          </div>
+          ${genreHasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="genre">Load more</button></div>` : ""}
+        </section>
+        <section
+          class="app-panel pw-discover-panel"
+          data-pw-discover-panel="classics"
+          id="pw-discover-classics"
+        >
         <h3>📖 ${t("route.discover.freeClassics", "Free classics")}</h3>
         <div class="pw-poster-grid">
           ${classicsRows.map((book) => renderBookPosterCard(book, {
@@ -1033,7 +1032,69 @@ async function renderDiscover(supabase, session) {
           })).join("")}
         </div>
         ${freeClassics?.hasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="classics">Load more</button></div>` : ""}
-      </article>
+        </section>
+        <section
+          class="pw-discover-panel pw-discover-panel--search"
+          data-pw-discover-panel="search"
+          id="pw-discover-search"
+        >
+          <div class="pw-discover-tools">
+            <div class="pw-discover-tiles">
+              <article class="app-panel pw-discover-tile">
+                <h3 class="pw-discover-tile__title">${t("route.discover.searchLabel", "Search books")}</h3>
+                <form id="pw-discover-search-form" class="pw-discover-tile__body form-stack">
+                  <label>
+                    <span class="pw-discover-sr-only">${t("route.discover.searchLabel", "Search books")}</span>
+                    <input id="pw-discover-query" type="search" autocomplete="off" value="${escapeHtml(safeQuery)}" placeholder="${t("route.discover.searchPlaceholder", "Search by title")}" />
+                  </label>
+                  <button type="submit" class="btn">${t("route.discover.searchAction", "Search")}</button>
+                </form>
+              </article>
+              <article class="app-panel pw-discover-tile">
+                <h3 class="pw-discover-tile__title">${t("route.discover.moodTitle", "What's your vibe?")}</h3>
+                <form id="pw-mood-form" class="pw-discover-tile__body form-stack">
+                  <label class="form-stack" style="gap:0.35rem">
+                    <span class="pw-discover-sr-only">${t("route.discover.moodInputLabel", "Mood")}</span>
+                    <select id="pw-mood-select" class="pw-select" aria-label="${escapeHtml(t("route.discover.moodTitle", "What's your vibe?"))}">
+                      <option value="">${t("route.discover.moodSelectHint", "Choose a vibe…")}</option>
+                      ${DISCOVER_MOOD_PRESETS.map(
+                        (m) =>
+                          `<option value="${escapeHtml(m)}"${moodSelectValue === m ? " selected" : ""}>${escapeHtml(m)}</option>`,
+                      ).join("")}
+                      <option value="__custom" ${moodSelectValue === "__custom" ? " selected" : ""}>${t("route.discover.moodCustom", "Custom…")}</option>
+                    </select>
+                    <input
+                      id="pw-mood-input"
+                      type="text"
+                      class="pw-mood-custom-input"
+                      value="${escapeHtml(moodCustomValue)}"
+                      placeholder="${t("route.discover.moodPlaceholder", "Describe your mood")}"
+                      ${moodSelectValue === "__custom" ? "" : " hidden"}
+                    />
+                  </label>
+                  <button type="submit" class="btn">${t("route.discover.moodAction", "Find my next read")}</button>
+                </form>
+              </article>
+            </div>
+            <div id="pw-mood-results" class="pw-mood-results-below"></div>
+            ${
+              safeQuery
+                ? `
+            <div class="app-panel pw-discover-search-title-block">
+              <h3 class="pw-discover-tile__title">${t("route.discover.searchResultsTitle", "Title search results")}</h3>
+              ${
+                searchRows.length
+                  ? `<div class="pw-poster-grid">${searchRows.map((book) => bookCardBlock(book)).join("")}</div>`
+                  : `<p class="muted">${t("route.discover.searchEmpty", "No matches. Try different words.")}</p>`
+              }
+              ${searchHasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="search">Load more</button></div>` : ""}
+            </div>
+            `
+                : ""
+            }
+          </div>
+        </section>
+      </div>
       <p class="muted">${
         session?.user
           ? t("route.discover.noteAuthed", "You are signed in. Use discover + library together.")
@@ -1979,12 +2040,17 @@ function bindLockedGateActions() {
 }
 
 function bindDiscoverActions(supabase, session, rerender) {
-  const form = document.getElementById("pw-discover-search");
+  const form = document.getElementById("pw-discover-search-form");
   const input = document.getElementById("pw-discover-query");
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
     discoverQuery = String(input?.value || "").trim();
     discoverPaging.searchPage = 1;
+    if (window.location.pathname === "/discover") {
+      window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}#search`);
+      applyDiscoverPanelFromHash();
+      setActiveRoute("/discover");
+    }
     rerender();
   });
   const genreButtons = document.querySelectorAll("[data-genre-chip]");
@@ -2032,6 +2098,11 @@ function bindDiscoverActions(supabase, session, rerender) {
           ? `<div class="app-grid app-grid-3">${rows.map((r) => `<article class="app-panel"><h4>${escapeHtml(r.title || "Book")}</h4><p>${escapeHtml(r.author || "")}</p><p>${escapeHtml(r.reason || "")}</p></article>`).join("")}</div>`
           : `<p class="muted">${t("route.discover.noMoodResults", "No recommendations yet. Try another mood.")}</p>`;
       }
+      if (window.location.pathname === "/discover") {
+        window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}#search`);
+        applyDiscoverPanelFromHash();
+        setActiveRoute("/discover");
+      }
     } catch (_) {
       if (resultsRoot) {
         resultsRoot.innerHTML = `<p class="muted">${t("route.discover.noMoodResults", "No recommendations yet. Try another mood.")}</p>`;
@@ -2064,6 +2135,16 @@ function bindDiscoverActions(supabase, session, rerender) {
       if (mode === "search") discoverPaging.searchPage += 1;
       if (mode === "classics") discoverPaging.classicsPage += 1;
       rerender();
+    });
+  }
+  applyDiscoverPanelFromHash();
+  if (!window.pwDiscoverHashBound) {
+    window.pwDiscoverHashBound = true;
+    window.addEventListener("hashchange", () => {
+      if (window.location.pathname !== "/discover") return;
+      applyDiscoverPanelFromHash();
+      const pathForNav = window.location.pathname === "/club" ? "/clubs" : window.location.pathname;
+      setActiveRoute(pathForNav);
     });
   }
 }
@@ -2709,7 +2790,7 @@ async function renderRoute(supabase, session) {
     }
     if (route === "/discover") {
       requestAnimationFrame(() => {
-        scrollDiscoverToHash();
+        applyDiscoverPanelFromHash();
       });
     }
   });
