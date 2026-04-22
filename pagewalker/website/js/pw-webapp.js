@@ -105,6 +105,166 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+const MAX_PROFILE_AVATAR_BYTES = 2 * 1024 * 1024;
+const AVATAR_STORAGE_KEY = (userId) => `avatar_${userId}.jpg`;
+
+async function imageFileToJpegBlobIfNeeded(file) {
+  if (file.type === "image/jpeg") return file;
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.decoding = "async";
+    await new Promise((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("image_decode"));
+      img.src = objectUrl;
+    });
+    const maxEdge = 512;
+    let w = img.naturalWidth;
+    let h = img.naturalHeight;
+    if (w < 1 || h < 1) throw new Error("image_decode");
+    if (w > maxEdge || h > maxEdge) {
+      const r = Math.min(maxEdge / w, maxEdge / h);
+      w = Math.round(w * r);
+      h = Math.round(h * r);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas");
+    ctx.drawImage(img, 0, 0, w, h);
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("toBlob"))),
+        "image/jpeg",
+        0.85,
+      );
+    });
+    return blob;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function setProfilePhotoStatus(text, isError) {
+  const el = document.getElementById("pw-profile-photo-status");
+  if (!el) return;
+  el.textContent = text || "";
+  el.hidden = !text;
+  if (isError) el.setAttribute("data-state", "error");
+  else el.removeAttribute("data-state");
+}
+
+function bindProfilePhotoActions(supabase, onAfterChange) {
+  const fileInput = document.getElementById("pw-profile-photo-file");
+  const pickBtn = document.getElementById("pw-profile-photo-pick");
+  const removeBtn = document.getElementById("pw-profile-photo-remove");
+  if (!fileInput || !pickBtn) return;
+
+  pickBtn.addEventListener("click", () => {
+    setProfilePhotoStatus("", false);
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = "";
+    if (!file) return;
+    const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!allowed.has(file.type)) {
+      setProfilePhotoStatus(
+        t("route.profile.photoTypeError", "Please choose a JPG, PNG, or WebP image."),
+        true,
+      );
+      return;
+    }
+    if (file.size > MAX_PROFILE_AVATAR_BYTES) {
+      setProfilePhotoStatus(t("route.profile.photoSizeError", "Image must be 2 MB or smaller."), true);
+      return;
+    }
+    const { data: sessData, error: sessErr } = await supabase.auth.getSession();
+    if (sessErr) {
+      setProfilePhotoStatus(sessErr.message, true);
+      return;
+    }
+    const user = sessData?.session?.user;
+    if (!user) {
+      setProfilePhotoStatus(t("route.authRequired", "Please sign in to view this section."), true);
+      return;
+    }
+    pickBtn.disabled = true;
+    if (removeBtn) removeBtn.disabled = true;
+    setProfilePhotoStatus(t("route.profile.photoUploading", "Uploading…"), false);
+    try {
+      const blob = await imageFileToJpegBlobIfNeeded(file);
+      if (blob.size > MAX_PROFILE_AVATAR_BYTES) {
+        setProfilePhotoStatus(t("route.profile.photoSizeError", "Image must be 2 MB or smaller."), true);
+        return;
+      }
+      const fileName = AVATAR_STORAGE_KEY(user.id);
+      const { error: upErr } = await supabase.storage.from("avatars").upload(fileName, blob, {
+        upsert: true,
+        contentType: "image/jpeg",
+        cacheControl: "3600",
+      });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      const publicUrl = urlData?.publicUrl;
+      if (!publicUrl) throw new Error("no_public_url");
+      const { error: dbErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("id", user.id);
+      if (dbErr) throw dbErr;
+      setProfilePhotoStatus(t("route.profile.photoSuccess", "Profile photo updated."), false);
+      await onAfterChange?.();
+    } catch (e) {
+      const msg =
+        e instanceof Error && e.message
+          ? e.message
+          : t("route.profile.photoError", "Could not update photo. Try again.");
+      setProfilePhotoStatus(msg, true);
+    } finally {
+      pickBtn.disabled = false;
+      if (removeBtn) removeBtn.disabled = false;
+    }
+  });
+
+  removeBtn?.addEventListener("click", async () => {
+    const { data: sessData, error: sessErr } = await supabase.auth.getSession();
+    if (sessErr) {
+      setProfilePhotoStatus(sessErr.message, true);
+      return;
+    }
+    const user = sessData?.session?.user;
+    if (!user) return;
+    const fileName = AVATAR_STORAGE_KEY(user.id);
+    pickBtn.disabled = true;
+    removeBtn.disabled = true;
+    setProfilePhotoStatus(t("route.profile.photoRemoving", "Removing…"), false);
+    try {
+      await supabase.storage.from("avatars").remove([fileName]);
+      const { error: dbErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: null })
+        .eq("id", user.id);
+      if (dbErr) throw dbErr;
+      setProfilePhotoStatus(t("route.profile.photoRemoved", "Profile photo removed."), false);
+      await onAfterChange?.();
+    } catch (e) {
+      const msg =
+        e instanceof Error && e.message
+          ? e.message
+          : t("route.profile.photoError", "Could not update photo. Try again.");
+      setProfilePhotoStatus(msg, true);
+    } finally {
+      pickBtn.disabled = false;
+      removeBtn.disabled = false;
+    }
+  });
+}
+
 function listToHtml(items) {
   if (!items?.length) {
     return `<p class="muted">${t("appShell.empty", "No items yet.")}</p>`;
@@ -1000,7 +1160,7 @@ async function renderProfile(supabase, session) {
   const profiles = await runSafeQuery(async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("username, full_name, display_name, bio")
+      .select("username, full_name, display_name, bio, avatar_url")
       .eq("id", session.user.id)
       .maybeSingle();
     if (error) throw error;
@@ -1053,11 +1213,31 @@ async function renderProfile(supabase, session) {
     acc[status] = userBooks.filter((x) => !x.__error && x.status === status).length;
     return acc;
   }, {});
+  const avatarUrl = profile.avatar_url ? String(profile.avatar_url).trim() : "";
+  const letterFallback = escapeHtml(
+    (profile.display_name || profile.username || session.user.email || "?").trim().charAt(0) || "?",
+  ).toUpperCase();
   return `
     ${authPanel}
     <section class="app-grid app-grid-2">
       <article class="app-panel">
         <h2>${t("route.profile.title", "Profile")}</h2>
+        <div class="pw-profile-photo-section">
+          <div class="pw-profile-photo-wrap">
+            ${
+              avatarUrl
+                ? `<img class="pw-profile-avatar-lg" id="pw-profile-avatar-preview" src="${escapeHtml(avatarUrl)}" alt="${t("userMenu.profilePhotoAlt", "Profile photo")}" width="88" height="88" loading="lazy" />`
+                : `<div class="pw-profile-avatar-lg pw-profile-avatar-lg--empty" id="pw-profile-avatar-fallback" aria-hidden="true">${letterFallback}</div>`
+            }
+          </div>
+          <div class="pw-profile-photo-actions">
+            <input type="file" id="pw-profile-photo-file" class="visually-hidden" accept="image/jpeg,image/png,image/webp" />
+            <button type="button" class="btn btn-outline" id="pw-profile-photo-pick">${t("route.profile.photoChoose", "Upload photo")}</button>
+            <button type="button" class="btn btn-outline" id="pw-profile-photo-remove"${!avatarUrl ? " hidden" : ""}>${t("route.profile.photoRemove", "Remove photo")}</button>
+          </div>
+        </div>
+        <p class="muted" id="pw-profile-photo-hint">${t("route.profile.photoHint", "JPG, PNG, or WebP, up to 2 MB. Shown in the header and menu next to your name.")}</p>
+        <p class="muted" id="pw-profile-photo-status" role="status" hidden></p>
         <div class="profile-grid">
           <div><span class="muted">${t("route.profile.email", "Email")}</span><p>${escapeHtml(session.user.email || "-")}</p></div>
           <div><span class="muted">${t("route.profile.username", "Username")}</span><p>${escapeHtml(profile.username || "-")}</p></div>
@@ -1785,6 +1965,16 @@ async function renderRoute(supabase, session) {
       }
       showBanner("success", t("appShell.signedOut", "You are signed out."));
     });
+    if (session?.user) {
+      bindProfilePhotoActions(supabase, async () => {
+        if (typeof window.pwUserMenuRefresh === "function") {
+          await window.pwUserMenuRefresh();
+        }
+        if (typeof window.pwRerender === "function") {
+          await window.pwRerender();
+        }
+      });
+    }
   }
   if (route === "/book") {
     const copyBtn = document.getElementById("pw-book-page-copy");
@@ -1864,6 +2054,8 @@ async function boot() {
     appDrawer.close();
     await renderRoute(supabase, session);
   };
+  window.pwRerender = render;
+  window.pwUserMenuRefresh = () => userMenu.refresh(session);
 
   initLinks(render);
   await userMenu.refresh(session);

@@ -71,7 +71,7 @@ function displayNameFromParts(profile, email) {
 async function loadProfile(supabase, userId) {
   try {
     const { data, error } = await withTimeout(
-      supabase.from("profiles").select("username, full_name, display_name").eq("id", userId).maybeSingle(),
+      supabase.from("profiles").select("username, full_name, display_name, avatar_url").eq("id", userId).maybeSingle(),
       PROFILE_Q_TIMEOUT_MS,
     );
     if (error) return null;
@@ -86,6 +86,7 @@ export function initUserMenu(supabase) {
   const btn = document.getElementById("pw-user-avatar");
   const initialEl = document.getElementById("pw-user-initial");
   const iconWrap = document.getElementById("pw-user-icon");
+  const photoEl = document.getElementById("pw-user-photo");
   const panel = document.getElementById("pw-user-dropdown");
   const body = document.getElementById("pw-user-menu-body");
   if (!root || !btn || !panel || !body) {
@@ -109,7 +110,17 @@ export function initUserMenu(supabase) {
     if (open) setOpen(false);
   }
 
+  function clearHeaderPhoto() {
+    if (photoEl) {
+      photoEl.onload = null;
+      photoEl.onerror = null;
+      photoEl.removeAttribute("src");
+      photoEl.hidden = true;
+    }
+  }
+
   function renderGuest() {
+    clearHeaderPhoto();
     if (initialEl) {
       initialEl.textContent = "";
       initialEl.hidden = true;
@@ -123,13 +134,20 @@ export function initUserMenu(supabase) {
     `;
   }
 
-  function renderSignedIn(name, email) {
+  function renderSignedIn(name, email, avatarUrl) {
     const n = name || t("appShell.authGuest", "Reader");
     const e = email || "—";
+    const headPhoto =
+      String(avatarUrl || "").trim() !== ""
+        ? `<div class="pw-user-menu__head-pic" aria-hidden="true"><img class="pw-user-menu__head-photo" src="${escapeHtml(String(avatarUrl).trim())}" alt="" width="40" height="40" loading="lazy" decoding="async" /></div>`
+        : "";
     body.innerHTML = `
       <div class="pw-user-menu__head">
+        ${headPhoto}
+        <div class="pw-user-menu__head-text">
         <p class="pw-user-menu__name">${escapeHtml(n)}</p>
         <p class="pw-user-menu__email">${escapeHtml(e)}</p>
+        </div>
       </div>
       <div class="pw-user-menu__hr" role="separator"></div>
       <nav class="pw-user-menu__nav" aria-label="${escapeHtml(t("userMenu.ariaNav", "Account"))}">
@@ -169,12 +187,36 @@ export function initUserMenu(supabase) {
         email,
       );
       const showLetter = Boolean(initial);
-      if (iconWrap) iconWrap.hidden = showLetter;
-      if (initialEl) {
-        initialEl.textContent = initial || "?";
-        initialEl.hidden = !showLetter;
+      const avatarUrl = profile?.avatar_url ? String(profile.avatar_url).trim() : "";
+      if (photoEl && avatarUrl) {
+        photoEl.alt = t("userMenu.profilePhotoAlt", "Profile photo");
+        photoEl.onload = () => {
+          if (initialEl) {
+            initialEl.textContent = "";
+            initialEl.hidden = true;
+          }
+          if (iconWrap) iconWrap.hidden = true;
+          photoEl.hidden = false;
+        };
+        photoEl.onerror = () => {
+          clearHeaderPhoto();
+          if (iconWrap) iconWrap.hidden = showLetter;
+          if (initialEl) {
+            initialEl.textContent = initial || "?";
+            initialEl.hidden = !showLetter;
+          } else if (iconWrap) iconWrap.hidden = false;
+        };
+        photoEl.src = avatarUrl;
+      } else {
+        clearHeaderPhoto();
+        if (iconWrap) iconWrap.hidden = showLetter;
+        if (initialEl) {
+          initialEl.textContent = initial || "?";
+          initialEl.hidden = !showLetter;
+        }
+        if (!showLetter && iconWrap) iconWrap.hidden = false;
       }
-      renderSignedIn(dname, email);
+      renderSignedIn(dname, email, avatarUrl);
     }
     if (window.pwSyncNav) window.pwSyncNav();
   }
