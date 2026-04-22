@@ -220,6 +220,7 @@ function renderBookPosterCard(book, opts = {}) {
   const footer = [year, genre, rating].filter(Boolean).join(" · ");
   const action = opts.actionHtml || "";
   const routeBook = {
+    id: book.id || "",
     title: book.title || "Untitled",
     author: book.author || "Unknown Author",
     coverUrl: cover,
@@ -266,8 +267,12 @@ function decodeBookPayload(payload) {
 }
 
 function buildBookShareUrl(book) {
-  const encoded = encodeBookPayload(book);
+  const stableId = String(book?.id || "").trim();
   const origin = window.location.origin || "";
+  if (stableId) {
+    return `${origin}/book?id=${encodeURIComponent(stableId)}`;
+  }
+  const encoded = encodeBookPayload(book);
   return `${origin}/book?data=${encoded}`;
 }
 
@@ -351,6 +356,7 @@ async function upsertUserBookStatus(supabase, userId, book, status) {
   const payload = {
     user_id: userId,
     status,
+    book_id: book.id || null,
     title: book.title || "Untitled",
     author: normalizeAuthors(book.authors || book.author) || null,
     cover_url: book.cover_url || book.coverUrl || null,
@@ -604,6 +610,7 @@ async function renderLibrary(supabase, session) {
       <div class="pw-poster-grid">
         ${
           filteredRows.map((r) => renderBookPosterCard({
+            id: r.book_id || "",
             title: r.title,
             author: r.author,
             cover_url: r.cover_url,
@@ -996,6 +1003,52 @@ async function renderProfile(supabase, session) {
 
 async function renderBookRoute() {
   const params = new URLSearchParams(window.location.search);
+  const stableId = String(params.get("id") || "").trim();
+  if (stableId) {
+    try {
+      const fetched = await fetchJson(`/api/books?type=detail&id=${encodeURIComponent(stableId)}`);
+      const cover = fixCoverUrl(fetched.coverUrl);
+      const title = escapeHtml(fetched.title || "Untitled");
+      const author = escapeHtml(fetched.author || "Unknown Author");
+      const meta = [
+        fetched.publishedYear ? escapeHtml(String(fetched.publishedYear)) : "",
+        fetched.publisher ? escapeHtml(String(fetched.publisher)) : "",
+        Array.isArray(fetched.genres) && fetched.genres.length ? escapeHtml(fetched.genres.slice(0, 3).join(", ")) : "",
+      ].filter(Boolean).join(" · ");
+      const rating = fetched.googleRating != null ? `${Number(fetched.googleRating).toFixed(1)} / 5` : "No rating yet";
+      const shareUrl = buildBookShareUrl(fetched);
+      return `
+        <section class="app-panel">
+          <p><a class="btn btn-outline" href="/discover" data-link-route="/discover">← Back to Discover</a></p>
+          <section class="pw-book-page-hero">
+            <div class="pw-modal-cover">${cover ? `<img src="${escapeHtml(cover)}" alt="${title} cover" />` : "<div class=\"pw-poster-fallback\">PW</div>"}</div>
+            <div>
+              <h2>${title}</h2>
+              <p>${author}</p>
+              ${meta ? `<p class="muted">${meta}</p>` : ""}
+              <p class="metric">Community rating: ${escapeHtml(rating)}</p>
+              <div class="cta-actions">
+                <button class="btn btn-outline" id="pw-book-page-copy">Copy share link</button>
+                <a class="btn btn-outline" href="${escapeHtml(shareUrl)}">Open original link</a>
+              </div>
+            </div>
+          </section>
+          <article class="app-panel">
+            <h3>About this book</h3>
+            <p>${escapeHtml(fetched.description || "No description yet.")}</p>
+          </article>
+        </section>
+      `;
+    } catch (_) {
+      return `
+        <section class="app-panel">
+          <h2>Book details</h2>
+          <p class="muted">We could not load this book right now. Try opening it again from Discover.</p>
+          <p><a href="/discover" data-link-route="/discover">Go to Discover</a></p>
+        </section>
+      `;
+    }
+  }
   const raw = params.get("data");
   const book = decodeBookPayload(raw);
   if (!book) {
