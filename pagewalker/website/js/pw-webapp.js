@@ -9,6 +9,14 @@ const APP_ROUTES = new Set([
   "/reader",
   "/profile",
 ]);
+const PROTECTED_ROUTES = new Set([
+  "/discover",
+  "/library",
+  "/social",
+  "/clubs",
+  "/reader",
+  "/profile",
+]);
 
 function t(key, fallback) {
   if (window.pwT) return window.pwT(key);
@@ -308,16 +316,77 @@ async function renderProfile(supabase, session) {
 
   const profile = profiles[0] || {};
   return `
-    <section class="app-panel">
-      <h2>${t("route.profile.title", "Profile")}</h2>
-      <div class="profile-grid">
-        <div><span class="muted">${t("route.profile.email", "Email")}</span><p>${escapeHtml(session.user.email || "-")}</p></div>
-        <div><span class="muted">${t("route.profile.username", "Username")}</span><p>${escapeHtml(profile.username || "-")}</p></div>
-        <div><span class="muted">${t("route.profile.fullName", "Name")}</span><p>${escapeHtml(profile.full_name || "-")}</p></div>
-      </div>
-      <p>${escapeHtml(profile.bio || t("route.profile.bioEmpty", "No bio yet."))}</p>
+    <section class="app-grid app-grid-3">
+      <article class="app-panel">
+        <h2>${t("route.profile.title", "Profile")}</h2>
+        <div class="profile-grid">
+          <div><span class="muted">${t("route.profile.email", "Email")}</span><p>${escapeHtml(session.user.email || "-")}</p></div>
+          <div><span class="muted">${t("route.profile.username", "Username")}</span><p>${escapeHtml(profile.username || "-")}</p></div>
+          <div><span class="muted">${t("route.profile.fullName", "Name")}</span><p>${escapeHtml(profile.full_name || "-")}</p></div>
+        </div>
+        <p>${escapeHtml(profile.bio || t("route.profile.bioEmpty", "No bio yet."))}</p>
+      </article>
+      <article class="app-panel">
+        <h3>${t("route.profile.featuresTitle", "Your app sections")}</h3>
+        <p>${t("route.profile.featuresBody", "Open deep product sections from Profile after signing in.")}</p>
+        <div class="cta-actions">
+          <a class="btn btn-outline" href="/discover" data-link-route="/discover">${t("appNav.discover", "Discover")}</a>
+          <a class="btn btn-outline" href="/library" data-link-route="/library">${t("appNav.library", "Library")}</a>
+          <a class="btn btn-outline" href="/social" data-link-route="/social">${t("appNav.social", "Social")}</a>
+          <a class="btn btn-outline" href="/clubs" data-link-route="/clubs">${t("appNav.clubs", "Clubs")}</a>
+          <a class="btn btn-outline" href="/reader" data-link-route="/reader">${t("appNav.reader", "Reader")}</a>
+        </div>
+      </article>
+      <article class="app-panel">
+        <h3>${t("route.profile.securityTitle", "Guest-safe web mode")}</h3>
+        <p>${t("route.profile.securityBody", "Guests can browse public information and auth entry points; in-depth sections require sign-in.")}</p>
+      </article>
     </section>
   `;
+}
+
+function renderProtectedRouteGate(route) {
+  const routeNameMap = {
+    "/discover": t("appNav.discover", "Discover"),
+    "/library": t("appNav.library", "Library"),
+    "/social": t("appNav.social", "Social"),
+    "/clubs": t("appNav.clubs", "Clubs"),
+    "/reader": t("appNav.reader", "Reader"),
+    "/profile": t("appNav.profile", "Profile"),
+  };
+  return `
+    <section class="app-panel">
+      <h2>${t("route.locked.title", "Sign in required")}</h2>
+      <p>${t("route.locked.body", "To view in-depth product content on web, please sign in first.")}</p>
+      <p class="muted">${t("route.locked.target", "Requested section")}: ${escapeHtml(routeNameMap[route] || route)}</p>
+      <div class="cta-actions">
+        <button id="pw-locked-signin" class="btn">${t("appShell.signIn", "Sign in")}</button>
+        <button id="pw-locked-signup" class="btn btn-outline">${t("appShell.signUp", "Sign up")}</button>
+      </div>
+    </section>
+  `;
+}
+
+function bindLockedGateActions() {
+  const signInBtn = document.getElementById("pw-locked-signin");
+  const signUpBtn = document.getElementById("pw-locked-signup");
+  signInBtn?.addEventListener("click", () => {
+    window.location.href = "/sign-in";
+  });
+  signUpBtn?.addEventListener("click", () => {
+    window.location.href = "/sign-up";
+  });
+}
+
+async function renderCurrentRoute(supabase, session, route) {
+  if (route === "/") return renderHome(supabase, session);
+  if (route === "/discover") return renderDiscover(supabase, session);
+  if (route === "/library") return renderLibrary(supabase, session);
+  if (route === "/social") return renderSocial(supabase, session);
+  if (route === "/clubs") return renderClubs(supabase, session);
+  if (route === "/reader") return renderReader(supabase, session);
+  if (route === "/profile") return renderProfile(supabase, session);
+  return "";
 }
 
 async function renderRoute(supabase, session) {
@@ -327,15 +396,12 @@ async function renderRoute(supabase, session) {
   if (!root) return;
 
   hideBanners();
-  let html = "";
-  if (route === "/") html = await renderHome(supabase, session);
-  else if (route === "/discover") html = await renderDiscover(supabase, session);
-  else if (route === "/library") html = await renderLibrary(supabase, session);
-  else if (route === "/social") html = await renderSocial(supabase, session);
-  else if (route === "/clubs") html = await renderClubs(supabase, session);
-  else if (route === "/reader") html = await renderReader(supabase, session);
-  else if (route === "/profile") html = await renderProfile(supabase, session);
-  root.innerHTML = html;
+  if (!session?.user && PROTECTED_ROUTES.has(route)) {
+    root.innerHTML = renderProtectedRouteGate(route);
+    bindLockedGateActions();
+    return;
+  }
+  root.innerHTML = await renderCurrentRoute(supabase, session, route);
 }
 
 function initLinks(render) {
