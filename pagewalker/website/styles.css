@@ -1309,11 +1309,6 @@ a.pw-drawer__sublink[data-active] {
   margin-bottom: 0.35rem;
 }
 
-.pw-discover-page__tab-hint {
-  font-size: 0.9rem;
-  margin: 0.25rem 0 0.5rem;
-}
-
 .pw-discover-tabstrip {
   display: flex;
   flex-direction: column;
