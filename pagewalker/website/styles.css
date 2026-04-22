@@ -1860,6 +1860,116 @@ html[data-theme="dark"] .pw-auth-nudge {
   color: var(--text);
 }
 
+.pw-club-lede {
+  margin: 0 0 1rem;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.pw-club-browse__title {
+  margin: 0 0 0.6rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.pw-club-browse-grid {
+  margin-bottom: 1.25rem;
+}
+
+.pw-club-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.pw-club-card__head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.pw-club-card__emoji {
+  margin-right: 0.2rem;
+}
+
+.pw-club-badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  padding: 0.2rem 0.45rem;
+}
+
+.pw-club-card__actions {
+  margin-top: 0.65rem;
+}
+
+.pw-club-incoming {
+  margin-bottom: 1.15rem;
+}
+
+.pw-club-incoming__list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.pw-club-incoming__item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+@media (min-width: 520px) {
+  .pw-club-incoming__item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.pw-club-incoming__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pw-club-incoming__actions .btn {
+  min-width: 5.5rem;
+}
+
+.pw-club-forms {
+  margin-top: 0.5rem;
+}
+
+.pw-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.pw-checkbox input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
 .pw-review-card .btn.btn-outline {
   margin-top: 0.35rem;
 }
