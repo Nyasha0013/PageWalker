@@ -1454,7 +1454,8 @@ html[data-theme="dark"] .pw-shimmer-line::after {
   }
 
   .pw-sticky-bar {
-    top: 72px;
+    position: static;
+    top: auto;
   }
 
   .pw-modal-hero {
