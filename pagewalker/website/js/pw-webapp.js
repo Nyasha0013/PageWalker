@@ -90,65 +90,52 @@ async function runSafeQuery(work, emptyText) {
   }
 }
 
-async function renderHome(supabase, session) {
-  const userId = session?.user?.id;
-  if (!userId) {
-    return `
-      <section class="app-panel">
-        <h2>${t("route.home.title", "Welcome to Pagewalker web")}</h2>
-        <p>${t("route.home.guest", "Sign in to unlock your full reading universe on web.")}</p>
-      </section>
-    `;
-  }
-
-  const [books, reviews, clubs] = await Promise.all([
-    runSafeQuery(async () => {
-      const { data, error } = await supabase
-        .from("user_books")
-        .select("status")
-        .eq("user_id", userId);
-      if (error) throw error;
-      return data || [];
-    }, t("appShell.missingUserBooks", "Could not load user_books.")),
-    runSafeQuery(async () => {
-      const { data, error } = await supabase
-        .from("reviews")
-        .select("id")
-        .eq("user_id", userId);
-      if (error) throw error;
-      return data || [];
-    }, t("appShell.missingReviews", "Could not load reviews.")),
-    runSafeQuery(async () => {
-      const { data, error } = await supabase
-        .from("book_club_members")
-        .select("club_id")
-        .eq("user_id", userId);
-      if (error) throw error;
-      return data || [];
-    }, t("appShell.missingClubs", "Could not load clubs.")),
-  ]);
-
-  const tbr = books.filter((b) => b.status === "tbr").length;
-  const reading = books.filter((b) => b.status === "reading").length;
-  const finished = books.filter((b) => b.status === "read").length;
-
+async function renderHome(_supabase, _session) {
   return `
+    <section class="hero">
+      <div class="hero-inner">
+        <h1>
+          <span>${t("home.heroLine1", "Walk your shelves.")}</span><br />
+          <span class="accent">${t("home.heroLine2", "Share the story.")}</span>
+        </h1>
+        <p class="lede">${t("home.heroLede", "Your cozy corner for TBR piles, reading streaks, spicy reviews, and book-club chaos — all the bookish energy, none of the pirated pages.")}</p>
+        <div class="hero-actions">
+          <a class="badge-play" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer" aria-label="${t("home.playAlt", "Get it on Google Play")}">
+            <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="${t("home.playAlt", "Get it on Google Play")}" width="646" height="250" />
+          </a>
+        </div>
+        <p class="hero-tagline">${t("home.heroTagline", "Free on Google Play · same login here & in the app")}</p>
+      </div>
+    </section>
     <section class="app-grid app-grid-3">
       <article class="app-panel">
-        <h3>${t("homeCard.library", "Library")}</h3>
-        <p>${t("homeCard.libraryBody", "Track your TBR, current reads, and finished books.")}</p>
-        <p class="metric">${t("homeCard.tbr", "TBR")}: ${tbr} · ${t("homeCard.reading", "Reading")}: ${reading} · ${t("homeCard.read", "Read")}: ${finished}</p>
+        <h3>${t("home.feature1Title", "Discover & stack")}</h3>
+        <p>${t("home.feature1Desc", "Hunt your next obsession, curate your TBR, and flex your finished pile like the main character you are.")}</p>
       </article>
       <article class="app-panel">
-        <h3>${t("homeCard.social", "Social")}</h3>
-        <p>${t("homeCard.socialBody", "Write reviews and follow reader conversations.")}</p>
-        <p class="metric">${t("homeCard.yourReviews", "Your reviews")}: ${reviews.length}</p>
+        <h3>${t("home.feature2Title", "Track the vibe")}</h3>
+        <p>${t("home.feature2Desc", "Sessions, streaks, and yearly wraps so your reading era gets the spotlight.")}</p>
       </article>
       <article class="app-panel">
-        <h3>${t("homeCard.clubs", "Book clubs")}</h3>
-        <p>${t("homeCard.clubsBody", "Join clubs, chat, and vote in polls.")}</p>
-        <p class="metric">${t("homeCard.joinedClubs", "Joined clubs")}: ${clubs.length}</p>
+        <h3>${t("home.feature3Title", "Gossip & clubs")}</h3>
+        <p>${t("home.feature3Desc", "Hot takes, profiles, and book-club rooms for when you need to process that ending together.")}</p>
       </article>
+    </section>
+    <section class="cta-band">
+      <div class="cta-inner">
+        <h2>${t("home.ctaHeading", "Start your next chapter")}</h2>
+        <p class="cta-lede">${t("home.ctaLede", "Get the app on Google Play, read release notes, or reach out for support.")}</p>
+        <div class="cta-actions">
+          <a class="btn" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer">${t("home.ctaPlay", "Get it on Google Play")}</a>
+          <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
+          <a class="btn btn-outline" href="/about">${t("nav.about", "About")}</a>
+        </div>
+      </div>
+    </section>
+    <section class="app-panel">
+      <h3>${t("route.home.profilePromptTitle", "Account actions are in Profile")}</h3>
+      <p>${t("route.home.profilePromptBody", "Use the Profile tab for Guest mode, Sign in, Sign up, and Sign out.")}</p>
+      <p><a href="/profile" data-link-route="/profile">${t("appNav.profile", "Profile")}</a></p>
     </section>
   `;
 }
@@ -300,8 +287,25 @@ async function renderReader(supabase, session) {
 }
 
 async function renderProfile(supabase, session) {
+  const signedIn = !!(session && session.user);
+  const authPanel = `
+    <section class="webapp-hero">
+      <h1>${t("appShell.heroTitle", "Your full Pagewalker experience on web")}</h1>
+      <p>${t("appShell.heroLede", "Sign in once and move across library, discover, social, clubs, and reader tools.")}</p>
+      <div class="webapp-auth-row">
+        <span class="badge-outline">${signedIn ? `${t("appShell.authSignedIn", "Signed in")}: ${escapeHtml(session.user.email || "")}` : t("appShell.authGuest", "Guest mode")}</span>
+        <button id="pw-profile-signin" class="btn"${signedIn ? " hidden" : ""}>${t("appShell.signIn", "Sign in")}</button>
+        <button id="pw-profile-signup" class="btn btn-outline"${signedIn ? " hidden" : ""}>${t("appShell.signUp", "Sign up")}</button>
+        <button id="pw-profile-signout" class="btn btn-outline"${signedIn ? "" : " hidden"}>${t("appShell.signOut", "Sign out")}</button>
+      </div>
+    </section>
+  `;
+
   if (!session?.user) {
-    return `<section class="app-panel"><h2>${t("route.profile.title", "Profile")}</h2><p>${t("route.authRequired", "Please sign in to view this section.")}</p></section>`;
+    return `
+      ${authPanel}
+      <section class="app-panel"><h2>${t("route.profile.title", "Profile")}</h2><p>${t("route.authRequired", "Please sign in to view this section.")}</p></section>
+    `;
   }
 
   const profiles = await runSafeQuery(async () => {
@@ -316,6 +320,7 @@ async function renderProfile(supabase, session) {
 
   const profile = profiles[0] || {};
   return `
+    ${authPanel}
     <section class="app-grid app-grid-3">
       <article class="app-panel">
         <h2>${t("route.profile.title", "Profile")}</h2>
@@ -402,6 +407,25 @@ async function renderRoute(supabase, session) {
     return;
   }
   root.innerHTML = await renderCurrentRoute(supabase, session, route);
+  if (route === "/profile") {
+    const signInBtn = document.getElementById("pw-profile-signin");
+    const signUpBtn = document.getElementById("pw-profile-signup");
+    const signOutBtn = document.getElementById("pw-profile-signout");
+    signInBtn?.addEventListener("click", () => {
+      window.location.href = "/sign-in";
+    });
+    signUpBtn?.addEventListener("click", () => {
+      window.location.href = "/sign-up";
+    });
+    signOutBtn?.addEventListener("click", async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        showBanner("error", error.message);
+        return;
+      }
+      showBanner("success", t("appShell.signedOut", "You are signed out."));
+    });
+  }
 }
 
 function initLinks(render) {
@@ -421,25 +445,6 @@ function initLinks(render) {
   window.addEventListener("popstate", render);
 }
 
-function updateAuthUi(session) {
-  const authState = document.getElementById("pw-auth-state");
-  const signInBtn = document.getElementById("pw-btn-signin");
-  const signUpBtn = document.getElementById("pw-btn-signup");
-  const signOutBtn = document.getElementById("pw-btn-signout");
-  if (!authState || !signInBtn || !signUpBtn || !signOutBtn) return;
-  if (session?.user) {
-    authState.textContent = `${t("appShell.authSignedIn", "Signed in")}: ${session.user.email || ""}`;
-    signInBtn.hidden = true;
-    signUpBtn.hidden = true;
-    signOutBtn.hidden = false;
-  } else {
-    authState.textContent = t("appShell.authGuest", "Guest mode");
-    signInBtn.hidden = false;
-    signUpBtn.hidden = false;
-    signOutBtn.hidden = true;
-  }
-}
-
 async function boot() {
   ensureAppPath();
   let supabase;
@@ -451,7 +456,6 @@ async function boot() {
   }
 
   let session = (await supabase.auth.getSession()).data.session;
-  updateAuthUi(session);
 
   const render = async () => {
     await renderRoute(supabase, session);
@@ -460,28 +464,8 @@ async function boot() {
   initLinks(render);
   await render();
 
-  const signInBtn = document.getElementById("pw-btn-signin");
-  const signUpBtn = document.getElementById("pw-btn-signup");
-  const signOutBtn = document.getElementById("pw-btn-signout");
-
-  signInBtn?.addEventListener("click", () => {
-    window.location.href = "/sign-in";
-  });
-  signUpBtn?.addEventListener("click", () => {
-    window.location.href = "/sign-up";
-  });
-  signOutBtn?.addEventListener("click", async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      showBanner("error", error.message);
-      return;
-    }
-    showBanner("success", t("appShell.signedOut", "You are signed out."));
-  });
-
   supabase.auth.onAuthStateChange(async (_evt, newSession) => {
     session = newSession;
-    updateAuthUi(newSession);
     await render();
   });
 }
