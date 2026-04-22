@@ -728,6 +728,19 @@ html[data-theme="dark"] .form-stack input {
   box-shadow: 0 10px 28px rgba(24, 119, 242, 0.45);
 }
 
+.btn-google {
+  background: #ffffff;
+  color: #202124;
+  border: 1px solid #dadce0;
+  box-shadow: 0 6px 20px rgba(32, 33, 36, 0.14);
+}
+
+.btn-google:hover {
+  background: #f8f9fa;
+  color: #202124;
+  box-shadow: 0 10px 28px rgba(32, 33, 36, 0.2);
+}
+
 .page-auth .subnav {
   font-size: 0.92rem;
   color: var(--text-secondary);
