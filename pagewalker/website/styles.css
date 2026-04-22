@@ -1361,6 +1361,23 @@ body.pw-modal-open {
   margin-bottom: 0.8rem;
 }
 
+.pw-canonical {
+  margin-top: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.pw-canonical code {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  word-break: break-all;
+}
+
 .pw-shimmer-block,
 .pw-shimmer-line {
   position: relative;

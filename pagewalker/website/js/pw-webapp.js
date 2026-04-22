@@ -326,6 +326,10 @@ function openBookModal(book) {
     <section class="app-panel">
       <h4>Where to find it</h4>
       <p>Use Discover search for editions and external links, then add it to your shelf.</p>
+      <div class="pw-canonical">
+        <span class="muted">Canonical URL</span>
+        <code>${escapeHtml(shareUrl)}</code>
+      </div>
       <div class="cta-actions">
         <a class="btn btn-outline" href="${escapeHtml(shareUrl)}" data-link-route="/book">Open full page</a>
         <button class="btn btn-outline" id="pw-book-copy-link">Copy share link</button>
@@ -1031,6 +1035,10 @@ async function renderBookRoute() {
                 <button class="btn btn-outline" id="pw-book-page-copy">Copy share link</button>
                 <a class="btn btn-outline" href="${escapeHtml(shareUrl)}">Open original link</a>
               </div>
+              <div class="pw-canonical">
+                <span class="muted">Canonical URL</span>
+                <code>${escapeHtml(shareUrl)}</code>
+              </div>
             </div>
           </section>
           <article class="app-panel">
@@ -1039,11 +1047,20 @@ async function renderBookRoute() {
           </article>
         </section>
       `;
-    } catch (_) {
+    } catch (error) {
+      const msg = String(error?.message || "");
+      const notFound = msg.includes("request_failed_404");
+      const unavailable = msg.includes("request_failed_5");
       return `
         <section class="app-panel">
           <h2>Book details</h2>
-          <p class="muted">We could not load this book right now. Try opening it again from Discover.</p>
+          <p class="muted">${
+            notFound
+              ? "This book link no longer exists or was removed by the source provider."
+              : unavailable
+                ? "Book data is temporarily unavailable. Please try again in a moment."
+                : "We could not load this book right now. Try opening it again from Discover."
+          }</p>
           <p><a href="/discover" data-link-route="/discover">Go to Discover</a></p>
         </section>
       `;

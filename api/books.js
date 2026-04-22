@@ -72,6 +72,9 @@ module.exports = async (req, res) => {
       if (rawId.startsWith("gutenberg_")) {
         const gutId = encodeURIComponent(rawId.replace("gutenberg_", ""));
         const gutRes = await fetch(`https://gutendex.com/books/${gutId}`);
+        if (!gutRes.ok) {
+          return res.status(gutRes.status).json({ error: "Book not found" });
+        }
         const gutData = await gutRes.json();
         return res.status(200).json(normalizeGutendexBook(gutData));
       }
@@ -82,6 +85,9 @@ module.exports = async (req, res) => {
       const googleRes = await fetch(
         `https://www.googleapis.com/books/v1/volumes/${googleId}?key=${googleKey}`,
       );
+      if (!googleRes.ok) {
+        return res.status(googleRes.status).json({ error: "Book not found" });
+      }
       const googleData = await googleRes.json();
       return res.status(200).json(normalizeGoogleBook(googleData));
     }
