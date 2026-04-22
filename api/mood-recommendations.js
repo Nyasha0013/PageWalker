@@ -1,7 +1,8 @@
-const { withRequestContext, applyRateLimit, sendError } = require("./_utils");
+const { withRequestContext, applyRateLimit, sendError, blockLikelyBots } = require("./_utils");
 
 module.exports = async (req, res) => {
   const ctx = withRequestContext(req, res, "mood-recommendations");
+  if (blockLikelyBots(req, res, ctx)) return;
   if (!applyRateLimit(res, ctx, { windowMs: 60000, max: 20 })) return;
 
   if (req.method !== "POST") {

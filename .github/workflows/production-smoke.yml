@@ -1,0 +1,33 @@
+name: Production Smoke Checks
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/production-smoke.yml"
+      - "scripts/smoke-web.sh"
+      - "api/**"
+      - "pagewalker/website/js/**"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BASE_URL: ${{ secrets.SMOKE_BASE_URL || 'https://pagewalker.org' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure smoke script executable
+        run: chmod +x scripts/smoke-web.sh scripts/smoke-web-extended.sh
+
+      - name: Run production smoke checks
+        run: ./scripts/smoke-web.sh "$BASE_URL"
+
+      - name: Run extended API smoke checks
+        run: ./scripts/smoke-web-extended.sh "$BASE_URL"

@@ -1,4 +1,5 @@
 const rateLimitBuckets = new Map();
+const ERROR_ALERT_WEBHOOK_URL = String(process.env.ERROR_ALERT_WEBHOOK_URL || "").trim();
 
 function randomId() {
   return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -10,11 +11,16 @@ function getClientIp(req) {
   return String(req.headers["x-real-ip"] || "unknown");
 }
 
+function getUserAgent(req) {
+  return String(req.headers["user-agent"] || "").trim();
+}
+
 function withRequestContext(req, res, routeName) {
   const requestId = String(req.headers["x-request-id"] || randomId());
   const ip = getClientIp(req);
+  const userAgent = getUserAgent(req);
   res.setHeader("x-request-id", requestId);
-  return { requestId, ip, routeName, startedAt: Date.now() };
+  return { requestId, ip, userAgent, routeName, startedAt: Date.now() };
 }
 
 function applyRateLimit(res, context, opts) {
@@ -52,14 +58,71 @@ function sendError(res, context, status, publicError, details) {
     message: String(details?.message || details || publicError),
   };
   console.error(JSON.stringify(payload));
+  // Optional alerting hook (Slack/Discord/custom endpoint) for server-side failures.
+  if (status >= 500 && ERROR_ALERT_WEBHOOK_URL) {
+    fetch(ERROR_ALERT_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch((error) => {
+      console.error(
+        JSON.stringify({
+          level: "warn",
+          route: context.routeName,
+          requestId: context.requestId,
+          message: "error_alert_webhook_failed",
+          details: String(error?.message || error),
+        }),
+      );
+    });
+  }
   return res.status(status).json({
     error: publicError,
     requestId: context.requestId,
   });
 }
 
+function blockLikelyBots(req, res, context, opts) {
+  const allowEmptyUserAgent = Boolean(opts?.allowEmptyUserAgent);
+  const userAgent = String(context?.userAgent || "");
+  if (!allowEmptyUserAgent && !userAgent) {
+    res.status(403).json({
+      error: "blocked_request",
+      message: "Request blocked.",
+      requestId: context.requestId,
+    });
+    return true;
+  }
+
+  const denyList = [
+    "sqlmap",
+    "nmap",
+    "nikto",
+    "acunetix",
+    "masscan",
+    "dirbuster",
+    "crawler",
+    "scrapy",
+    "wget",
+    "python-requests",
+  ];
+  const lower = userAgent.toLowerCase();
+  for (let i = 0; i < denyList.length; i += 1) {
+    if (lower.includes(denyList[i])) {
+      res.status(403).json({
+        error: "blocked_request",
+        message: "Request blocked.",
+        requestId: context.requestId,
+      });
+      return true;
+    }
+  }
+  return false;
+}
+
 module.exports = {
   withRequestContext,
   applyRateLimit,
   sendError,
+  blockLikelyBots,
 };

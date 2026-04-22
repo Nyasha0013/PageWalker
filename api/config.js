@@ -1,4 +1,4 @@
-const { withRequestContext, applyRateLimit, sendError } = require("./_utils");
+const { withRequestContext, applyRateLimit, sendError, blockLikelyBots } = require("./_utils");
 
 /**
  * Public Supabase settings for the marketing site (anon key is safe for browsers).
@@ -12,6 +12,11 @@ const { withRequestContext, applyRateLimit, sendError } = require("./_utils");
 
 module.exports = (req, res) => {
   const ctx = withRequestContext(req, res, "config");
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  if (blockLikelyBots(req, res, ctx)) return;
   if (!applyRateLimit(res, ctx, { windowMs: 60000, max: 120 })) return;
   try {
     res.setHeader("Cache-Control", "no-store, max-age=0");

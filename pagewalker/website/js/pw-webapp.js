@@ -153,6 +153,41 @@ function parseGoogleBook(item) {
   };
 }
 
+function normalizeApiBook(book) {
+  return {
+    id: String(book?.id || `book_${Math.random().toString(36).slice(2)}`),
+    title: String(book?.title || "Unknown Title"),
+    author: String(book?.author || "Unknown Author"),
+    coverUrl: book?.coverUrl || null,
+    description: book?.description || null,
+    pageCount: book?.pageCount || null,
+    genres: Array.isArray(book?.genres) ? book.genres : [],
+    publishedYear: book?.publishedYear || null,
+    publisher: book?.publisher || null,
+    googleRating: book?.googleRating || null,
+    source: String(book?.source || "catalog"),
+  };
+}
+
+function extractBooksFromApiResponse(json) {
+  if (Array.isArray(json?.books)) return json.books.map(normalizeApiBook);
+  if (Array.isArray(json?.items)) return json.items.map(parseGoogleBook);
+  return [];
+}
+
+function dedupeBooksStable(rows) {
+  const seen = new Set();
+  const result = [];
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    const key = `${String(row?.id || "").trim()}::${String(row?.title || "").trim().toLowerCase()}::${String(row?.author || "").trim().toLowerCase()}`;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(row);
+  }
+  return result;
+}
+
 function parseGutendexBook(book) {
   const formats = book?.formats || {};
   let cover = null;
@@ -406,7 +441,7 @@ async function renderHome(_supabase, _session) {
   const [trendingBooks, latestReviews] = await Promise.all([
     runSafeQuery(async () => {
       const json = await fetchJson("/api/books?type=trending");
-      return (json.items || []).slice(0, 6).map(parseGoogleBook);
+      return extractBooksFromApiResponse(json).slice(0, 6);
     }, "Trending unavailable."),
     runSafeQuery(async () => {
       const supabase = await getSupabase();
@@ -494,9 +529,13 @@ async function renderDiscover(supabase, session) {
       reqs.push(fetchJson(`${baseUrl}&startIndex=${startIndex}&maxResults=${DISCOVER_PAGE_SIZE}`));
     }
     const responses = await Promise.all(reqs);
-    const items = responses.flatMap((x) => x.items || []);
-    const total = Number(responses[responses.length - 1]?.totalItems || 0);
-    return { books: items.map(parseGoogleBook), hasMore: total > items.length };
+    const books = dedupeBooksStable(responses.flatMap((x) => extractBooksFromApiResponse(x)));
+    const last = responses[responses.length - 1] || {};
+    const hasMore =
+      typeof last?.hasMore === "boolean"
+        ? last.hasMore
+        : Number(last?.totalItems || 0) > books.length;
+    return { books, hasMore };
   };
   const loadClassicsPages = async (pages) => {
     const reqs = [];
@@ -504,7 +543,7 @@ async function renderDiscover(supabase, session) {
       reqs.push(fetchJson(`/api/books?type=classics&page=${i}`));
     }
     const responses = await Promise.all(reqs);
-    const books = responses.flatMap((x) => x.results || []).map(parseGutendexBook);
+    const books = dedupeBooksStable(responses.flatMap((x) => x.results || []).map(parseGutendexBook));
     const hasMore = Boolean(responses[responses.length - 1]?.next);
     return { books, hasMore };
   };
