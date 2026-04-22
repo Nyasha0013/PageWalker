@@ -266,6 +266,9 @@
       "toolbar.themeAria.light": "Light theme — click to switch to dark",
       "toolbar.themeAria.dark": "Dark theme — click to switch to system",
       "toolbar.themeAria.system": "System theme — click to switch to light",
+      "toolbar.themeMode.light": "Light mode",
+      "toolbar.themeMode.dark": "Dark mode",
+      "toolbar.themeMode.system": "System mode",
 
       "home.title": "Pagewalker — Reading, together",
       "home.metaDescription": "Pagewalker — discover books, track reading, join book clubs, and connect with readers. Official site.",
@@ -487,6 +490,9 @@
       "toolbar.themeAria.light": "Világos téma — kattints a sötétre váltáshoz",
       "toolbar.themeAria.dark": "Sötét téma — kattints a rendszerre váltáshoz",
       "toolbar.themeAria.system": "Rendszer téma — kattints a világosra váltáshoz",
+      "toolbar.themeMode.light": "Világos mód",
+      "toolbar.themeMode.dark": "Sötét mód",
+      "toolbar.themeMode.system": "Rendszer mód",
 
       "home.title": "Pagewalker — Olvass velünk",
       "home.metaDescription": "Pagewalker — könyvek felfedezése, olvasáskövetés, könyvklubok és olvasók egy helyen. Hivatalos oldal.",

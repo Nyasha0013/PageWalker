@@ -33,6 +33,8 @@
     for (var i = 0; i < toggles.length; i++) {
       toggles[i].setAttribute("data-mode", mode);
       toggles[i].setAttribute("aria-label", labelFor(mode));
+      var labelNode = toggles[i].querySelector(".pw-theme-toggle-label");
+      if (labelNode) labelNode.textContent = modeLabel(mode);
     }
     applyLogoTheme(resolved);
   }
@@ -42,6 +44,13 @@
     if (mode === "light") return "Light theme — click to switch to dark";
     if (mode === "dark") return "Dark theme — click to switch to system";
     return "System theme — click to switch to light";
+  }
+
+  function modeLabel(mode) {
+    if (window.pwT) return window.pwT("toolbar.themeMode." + mode);
+    if (mode === "light") return "Light mode";
+    if (mode === "dark") return "Dark mode";
+    return "System mode";
   }
 
   function setMode(mode) {
@@ -213,6 +222,12 @@
     setupLogos();
     var toggles = document.querySelectorAll(".pw-theme-toggle");
     for (var i = 0; i < toggles.length; i++) {
+      if (!toggles[i].querySelector(".pw-theme-toggle-label")) {
+        var text = document.createElement("span");
+        text.className = "pw-theme-toggle-label";
+        text.textContent = modeLabel(getMode());
+        toggles[i].appendChild(text);
+      }
       toggles[i].addEventListener("click", cycle);
     }
     apply(getMode());

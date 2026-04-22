@@ -256,14 +256,16 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
+  gap: 0.35rem;
+  width: auto;
+  min-width: 36px;
   height: 36px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--text);
   cursor: pointer;
-  padding: 0;
+  padding: 0 0.65rem;
   transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
@@ -277,6 +279,13 @@ a:focus-visible {
   width: 18px;
   height: 18px;
   display: block;
+}
+
+.pw-theme-toggle-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .pw-theme-toggle [data-icon] {
