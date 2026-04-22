@@ -17,6 +17,15 @@ const PROTECTED_ROUTES = new Set([
   "/reader",
   "/profile",
 ]);
+const LIBRARY_STATUSES = ["tbr", "reading", "read", "dnf"];
+const STATUS_LABELS = {
+  tbr: "TBR",
+  reading: "Reading",
+  read: "Read",
+  dnf: "DNF",
+};
+let discoverQuery = "";
+let libraryFilter = "all";
 
 function t(key, fallback) {
   if (window.pwT) return window.pwT(key);
@@ -90,6 +99,47 @@ async function runSafeQuery(work, emptyText) {
   }
 }
 
+function normalizeAuthors(authors) {
+  if (Array.isArray(authors)) return authors.join(", ");
+  return String(authors || "");
+}
+
+async function upsertUserBookStatus(supabase, userId, book, status) {
+  const payload = {
+    user_id: userId,
+    status,
+    title: book.title || "Untitled",
+    author: normalizeAuthors(book.authors) || null,
+    cover_url: book.cover_url || null,
+  };
+  const upsertRes = await supabase
+    .from("user_books")
+    .upsert(payload, { onConflict: "user_id,title" });
+  if (!upsertRes.error) return;
+
+  const { data: existing, error: existingErr } = await supabase
+    .from("user_books")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("title", payload.title)
+    .maybeSingle();
+  if (existingErr) throw existingErr;
+
+  if (existing?.id) {
+    const { error: updateErr } = await supabase
+      .from("user_books")
+      .update(payload)
+      .eq("id", existing.id);
+    if (updateErr) throw updateErr;
+    return;
+  }
+
+  const { error: insertErr } = await supabase
+    .from("user_books")
+    .insert(payload);
+  if (insertErr) throw insertErr;
+}
+
 async function renderHome(_supabase, _session) {
   return `
     <section class="hero">
@@ -141,33 +191,52 @@ async function renderHome(_supabase, _session) {
 }
 
 async function renderDiscover(supabase, session) {
+  const safeQuery = discoverQuery.trim();
   const catalog = await runSafeQuery(async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from("catalog_books")
-      .select("title, authors, cover_url")
-      .limit(8);
+      .select("id, title, authors, cover_url")
+      .order("title", { ascending: true })
+      .limit(24);
+    if (safeQuery) {
+      query = query.ilike("title", `%${safeQuery}%`);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   }, t("appShell.missingCatalog", "Could not load catalog_books."));
-
-  const rows = catalog
-    .slice(0, 8)
-    .map((b) => {
-      if (b.__error) return `<li>${escapeHtml(b.text)}</li>`;
-      const author = Array.isArray(b.authors) ? b.authors.join(", ") : (b.authors || "");
-      return `<li><strong>${escapeHtml(b.title || "Untitled")}</strong><span>${escapeHtml(author)}</span></li>`;
-    });
 
   return `
     <section class="app-panel">
       <h2>${t("route.discover.title", "Discover & search")}</h2>
       <p>${t("route.discover.body", "Browse catalog books and use app search from web.")}</p>
-      ${listToHtml(rows)}
-      ${
-        session?.user
-          ? `<p class="muted">${t("route.discover.noteAuthed", "You are signed in. Use discover + library together.")}</p>`
-          : `<p class="muted">${t("route.discover.noteGuest", "Sign in to save discoveries to your library.")}</p>`
-      }
+      <form id="pw-discover-search" class="form-stack">
+        <label>
+          <span>${t("route.discover.searchLabel", "Search books")}</span>
+          <input id="pw-discover-query" type="text" value="${escapeHtml(safeQuery)}" placeholder="${t("route.discover.searchPlaceholder", "Search by title")}" />
+        </label>
+        <button type="submit" class="btn">${t("route.discover.searchAction", "Search")}</button>
+      </form>
+      <div class="app-grid app-grid-3">
+        ${
+          catalog.map((book) => {
+            if (book.__error) {
+              return `<article class="app-panel"><p>${escapeHtml(book.text)}</p></article>`;
+            }
+            return `
+              <article class="app-panel">
+                <h3>${escapeHtml(book.title || "Untitled")}</h3>
+                <p>${escapeHtml(normalizeAuthors(book.authors) || t("route.discover.authorUnknown", "Unknown author"))}</p>
+                <div class="cta-actions">
+                  <button class="btn btn-outline" data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button>
+                  <button class="btn btn-outline" data-discover-add data-status="reading" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addReading", "Mark Reading")}</button>
+                </div>
+              </article>
+            `;
+          }).join("")
+        }
+      </div>
+      <p class="muted">${t("route.discover.noteAuthed", "You are signed in. Use discover + library together.")}</p>
     </section>
   `;
 }
@@ -186,12 +255,39 @@ async function renderLibrary(supabase, session) {
     if (error) throw error;
     return data || [];
   }, t("appShell.missingUserBooks", "Could not load user_books."));
+  const cleanRows = rows.filter((r) => !r.__error);
+  const counts = LIBRARY_STATUSES.reduce((acc, status) => {
+    acc[status] = cleanRows.filter((x) => x.status === status).length;
+    return acc;
+  }, {});
+  const filteredRows = libraryFilter === "all"
+    ? cleanRows
+    : cleanRows.filter((x) => x.status === libraryFilter);
 
-  const items = rows.map((r) => {
-    if (r.__error) return `<span>${escapeHtml(r.text)}</span>`;
-    return `<strong>${escapeHtml(r.title || "Untitled")}</strong><span>${escapeHtml(r.author || "")} · ${escapeHtml(r.status || "")}</span>`;
-  });
-  return `<section class="app-panel"><h2>${t("route.library.title", "Library")}</h2>${listToHtml(items)}</section>`;
+  return `
+    <section class="app-panel">
+      <h2>${t("route.library.title", "Library")}</h2>
+      <div class="cta-actions">
+        <button class="btn btn-outline" data-library-filter="all">${t("route.library.filterAll", "All")} (${cleanRows.length})</button>
+        ${LIBRARY_STATUSES.map((status) => `<button class="btn btn-outline" data-library-filter="${status}">${STATUS_LABELS[status]} (${counts[status] || 0})</button>`).join("")}
+      </div>
+      <div class="app-grid app-grid-3">
+        ${
+          filteredRows.map((r) => `
+            <article class="app-panel">
+              <h3>${escapeHtml(r.title || "Untitled")}</h3>
+              <p>${escapeHtml(r.author || "")}</p>
+              <p class="metric">${t("route.library.status", "Status")}: ${escapeHtml(STATUS_LABELS[r.status] || r.status || "-")}</p>
+              <div class="cta-actions">
+                ${LIBRARY_STATUSES.map((status) => `<button class="btn btn-outline" data-library-status="${status}" data-library-title="${escapeHtml(r.title || "")}">${STATUS_LABELS[status]}</button>`).join("")}
+              </div>
+            </article>
+          `).join("")
+        }
+      </div>
+      ${rows.some((r) => r.__error) ? `<p class="muted">${escapeHtml(rows.find((r) => r.__error)?.text || "")}</p>` : ""}
+    </section>
+  `;
 }
 
 async function renderSocial(supabase, session) {
@@ -383,6 +479,60 @@ function bindLockedGateActions() {
   });
 }
 
+function bindDiscoverActions(supabase, session, rerender) {
+  const form = document.getElementById("pw-discover-search");
+  const input = document.getElementById("pw-discover-query");
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    discoverQuery = String(input?.value || "").trim();
+    rerender();
+  });
+  const addButtons = document.querySelectorAll("[data-discover-add]");
+  for (let i = 0; i < addButtons.length; i += 1) {
+    addButtons[i].addEventListener("click", async () => {
+      try {
+        const raw = addButtons[i].getAttribute("data-book");
+        const status = addButtons[i].getAttribute("data-status") || "tbr";
+        if (!raw || !session?.user?.id) return;
+        const parsed = JSON.parse(raw);
+        await upsertUserBookStatus(supabase, session.user.id, parsed, status);
+        showBanner("success", t("route.discover.saved", "Saved to your library."));
+      } catch (error) {
+        showBanner("error", error?.message || t("appShell.missingData", "Something went wrong."));
+      }
+    });
+  }
+}
+
+function bindLibraryActions(supabase, session, rerender) {
+  const filterButtons = document.querySelectorAll("[data-library-filter]");
+  for (let i = 0; i < filterButtons.length; i += 1) {
+    filterButtons[i].addEventListener("click", () => {
+      libraryFilter = filterButtons[i].getAttribute("data-library-filter") || "all";
+      rerender();
+    });
+  }
+  const statusButtons = document.querySelectorAll("[data-library-status]");
+  for (let i = 0; i < statusButtons.length; i += 1) {
+    statusButtons[i].addEventListener("click", async () => {
+      try {
+        const title = statusButtons[i].getAttribute("data-library-title") || "";
+        const status = statusButtons[i].getAttribute("data-library-status") || "tbr";
+        const { error } = await supabase
+          .from("user_books")
+          .update({ status })
+          .eq("user_id", session.user.id)
+          .eq("title", title);
+        if (error) throw error;
+        showBanner("success", t("route.library.updated", "Library status updated."));
+        rerender();
+      } catch (error) {
+        showBanner("error", error?.message || t("appShell.missingData", "Something went wrong."));
+      }
+    });
+  }
+}
+
 async function renderCurrentRoute(supabase, session, route) {
   if (route === "/") return renderHome(supabase, session);
   if (route === "/discover") return renderDiscover(supabase, session);
@@ -407,6 +557,9 @@ async function renderRoute(supabase, session) {
     return;
   }
   root.innerHTML = await renderCurrentRoute(supabase, session, route);
+  const rerender = () => renderRoute(supabase, session);
+  if (route === "/discover") bindDiscoverActions(supabase, session, rerender);
+  if (route === "/library") bindLibraryActions(supabase, session, rerender);
   if (route === "/profile") {
     const signInBtn = document.getElementById("pw-profile-signin");
     const signUpBtn = document.getElementById("pw-profile-signup");
