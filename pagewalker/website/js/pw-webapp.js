@@ -19,6 +19,8 @@ const PROTECTED_ROUTES = new Set([
   "/profile",
 ]);
 const LIBRARY_STATUSES = ["tbr", "reading", "read", "dnf"];
+const DISCOVER_PAGE_SIZE = 12;
+const LIBRARY_PAGE_SIZE = 24;
 const STATUS_LABELS = {
   tbr: "TBR",
   reading: "Reading",
@@ -29,6 +31,13 @@ let discoverQuery = "";
 let discoverGenre = "romance";
 let discoverMood = "";
 let libraryFilter = "all";
+let discoverPaging = {
+  trendingPage: 1,
+  genrePage: 1,
+  searchPage: 1,
+  classicsPage: 1,
+};
+let libraryPage = 1;
 let socialDraft = { title: "", body: "", rating: "5" };
 let clubsDraft = { name: "", description: "", inviteCode: "", emoji: "📚", maxMembers: "20" };
 let readerTimer = {
@@ -478,31 +487,46 @@ async function renderHome(_supabase, _session) {
 
 async function renderDiscover(supabase, session) {
   const safeQuery = discoverQuery.trim();
+  const loadGooglePages = async (baseUrl, pages) => {
+    const reqs = [];
+    for (let i = 0; i < pages; i += 1) {
+      const startIndex = i * DISCOVER_PAGE_SIZE;
+      reqs.push(fetchJson(`${baseUrl}&startIndex=${startIndex}&maxResults=${DISCOVER_PAGE_SIZE}`));
+    }
+    const responses = await Promise.all(reqs);
+    const items = responses.flatMap((x) => x.items || []);
+    const total = Number(responses[responses.length - 1]?.totalItems || 0);
+    return { books: items.map(parseGoogleBook), hasMore: total > items.length };
+  };
+  const loadClassicsPages = async (pages) => {
+    const reqs = [];
+    for (let i = 1; i <= pages; i += 1) {
+      reqs.push(fetchJson(`/api/books?type=classics&page=${i}`));
+    }
+    const responses = await Promise.all(reqs);
+    const books = responses.flatMap((x) => x.results || []).map(parseGutendexBook);
+    const hasMore = Boolean(responses[responses.length - 1]?.next);
+    return { books, hasMore };
+  };
+
   const [trendingBooks, genreBooks, searchBooks, freeClassics] = await Promise.all([
-    runSafeQuery(async () => {
-      const json = await fetchJson("/api/books?type=trending");
-      return (json.items || []).map(parseGoogleBook);
-    }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
-    runSafeQuery(async () => {
+    runSafeQuery(() => loadGooglePages("/api/books?type=trending", discoverPaging.trendingPage), t("route.discover.trendingFallback", "Trending data is not available yet.")),
+    runSafeQuery(() => {
       const g = encodeURIComponent(discoverGenre);
-      const json = await fetchJson(`/api/books?type=genre&genre=${g}`);
-      return (json.items || []).map(parseGoogleBook);
+      return loadGooglePages(`/api/books?type=genre&genre=${g}`, discoverPaging.genrePage);
     }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
     runSafeQuery(async () => {
-      if (!safeQuery) return [];
+      if (!safeQuery) return { books: [], hasMore: false };
       const q = encodeURIComponent(safeQuery);
-      const json = await fetchJson(`/api/books?type=search&q=${q}`);
-      return (json.items || []).map(parseGoogleBook);
+      return loadGooglePages(`/api/books?type=search&q=${q}`, discoverPaging.searchPage);
     }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
-    runSafeQuery(async () => {
-      const json = await fetchJson("/api/books?type=classics");
-      return (json.results || []).slice(0, 24).map(parseGutendexBook);
-    }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
+    runSafeQuery(() => loadClassicsPages(discoverPaging.classicsPage), t("route.discover.trendingFallback", "Trending data is not available yet.")),
   ]);
   const activeBooks = safeQuery ? searchBooks : genreBooks;
-  const trendingRows = trendingBooks.filter((b) => !b.__error);
-  const activeRows = activeBooks.filter((b) => !b.__error);
-  const classicsRows = freeClassics.filter((b) => !b.__error);
+  const trendingRows = (trendingBooks?.books || []).filter((b) => !b.__error);
+  const activeRows = (activeBooks?.books || []).filter((b) => !b.__error);
+  const classicsRows = (freeClassics?.books || []).filter((b) => !b.__error);
+  const activeHasMore = safeQuery ? !!searchBooks?.hasMore : !!genreBooks?.hasMore;
   const genres = ["romance", "mystery", "adventure", "horror", "fantasy", "history", "drama", "sci-fi"];
 
   return `
@@ -538,6 +562,7 @@ async function renderDiscover(supabase, session) {
             actionHtml: `<div class="cta-actions"><button class="btn btn-outline" data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button></div>`,
           })).join("")}
         </div>
+        ${trendingBooks?.hasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="trending">Load more</button></div>` : ""}
       </article>
       <article class="app-panel">
         <h3>${t("route.discover.genreTitle", "Explore by genre")}</h3>
@@ -557,6 +582,7 @@ async function renderDiscover(supabase, session) {
           }).join("")
         }
       </div>
+      ${activeHasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="${safeQuery ? "search" : "genre"}">Load more</button></div>` : ""}
       <article class="app-panel">
         <h3>📖 ${t("route.discover.freeClassics", "Free classics")}</h3>
         <div class="pw-poster-grid">
@@ -564,6 +590,7 @@ async function renderDiscover(supabase, session) {
             actionHtml: `<p class="metric">${t("route.discover.freeBadge", "Free")}</p>`,
           })).join("")}
         </div>
+        ${freeClassics?.hasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="classics">Load more</button></div>` : ""}
       </article>
       <p class="muted">${t("route.discover.noteAuthed", "You are signed in. Use discover + library together.")}</p>
     </section>
@@ -575,14 +602,26 @@ async function renderLibrary(supabase, session) {
     return `<section class="app-panel"><h2>${t("route.library.title", "Library")}</h2><p>${t("route.authRequired", "Please sign in to view this section.")}</p></section>`;
   }
   const rows = await runSafeQuery(async () => {
-    const { data, error } = await supabase
-      .from("user_books")
-      .select("id, status, title, author, book_id, created_at, books(id,title,author,cover_url,description,page_count,genre)")
-      .eq("user_id", session.user.id)
-      .order("updated_at", { ascending: false })
-      .limit(120);
-    if (error) throw error;
-    return data || [];
+    const reqs = [];
+    for (let i = 0; i < libraryPage; i += 1) {
+      const from = i * LIBRARY_PAGE_SIZE;
+      const to = from + LIBRARY_PAGE_SIZE - 1;
+      reqs.push(
+        supabase
+          .from("user_books")
+          .select("id, status, title, author, book_id, created_at, books(id,title,author,cover_url,description,page_count,genre)")
+          .eq("user_id", session.user.id)
+          .order("updated_at", { ascending: false })
+          .range(from, to),
+      );
+    }
+    const responses = await Promise.all(reqs);
+    const merged = [];
+    for (let i = 0; i < responses.length; i += 1) {
+      if (responses[i].error) throw responses[i].error;
+      merged.push(...(responses[i].data || []));
+    }
+    return merged;
   }, t("appShell.missingUserBooks", "Could not load user_books."));
   const cleanRows = rows.filter((r) => !r.__error).map((r) => {
     const b = r.books || {};
@@ -600,6 +639,7 @@ async function renderLibrary(supabase, session) {
   const filteredRows = libraryFilter === "all"
     ? cleanRows
     : cleanRows.filter((x) => x.status === libraryFilter);
+  const hasMoreLibrary = cleanRows.length >= libraryPage * LIBRARY_PAGE_SIZE;
 
   return `
     <section class="app-panel">
@@ -626,6 +666,7 @@ async function renderLibrary(supabase, session) {
           })).join("")
         }
       </div>
+      ${hasMoreLibrary ? `<div class="cta-actions"><button class="btn btn-outline" data-library-more>Load more</button></div>` : ""}
       ${rows.some((r) => r.__error) ? `<p class="muted">${escapeHtml(rows.find((r) => r.__error)?.text || "")}</p>` : ""}
     </section>
   `;
@@ -1171,6 +1212,7 @@ function bindDiscoverActions(supabase, session, rerender) {
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
     discoverQuery = String(input?.value || "").trim();
+    discoverPaging.searchPage = 1;
     rerender();
   });
   const genreButtons = document.querySelectorAll("[data-genre-chip]");
@@ -1178,6 +1220,7 @@ function bindDiscoverActions(supabase, session, rerender) {
     genreButtons[i].addEventListener("click", () => {
       discoverGenre = String(genreButtons[i].getAttribute("data-genre-chip") || "romance");
       discoverQuery = "";
+      discoverPaging.genrePage = 1;
       rerender();
     });
   }
@@ -1235,6 +1278,17 @@ function bindDiscoverActions(supabase, session, rerender) {
       }
     });
   }
+  const loadMoreButtons = document.querySelectorAll("[data-discover-more]");
+  for (let i = 0; i < loadMoreButtons.length; i += 1) {
+    loadMoreButtons[i].addEventListener("click", () => {
+      const mode = String(loadMoreButtons[i].getAttribute("data-discover-more") || "");
+      if (mode === "trending") discoverPaging.trendingPage += 1;
+      if (mode === "genre") discoverPaging.genrePage += 1;
+      if (mode === "search") discoverPaging.searchPage += 1;
+      if (mode === "classics") discoverPaging.classicsPage += 1;
+      rerender();
+    });
+  }
 }
 
 function bindLibraryActions(supabase, session, rerender) {
@@ -1264,6 +1318,11 @@ function bindLibraryActions(supabase, session, rerender) {
       }
     });
   }
+  const loadMoreBtn = document.querySelector("[data-library-more]");
+  loadMoreBtn?.addEventListener("click", () => {
+    libraryPage += 1;
+    rerender();
+  });
 }
 
 function bindBookModalActions() {

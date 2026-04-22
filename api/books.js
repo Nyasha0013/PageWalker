@@ -1,6 +1,10 @@
 module.exports = async (req, res) => {
   const type = String(req.query?.type || "").trim();
   const googleKey = process.env.GOOGLE_BOOKS_API_KEY || "";
+  const toInt = (value, fallback) => {
+    const n = Number.parseInt(String(value || ""), 10);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
 
   const normalizeGoogleBook = (item) => {
     const info = item?.volumeInfo || {};
@@ -57,8 +61,9 @@ module.exports = async (req, res) => {
 
   try {
     if (type === "classics") {
+      const page = Math.max(1, toInt(req.query?.page, 1));
       const classicsRes = await fetch(
-        "https://gutendex.com/books?languages=en&copyright=false",
+        `https://gutendex.com/books?languages=en&copyright=false&page=${page}`,
       );
       const classics = await classicsRes.json();
       return res.status(200).json(classics);
@@ -97,20 +102,22 @@ module.exports = async (req, res) => {
     }
 
     let url = "";
+    const startIndex = toInt(req.query?.startIndex, 0);
+    const maxResults = Math.min(40, Math.max(1, toInt(req.query?.maxResults, 20)));
     if (type === "trending") {
       url =
         `https://www.googleapis.com/books/v1/volumes` +
-        `?q=subject:fiction&orderBy=relevance&maxResults=30&langRestrict=en&key=${googleKey}`;
+        `?q=subject:fiction&orderBy=relevance&startIndex=${startIndex}&maxResults=${maxResults}&langRestrict=en&key=${googleKey}`;
     } else if (type === "genre") {
       const genre = encodeURIComponent(String(req.query?.genre || "romance"));
       url =
         `https://www.googleapis.com/books/v1/volumes` +
-        `?q=subject:${genre}&orderBy=relevance&maxResults=30&langRestrict=en&key=${googleKey}`;
+        `?q=subject:${genre}&orderBy=relevance&startIndex=${startIndex}&maxResults=${maxResults}&langRestrict=en&key=${googleKey}`;
     } else if (type === "search") {
       const q = encodeURIComponent(String(req.query?.q || ""));
       url =
         `https://www.googleapis.com/books/v1/volumes` +
-        `?q=${q}&maxResults=40&langRestrict=en&key=${googleKey}`;
+        `?q=${q}&startIndex=${startIndex}&maxResults=${maxResults}&langRestrict=en&key=${googleKey}`;
     } else {
       return res.status(400).json({ error: "Invalid books type" });
     }
