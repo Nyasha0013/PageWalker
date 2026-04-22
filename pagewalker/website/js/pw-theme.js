@@ -165,8 +165,14 @@
   function setupLogos() {
     var nodes = document.querySelectorAll(".logo");
     if (!nodes.length) return;
+    var isWebAppShell = root.getAttribute("data-pw-page") === "web-app";
     for (var i = 0; i < nodes.length; i++) {
       var node = nodes[i];
+      // Keep logo/icon behavior consistent: always return to home.
+      node.setAttribute("href", "/");
+      if (isWebAppShell) {
+        node.setAttribute("data-link-route", "/");
+      }
       if (node.querySelector(".pw-logo-image")) continue;
       node.classList.add("logo-has-image");
       var label = node.textContent.trim() || "Pagewalker";
