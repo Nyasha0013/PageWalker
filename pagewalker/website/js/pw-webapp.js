@@ -27,6 +27,12 @@ const STATUS_LABELS = {
 let discoverQuery = "";
 let libraryFilter = "all";
 let socialDraft = { title: "", body: "", rating: "5" };
+let readerTimer = {
+  running: false,
+  startedAtMs: null,
+  elapsedSeconds: 0,
+};
+let readerTicker = null;
 
 function t(key, fallback) {
   if (window.pwT) return window.pwT(key);
@@ -103,6 +109,14 @@ async function runSafeQuery(work, emptyText) {
 function normalizeAuthors(authors) {
   if (Array.isArray(authors)) return authors.join(", ");
   return String(authors || "");
+}
+
+function formatDuration(totalSeconds) {
+  const safe = Math.max(0, Number(totalSeconds || 0));
+  const h = String(Math.floor(safe / 3600)).padStart(2, "0");
+  const m = String(Math.floor((safe % 3600) / 60)).padStart(2, "0");
+  const s = String(Math.floor(safe % 60)).padStart(2, "0");
+  return `${h}:${m}:${s}`;
 }
 
 async function upsertUserBookStatus(supabase, userId, book, status) {
@@ -380,35 +394,72 @@ async function renderReader(supabase, session) {
     runSafeQuery(async () => {
       const { data, error } = await supabase
         .from("reading_sessions")
-        .select("minutes_read")
+        .select("minutes_read, duration_seconds, started_at, ended_at, pages_read")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(30);
       if (error) throw error;
       return data || [];
     }, t("appShell.missingSessions", "Could not load reading_sessions.")),
     runSafeQuery(async () => {
       const { data, error } = await supabase
         .from("reading_history")
-        .select("book_title")
+        .select("book_title, book_author, source, is_finished, last_read_at")
         .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(8);
+        .order("last_read_at", { ascending: false })
+        .limit(12);
       if (error) throw error;
       return data || [];
     }, t("appShell.missingHistory", "Could not load reading_history.")),
   ]);
 
-  const totalMinutes = sessions.reduce((sum, x) => sum + Number(x.minutes_read || 0), 0);
+  const totalMinutes = sessions.reduce((sum, x) => {
+    if (x.minutes_read != null) return sum + Number(x.minutes_read || 0);
+    return sum + Math.round(Number(x.duration_seconds || 0) / 60);
+  }, 0);
   const historyItems = history.map((h) => {
     if (h.__error) return `<span>${escapeHtml(h.text)}</span>`;
-    return `<strong>${escapeHtml(h.book_title || "Book")}</strong>`;
+    return `<strong>${escapeHtml(h.book_title || "Book")}</strong><span>${escapeHtml(h.book_author || "")} · ${escapeHtml(h.source || "web")} · ${h.is_finished ? t("route.reader.finished", "Finished") : t("route.reader.inProgress", "In progress")}</span>`;
   });
+  const latestSessions = sessions
+    .filter((x) => !x.__error)
+    .slice(0, 6)
+    .map((x) => {
+      const seconds = Number(x.duration_seconds || Number(x.minutes_read || 0) * 60);
+      const pages = Number(x.pages_read || 0);
+      return `<li><strong>${formatDuration(seconds)}</strong><span>${pages > 0 ? `${pages} ${t("route.reader.pages", "pages")} · ` : ""}${escapeHtml(x.ended_at || x.started_at || "")}</span></li>`;
+    });
 
   return `
     <section class="app-panel">
       <h2>${t("route.reader.title", "Reader tools")}</h2>
       <p class="metric">${t("route.reader.minutes", "Total minutes (latest sessions)")}: ${totalMinutes}</p>
+      <article class="app-panel">
+        <h3>${t("route.reader.timerTitle", "Reading timer")}</h3>
+        <p class="metric" id="pw-reader-timer-value">${formatDuration(readerTimer.elapsedSeconds)}</p>
+        <div class="cta-actions">
+          <button class="btn" id="pw-reader-start-pause">${readerTimer.running ? t("route.reader.pause", "Pause") : t("route.reader.start", "Start reading")}</button>
+          <button class="btn btn-outline" id="pw-reader-finish"${readerTimer.elapsedSeconds > 0 ? "" : " disabled"}>${t("route.reader.finish", "Finish session")}</button>
+        </div>
+        <label>
+          <span>${t("route.reader.pagesRead", "Pages read this session")}</span>
+          <input id="pw-reader-pages" type="number" min="0" step="1" value="0" />
+        </label>
+      </article>
+      <article class="app-panel">
+        <h3>${t("route.reader.historyTitle", "Log reading history")}</h3>
+        <form id="pw-reader-history-form" class="form-stack">
+          <label><span>${t("route.reader.bookTitle", "Book title")}</span><input id="pw-reader-book-title" type="text" maxlength="200" required /></label>
+          <label><span>${t("route.reader.bookAuthor", "Book author")}</span><input id="pw-reader-book-author" type="text" maxlength="200" /></label>
+          <label><span>${t("route.reader.source", "Source")}</span><input id="pw-reader-source" type="text" value="web" maxlength="120" /></label>
+          <label><span>${t("route.reader.finishedQuestion", "Mark as finished?")}</span><input id="pw-reader-finished" type="checkbox" /></label>
+          <button type="submit" class="btn">${t("route.reader.saveHistory", "Save history item")}</button>
+        </form>
+      </article>
+      <article class="app-panel">
+        <h3>${t("route.reader.latestSessions", "Latest sessions")}</h3>
+        ${listToHtml(latestSessions)}
+      </article>
       ${listToHtml(historyItems)}
     </section>
   `;
@@ -665,6 +716,108 @@ function bindSocialActions(supabase, session, rerender) {
   }
 }
 
+function bindReaderActions(supabase, session, rerender) {
+  const timerEl = document.getElementById("pw-reader-timer-value");
+  const startPauseBtn = document.getElementById("pw-reader-start-pause");
+  const finishBtn = document.getElementById("pw-reader-finish");
+  const pagesInput = document.getElementById("pw-reader-pages");
+  const historyForm = document.getElementById("pw-reader-history-form");
+
+  const updateTimerUi = () => {
+    if (timerEl) timerEl.textContent = formatDuration(readerTimer.elapsedSeconds);
+    if (startPauseBtn) {
+      startPauseBtn.textContent = readerTimer.running
+        ? t("route.reader.pause", "Pause")
+        : t("route.reader.start", "Start reading");
+    }
+    if (finishBtn) finishBtn.disabled = readerTimer.elapsedSeconds <= 0;
+  };
+
+  const ensureTicker = () => {
+    if (readerTicker) clearInterval(readerTicker);
+    readerTicker = setInterval(() => {
+      if (!readerTimer.running) return;
+      readerTimer.elapsedSeconds += 1;
+      updateTimerUi();
+    }, 1000);
+  };
+
+  startPauseBtn?.addEventListener("click", () => {
+    if (!readerTimer.running) {
+      readerTimer.running = true;
+      if (!readerTimer.startedAtMs) {
+        readerTimer.startedAtMs = Date.now() - readerTimer.elapsedSeconds * 1000;
+      }
+      ensureTicker();
+    } else {
+      readerTimer.running = false;
+    }
+    updateTimerUi();
+  });
+
+  finishBtn?.addEventListener("click", async () => {
+    if (readerTimer.elapsedSeconds <= 0) return;
+    try {
+      const endedAt = new Date();
+      const startedAt = new Date(readerTimer.startedAtMs || Date.now() - readerTimer.elapsedSeconds * 1000);
+      const pagesRead = Math.max(0, Number(pagesInput?.value || 0));
+      const payload = {
+        user_id: session.user.id,
+        started_at: startedAt.toISOString(),
+        ended_at: endedAt.toISOString(),
+        duration_seconds: readerTimer.elapsedSeconds,
+        minutes_read: Math.max(1, Math.round(readerTimer.elapsedSeconds / 60)),
+        pages_read: pagesRead,
+      };
+      const { error } = await supabase.from("reading_sessions").insert(payload);
+      if (error) throw error;
+      readerTimer = { running: false, startedAtMs: null, elapsedSeconds: 0 };
+      if (pagesInput) pagesInput.value = "0";
+      updateTimerUi();
+      showBanner("success", t("route.reader.savedSession", "Reading session saved."));
+      rerender();
+    } catch (error) {
+      showBanner("error", error?.message || t("appShell.missingData", "Something went wrong."));
+    }
+  });
+
+  historyForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const titleEl = document.getElementById("pw-reader-book-title");
+    const authorEl = document.getElementById("pw-reader-book-author");
+    const sourceEl = document.getElementById("pw-reader-source");
+    const finishedEl = document.getElementById("pw-reader-finished");
+    const bookTitle = String(titleEl?.value || "").trim();
+    if (!bookTitle) {
+      showBanner("error", t("route.reader.historyValidation", "Book title is required."));
+      return;
+    }
+    try {
+      const { error } = await supabase.from("reading_history").insert({
+        user_id: session.user.id,
+        book_id: `web-${Date.now()}`,
+        book_title: bookTitle,
+        book_author: String(authorEl?.value || "").trim(),
+        source: String(sourceEl?.value || "web").trim() || "web",
+        scroll_position: 100,
+        is_finished: !!finishedEl?.checked,
+        last_read_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      historyForm.reset();
+      const sourceReset = document.getElementById("pw-reader-source");
+      if (sourceReset) sourceReset.value = "web";
+      showBanner("success", t("route.reader.savedHistory", "Reading history saved."));
+      rerender();
+    } catch (error) {
+      showBanner("error", error?.message || t("appShell.missingData", "Something went wrong."));
+    }
+  });
+
+  updateTimerUi();
+  if (readerTimer.running) ensureTicker();
+}
+
 async function renderCurrentRoute(supabase, session, route) {
   if (route === "/") return renderHome(supabase, session);
   if (route === "/discover") return renderDiscover(supabase, session);
@@ -693,6 +846,7 @@ async function renderRoute(supabase, session) {
   if (route === "/discover") bindDiscoverActions(supabase, session, rerender);
   if (route === "/library") bindLibraryActions(supabase, session, rerender);
   if (route === "/social") bindSocialActions(supabase, session, rerender);
+  if (route === "/reader") bindReaderActions(supabase, session, rerender);
   if (route === "/profile") {
     const signInBtn = document.getElementById("pw-profile-signin");
     const signUpBtn = document.getElementById("pw-profile-signup");
