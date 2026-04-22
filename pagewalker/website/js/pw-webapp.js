@@ -229,6 +229,29 @@ async function renderDiscover(supabase, session) {
     if (error) throw error;
     return data || [];
   }, t("appShell.missingCatalog", "Could not load catalog_books."));
+  const trending = await runSafeQuery(async () => {
+    const { data, error } = await supabase
+      .from("reviews")
+      .select("book_title, title, rating, star_rating")
+      .order("created_at", { ascending: false })
+      .limit(12);
+    if (error) throw error;
+    return data || [];
+  }, t("route.discover.trendingFallback", "Trending data is not available yet."));
+
+  const catalogRows = catalog.filter((book) => !book.__error);
+  const showCatalogError = catalog.some((book) => book.__error);
+  const trendingRows = trending.filter((row) => !row.__error && (row.book_title || row.title));
+  const trendingByBook = {};
+  for (let i = 0; i < trendingRows.length; i += 1) {
+    const name = String(trendingRows[i].book_title || trendingRows[i].title || "").trim();
+    if (!name) continue;
+    trendingByBook[name] = (trendingByBook[name] || 0) + 1;
+  }
+  const trendingItems = Object.entries(trendingByBook)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([name, count]) => `<li><strong>${escapeHtml(name)}</strong><span>${count} ${t("route.discover.recentMentions", "recent mentions")}</span></li>`);
 
   return `
     <section class="app-panel">
@@ -242,12 +265,10 @@ async function renderDiscover(supabase, session) {
         </label>
         <button type="submit" class="btn">${t("route.discover.searchAction", "Search")}</button>
       </form>
+      ${showCatalogError ? `<p class="muted">${t("route.discover.catalogUnavailableHint", "Catalog is unavailable right now, so we are showing recent trending titles instead.")}</p>` : ""}
       <div class="app-grid app-grid-3">
         ${
-          catalog.map((book) => {
-            if (book.__error) {
-              return `<article class="app-panel"><p>${escapeHtml(book.text)}</p></article>`;
-            }
+          catalogRows.map((book) => {
             return `
               <article class="app-panel">
                 <h3>${escapeHtml(book.title || "Untitled")}</h3>
@@ -261,6 +282,7 @@ async function renderDiscover(supabase, session) {
           }).join("")
         }
       </div>
+      ${catalogRows.length ? "" : `<article class="app-panel"><h3>${t("route.discover.trendingTitle", "Trending now")}</h3>${listToHtml(trendingItems)}</article>`}
       <p class="muted">${t("route.discover.noteAuthed", "You are signed in. Use discover + library together.")}</p>
     </section>
   `;
@@ -293,10 +315,12 @@ async function renderLibrary(supabase, session) {
     <section class="app-panel">
       ${renderBackToProfile()}
       <h2>${t("route.library.title", "Library")}</h2>
+      <p class="muted">${t("route.library.explainer", "This is your reading shelf. Add books from Discover, then move them across TBR, Reading, Read, and DNF.")}</p>
       <div class="cta-actions">
         <button class="btn btn-outline" data-library-filter="all">${t("route.library.filterAll", "All")} (${cleanRows.length})</button>
         ${LIBRARY_STATUSES.map((status) => `<button class="btn btn-outline" data-library-filter="${status}">${STATUS_LABELS[status]} (${counts[status] || 0})</button>`).join("")}
       </div>
+      ${filteredRows.length ? "" : `<p class="muted">${t("route.library.emptyHint", "No books in this shelf yet. Add one from Discover.")}</p>`}
       <div class="app-grid app-grid-3">
         ${
           filteredRows.map((r) => `
