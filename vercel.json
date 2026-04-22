@@ -3,12 +3,11 @@
   "outputDirectory": "pagewalker/website",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/discover", "destination": "/index.html" },
-    { "source": "/library", "destination": "/index.html" },
-    { "source": "/social", "destination": "/index.html" },
-    { "source": "/clubs", "destination": "/index.html" },
-    { "source": "/reader", "destination": "/index.html" },
-    { "source": "/profile", "destination": "/index.html" }
+    { "source": "/discover", "destination": "/" },
+    { "source": "/library", "destination": "/" },
+    { "source": "/social", "destination": "/" },
+    { "source": "/clubs", "destination": "/" },
+    { "source": "/reader", "destination": "/" },
+    { "source": "/profile", "destination": "/" }
   ]
 }
