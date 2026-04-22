@@ -2048,13 +2048,20 @@ function bindClubsActions(supabase, session, rerender) {
     const dirEl = document.getElementById("pw-club-directory");
     const listInDirectory = dirEl ? Boolean(dirEl.checked) : true;
     try {
+      const { data: freshAuth, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) throw sessionErr;
+      const uid = freshAuth?.session?.user?.id;
+      if (!uid) {
+        showBanner("error", t("route.clubs.signInToCreate", "Sign in to create a club."));
+        return;
+      }
       const { data: created, error } = await supabase
         .from("book_clubs")
         .insert({
           name,
           description: description || null,
           cover_emoji: emoji,
-          created_by: session.user.id,
+          created_by: uid,
           max_members: maxMembers,
           is_private: !listInDirectory,
         })
@@ -2065,7 +2072,7 @@ function bindClubsActions(supabase, session, rerender) {
         .from("book_club_members")
         .insert({
           club_id: created.id,
-          user_id: session.user.id,
+          user_id: uid,
           role: "admin",
         });
       if (memberErr) throw memberErr;
