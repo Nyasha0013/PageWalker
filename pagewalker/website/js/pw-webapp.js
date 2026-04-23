@@ -103,6 +103,8 @@ function getDiscoverView() {
   return "hub";
 }
 
+let _lastNavRouteForDiscover = null;
+
 function setActiveRoute(route) {
   const mainLinks = document.querySelectorAll("a.pw-drawer__item[data-link-route]");
   for (let i = 0; i < mainLinks.length; i += 1) {
@@ -110,7 +112,17 @@ function setActiveRoute(route) {
     mainLinks[i].toggleAttribute("data-active", href === route);
   }
   const discoverGroup = document.getElementById("pw-drawer-discover");
-  discoverGroup?.toggleAttribute("data-nav-active", route === "/discover");
+  if (discoverGroup) {
+    discoverGroup.toggleAttribute("data-nav-active", route === "/discover");
+    if (discoverGroup instanceof HTMLDetailsElement) {
+      if (route === "/discover" && _lastNavRouteForDiscover !== "/discover") {
+        discoverGroup.open = true;
+      } else if (route !== "/discover") {
+        discoverGroup.open = false;
+      }
+    }
+  }
+  _lastNavRouteForDiscover = route;
   const discoverJumpLinks = document.querySelectorAll("a.pw-drawer__sublink, a.pw-discover-tablink");
   const v = getDiscoverView();
   for (let i = 0; i < discoverJumpLinks.length; i += 1) {
