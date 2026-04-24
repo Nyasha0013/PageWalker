@@ -4,6 +4,8 @@
   var VALID = ["light", "dark", "system"];
   // Must match website `styles.css` --primary: #ff6b1a (Flutter AppColors.classicPrimary).
   var BRAND_ORANGE = { r: 255, g: 107, b: 26 };
+  // Light header mark: match `styles.css` light `--text` (#0a0a0a).
+  var LOGO_INK = { r: 10, g: 10, b: 10 };
   var root = document.documentElement;
   var mql = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
   var logoPromise = null;
@@ -105,10 +107,10 @@
           var pl = dataLight.data;
           for (var j = 0; j < pl.length; j += 4) {
             if (pl[j + 3] === 0) continue;
-            // Keep exactly the same brand orange across themes.
-            pl[j] = BRAND_ORANGE.r;
-            pl[j + 1] = BRAND_ORANGE.g;
-            pl[j + 2] = BRAND_ORANGE.b;
+            // Light mode: black mark on light header (dark mode keeps brand orange above).
+            pl[j] = LOGO_INK.r;
+            pl[j + 1] = LOGO_INK.g;
+            pl[j + 2] = LOGO_INK.b;
           }
           ctx.putImageData(dataLight, 0, 0);
           var croppedLight = cropCanvasToOpaque(canvas);
