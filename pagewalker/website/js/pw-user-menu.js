@@ -49,6 +49,19 @@ function escapeHtml(v) {
     .replaceAll('"', "&quot;");
 }
 
+function maskEmailForDisplay(email) {
+  const e = String(email || "").trim();
+  if (!e) return "—";
+  const at = e.indexOf("@");
+  if (at < 1) return e;
+  const local = e.slice(0, at);
+  const domain = e.slice(at + 1);
+  if (local.length <= 2) {
+    return `${local[0] || "•"}•••@${domain}`;
+  }
+  return `${local[0]}•••${local[local.length - 1]}@${domain}`;
+}
+
 function getInitialForName(name, email) {
   const s = String(name || "").trim();
   if (s) {
@@ -136,7 +149,7 @@ export function initUserMenu(supabase) {
 
   function renderSignedIn(name, email, avatarUrl) {
     const n = name || t("appShell.authGuest", "Reader");
-    const e = email || "—";
+    const e = maskEmailForDisplay(email);
     const headPhoto =
       String(avatarUrl || "").trim() !== ""
         ? `<div class="pw-user-menu__head-pic" aria-hidden="true"><img class="pw-user-menu__head-photo" src="${escapeHtml(String(avatarUrl).trim())}" alt="" width="40" height="40" loading="lazy" decoding="async" /></div>`

@@ -155,6 +155,20 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+/** Masks sign-in email in public UI (hero badge, profile) — full address stays in Supabase only. */
+function maskEmailForDisplay(email) {
+  const e = String(email || "").trim();
+  if (!e) return "—";
+  const at = e.indexOf("@");
+  if (at < 1) return e;
+  const local = e.slice(0, at);
+  const domain = e.slice(at + 1);
+  if (local.length <= 2) {
+    return `${local[0] || "•"}•••@${domain}`;
+  }
+  return `${local[0]}•••${local[local.length - 1]}@${domain}`;
+}
+
 const MAX_PROFILE_AVATAR_BYTES = 2 * 1024 * 1024;
 const AVATAR_STORAGE_KEY = (userId) => `avatar_${userId}.jpg`;
 
@@ -1831,7 +1845,7 @@ async function renderProfile(supabase, session) {
       <h1>${t("appShell.heroTitle", "Your full Pagewalker experience on web")}</h1>
       <p>${t("appShell.heroLede", "Sign in once and move across library, discover, social, clubs, and reader tools.")}</p>
       <div class="webapp-auth-row">
-        <span class="badge-outline">${signedIn ? `${t("appShell.authSignedIn", "Signed in")}: ${escapeHtml(session.user.email || "")}` : t("appShell.authGuest", "Guest mode")}</span>
+        <span class="badge-outline">${signedIn ? t("appShell.authSignedIn", "Signed in") : t("appShell.authGuest", "Guest mode")}</span>
         <button id="pw-profile-signin" class="btn"${signedIn ? " hidden" : ""}>${t("appShell.signIn", "Sign in")}</button>
         <button id="pw-profile-signup" class="btn btn-outline"${signedIn ? " hidden" : ""}>${t("appShell.signUp", "Sign up")}</button>
         <button id="pw-profile-signout" class="btn btn-outline"${signedIn ? "" : " hidden"}>${t("appShell.signOut", "Sign out")}</button>
@@ -1939,7 +1953,7 @@ async function renderProfile(supabase, session) {
         </div>
         <p class="muted" id="pw-profile-photo-status" role="status" hidden></p>
         <div class="profile-grid">
-          <div><span class="muted">${t("route.profile.email", "Email")}</span><p>${escapeHtml(session.user.email || "-")}</p></div>
+          <div><span class="muted">${t("route.profile.email", "Email")}</span><p>${escapeHtml(maskEmailForDisplay(session.user.email))}</p><p class="muted" style="font-size:0.85rem;margin-top:4px">${t("route.profile.emailHint", "Shown masked on web. Use the app or support@pagewalker.org for account help.")}</p></div>
           <div><span class="muted">${t("route.profile.username", "Username")}</span><p>${escapeHtml(profile.username || "-")}</p></div>
           <div><span class="muted">${t("route.profile.fullName", "Name")}</span><p>${escapeHtml(profile.full_name || profile.display_name || "-")}</p></div>
         </div>

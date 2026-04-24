@@ -620,6 +620,8 @@
       "route.reader.pages": "pages",
       "route.profile.title": "Profile",
       "route.profile.email": "Email",
+      "route.profile.emailHint":
+        "Shown masked on web. Use the app or support@pagewalker.org for account help.",
       "route.profile.username": "Username",
       "route.profile.fullName": "Name",
       "route.profile.bioEmpty": "No bio yet.",
@@ -1027,6 +1029,8 @@
       "route.reader.pages": "oldal",
       "route.profile.title": "Profil",
       "route.profile.email": "E-mail",
+      "route.profile.emailHint":
+        "A weben maszkolva jelenik meg. Fiókhoz használd az alkalmazást vagy írj a support@pagewalker.org címre.",
       "route.profile.username": "Felhasználónév",
       "route.profile.fullName": "Név",
       "route.profile.bioEmpty": "Még nincs bemutatkozás.",
