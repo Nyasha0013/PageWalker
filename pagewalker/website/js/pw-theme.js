@@ -2,6 +2,7 @@
   "use strict";
   var STORAGE_KEY = "pw-theme";
   var VALID = ["light", "dark", "system"];
+  // Must match website `styles.css` --primary: #ff6b1a (Flutter AppColors.classicPrimary).
   var BRAND_ORANGE = { r: 255, g: 107, b: 26 };
   var root = document.documentElement;
   var mql = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
