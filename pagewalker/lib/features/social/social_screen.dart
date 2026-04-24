@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/widgets/book_cover_widget.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
-import '../../core/widgets/dynamic_sky_background.dart';
+import '../../core/widgets/themed_background.dart';
 import '../../core/widgets/star_rating_widget.dart';
 
 class SocialScreen extends StatefulWidget {
@@ -18,7 +19,18 @@ class SocialScreen extends StatefulWidget {
 }
 
 class _SocialScreenState extends State<SocialScreen> {
+  bool _requireAuth(String action) {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Sign in required to $action.')),
+    );
+    context.push('/auth/login');
+    return false;
+  }
+
   void _openWriteReview() {
+    if (!_requireAuth('write reviews')) return;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -30,18 +42,30 @@ class _SocialScreenState extends State<SocialScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: GradientButton(
-        label: 'Write a Review',
-        icon: const Icon(
-          Icons.edit_rounded,
-          color: Colors.white,
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6B1A).withValues(alpha: 0.45),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
         ),
-        onPressed: _openWriteReview,
+        child: FloatingActionButton(
+          heroTag: 'social_write_review',
+          backgroundColor: const Color(0xFFFF6B1A),
+          elevation: 8,
+          onPressed: _openWriteReview,
+          child: const Icon(Icons.edit_rounded, color: Colors.white, size: 24),
+        ),
       ),
-      body: DynamicSkyBackground(
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      body: ThemedBackground(
         child: SafeArea(
           child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
             itemCount: 11,
             itemBuilder: (context, index) {
               if (index == 0) {
@@ -67,13 +91,64 @@ class _SocialScreenState extends State<SocialScreen> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      GradientButton(
-                        label: 'Find Readers',
-                        onPressed: () => context.push('/readers'),
+                      PopupMenuButton<String>(
+                        tooltip: 'Readers',
+                        offset: const Offset(0, 44),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: AppColors.gradientOrange,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'find':
+                              context.push('/readers');
+                              break;
+                            case 'following':
+                              context.push('/readers');
+                              break;
+                            case 'discover':
+                              context.push('/discover');
+                              break;
+                            case 'search':
+                              context.push('/readers');
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'find',
+                            child: Text('Find readers'),
+                          ),
+                          PopupMenuItem(
+                            value: 'following',
+                            child: Text('Following'),
+                          ),
+                          PopupMenuItem(
+                            value: 'discover',
+                            child: Text('Discover'),
+                          ),
+                          PopupMenuItem(
+                            value: 'search',
+                            child: Text('Search by username'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.06, end: 0);
+                )
+                    .animate()
+                    .fadeIn(duration: 350.ms)
+                    .slideY(begin: 0.06, end: 0);
               }
 
               final reviewIndex = index - 1;
@@ -141,11 +216,12 @@ class _ReviewCardState extends State<_ReviewCard>
               height: 40,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: AppColors.gradientOrange,
+                gradient: LinearGradient(
+                  colors: AppColors.logoMarkRingGradient(context),
                 ),
                 border: Border.all(
-                  color: AppColors.orangeAmber.withOpacity(0.8),
+                  color:
+                      AppColors.logoMarkColor(context).withValues(alpha: 0.8),
                   width: 2,
                 ),
               ),
@@ -213,8 +289,9 @@ class _ReviewCardState extends State<_ReviewCard>
                   if (!_showSpoiler)
                     Positioned.fill(
                       child: Container(
-                        color: (isDark ? AppColors.darkCard : AppColors.lightCard)
-                            .withOpacity(0.8),
+                        color:
+                            (isDark ? AppColors.darkCard : AppColors.lightCard)
+                                .withValues(alpha: 0.8),
                         child: Center(
                           child: Text(
                             'Tap to reveal spoilers',
@@ -235,10 +312,18 @@ class _ReviewCardState extends State<_ReviewCard>
         Row(
           children: [
             ScaleTransition(
-              scale: _likeController
-                  .drive(Tween(begin: 0.9, end: 1.1)),
+              scale: _likeController.drive(Tween(begin: 0.9, end: 1.1)),
               child: GestureDetector(
                 onTap: () {
+                  final user = Supabase.instance.client.auth.currentUser;
+                  if (user == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Sign in required to like reviews.')),
+                    );
+                    context.push('/auth/login');
+                    return;
+                  }
                   setState(() {
                     _liked = !_liked;
                   });
@@ -277,8 +362,7 @@ class _WriteReviewSheet extends StatefulWidget {
   const _WriteReviewSheet();
 
   @override
-  State<_WriteReviewSheet> createState() =>
-      _WriteReviewSheetState();
+  State<_WriteReviewSheet> createState() => _WriteReviewSheetState();
 }
 
 class _WriteReviewSheetState extends State<_WriteReviewSheet> {
@@ -369,7 +453,7 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
                     onChanged: (v) {
                       setState(() => _spoiler = v);
                     },
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                   ),
                 ],
               ),
@@ -388,4 +472,3 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
     );
   }
 }
-

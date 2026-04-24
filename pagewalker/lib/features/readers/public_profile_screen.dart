@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../../core/widgets/dynamic_sky_background.dart';
+import '../../core/widgets/themed_background.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../data/models/profile.dart';
@@ -63,7 +63,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: DynamicSkyBackground(
+      body: ThemedBackground(
         child: SafeArea(
           child: _loading
               ? const Center(
@@ -124,12 +124,13 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                                   height: 82,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    gradient: const LinearGradient(
-                                      colors: AppColors.gradientOrange,
+                                    gradient: LinearGradient(
+                                      colors: AppColors.logoMarkRingGradient(
+                                          context),
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.orangePrimary
+                                        color: AppColors.logoMarkColor(context)
                                             .withOpacity(0.35),
                                         blurRadius: 24,
                                       )
@@ -166,16 +167,19 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                                         : AppColors.lightTextSecondary,
                                   ),
                                 ),
-                                if ((_profile!.bio ?? '').trim().isNotEmpty) ...[
+                                if ((_profile!.bio ?? '')
+                                    .trim()
+                                    .isNotEmpty) ...[
                                   const SizedBox(height: 10),
                                   Text(
                                     _profile!.bio!,
-                                    style:
-                                        AppText.body(13, context: context),
+                                    style: AppText.body(13, context: context),
                                     textAlign: TextAlign.center,
                                   ),
                                 ],
-                                if ((_profile!.location ?? '').trim().isNotEmpty) ...[
+                                if ((_profile!.location ?? '')
+                                    .trim()
+                                    .isNotEmpty) ...[
                                   const SizedBox(height: 8),
                                   Text(
                                     _profile!.location!,
@@ -232,4 +236,3 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     );
   }
 }
-

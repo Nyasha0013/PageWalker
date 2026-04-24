@@ -12,12 +12,15 @@ import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_config.dart';
+import '../../core/services/reading_personality_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/widgets/book_cover_widget.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
-import '../../core/widgets/dynamic_sky_background.dart';
+import '../../core/widgets/themed_background.dart';
+import '../../data/repositories/user_book_repository.dart';
+import 'bingo_challenges.dart';
 import 'profile_controller.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -78,7 +81,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DynamicSkyBackground(
+      body: ThemedBackground(
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -123,7 +126,6 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         children: [
@@ -148,15 +150,13 @@ class _Header extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.orangePrimary.withOpacity(glow * 0.6),
+                      color: AppColors.logoMarkColor(context)
+                          .withOpacity(glow * 0.6),
                       blurRadius: 30,
                     ),
                   ],
-                  gradient: const RadialGradient(
-                    colors: [
-                      AppColors.orangePrimary,
-                      AppColors.orangeDeep,
-                    ],
+                  gradient: RadialGradient(
+                    colors: AppColors.logoMarkRingGradient(context),
                   ),
                 ),
                 child: child,
@@ -303,7 +303,8 @@ class _AchievementsPreview extends ConsumerWidget {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.orangePrimary.withOpacity(0.12),
+                                color:
+                                    AppColors.orangePrimary.withOpacity(0.12),
                                 blurRadius: 18,
                               ),
                             ],
@@ -392,12 +393,12 @@ class _AvatarSectionState extends ConsumerState<_AvatarSection> {
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: AppColors.gradientOrange,
+              gradient: LinearGradient(
+                colors: AppColors.logoMarkRingGradient(context),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.orangePrimary.withOpacity(0.5),
+                  color: AppColors.logoMarkColor(context).withOpacity(0.5),
                   blurRadius: 20,
                   spreadRadius: 2,
                 ),
@@ -411,13 +412,13 @@ class _AvatarSectionState extends ConsumerState<_AvatarSection> {
                   ? NetworkImage(profile!.avatarUrl!)
                   : null,
               child: _uploading
-                  ? const CircularProgressIndicator(
-                      color: AppColors.orangePrimary)
+                  ? CircularProgressIndicator(
+                      color: AppColors.logoMarkColor(context))
                   : profile?.avatarUrl == null
                       ? Text(
                           _getInitials(profile?.displayName ?? 'PW'),
                           style: AppText.display(24,
-                              color: AppColors.orangePrimary),
+                              color: AppColors.logoMarkColor(context)),
                         )
                       : null,
             ),
@@ -426,7 +427,9 @@ class _AvatarSectionState extends ConsumerState<_AvatarSection> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: AppColors.gradientOrange),
+              gradient: LinearGradient(
+                colors: AppColors.logoMarkRingGradient(context),
+              ),
               shape: BoxShape.circle,
               border: Border.all(color: Colors.black, width: 2),
             ),
@@ -683,7 +686,50 @@ class _TierListSection extends StatelessWidget {
   }
 }
 
-class _TropeDnaSection extends StatelessWidget {
+class _TropeDnaSection extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_TropeDnaSection> createState() => _TropeDnaSectionState();
+}
+
+class _TropeDnaSectionState extends ConsumerState<_TropeDnaSection> {
+  final _bookRepo = UserBookRepository();
+  String? _personalityText;
+  bool _loading = true;
+
+  static const _tropes = ['Romance', 'Angst', 'Magic', 'Joy'];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final uid = SupabaseConfig.client.auth.currentUser?.id;
+    if (uid == null) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _personalityText = 'Sign in to see your reading personality.';
+        });
+      }
+      return;
+    }
+    final stats = await _bookRepo.getReadStats(uid);
+    final text = await ReadingPersonalityService.instance.getDescription(
+      userId: uid,
+      topTropes: _tropes,
+      booksRead: stats.readCount,
+      avgRating: stats.avgRating <= 0 ? 4.0 : stats.avgRating,
+    );
+    if (mounted) {
+      setState(() {
+        _personalityText = text;
+        _loading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final sections = [
@@ -752,6 +798,16 @@ class _TropeDnaSection extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          if (_loading)
+            const LinearProgressIndicator(
+              color: AppColors.orangePrimary,
+            )
+          else
+            Text(
+              _personalityText ?? '',
+              style: AppText.body(13, context: context),
+            ),
         ],
       ),
     );
@@ -809,6 +865,18 @@ class _BingoSection extends StatelessWidget {
             'Reading Bingo',
             style: AppText.display(18, context: context),
           ),
+          const SizedBox(height: 6),
+          Text(
+            'A 5×5 grid of mini reading challenges (e.g. “a book set by the sea”). '
+            'Squares light up as you complete prompts — full stats and prompts will tie into your library later.',
+            style: AppText.body(
+              12,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+              context: context,
+            ),
+          ),
           const SizedBox(height: 10),
           GridView.builder(
             shrinkWrap: true,
@@ -821,6 +889,9 @@ class _BingoSection extends StatelessWidget {
             ),
             itemBuilder: (context, index) {
               final completed = index % 3 == 0;
+              final label = index < kReadingBingoChallenges.length
+                  ? kReadingBingoChallenges[index]
+                  : '—';
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
@@ -839,18 +910,25 @@ class _BingoSection extends StatelessWidget {
                       ? null
                       : (isDark ? AppColors.darkCard : AppColors.lightCard),
                 ),
+                padding: const EdgeInsets.all(4),
                 child: Center(
-                  child: Text(
-                    'B${index + 1}',
-                    style: AppText.body(
-                      10,
-                      color: completed
-                          ? Colors.white
-                          : (isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary),
-                    ),
-                  ),
+                  child: completed
+                      ? Text(
+                          '✓',
+                          style: AppText.body(12, color: Colors.white),
+                        )
+                      : Text(
+                          label,
+                          textAlign: TextAlign.center,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.body(
+                            8,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
+                          ),
+                        ),
                 ),
               );
             },

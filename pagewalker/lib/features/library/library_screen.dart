@@ -6,7 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../../core/widgets/dynamic_sky_background.dart';
+import '../../core/theme/pagewalker_theme_extension.dart';
+import '../../core/widgets/themed_background.dart';
 import 'widgets/currently_reading_tab.dart';
 import 'widgets/dnf_tab.dart';
 import 'widgets/read_tab.dart';
@@ -43,7 +44,7 @@ class _LibraryScreenState extends State<LibraryScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tc = context.pwColors;
 
     return Scaffold(
       floatingActionButton: _SpinFab(
@@ -58,7 +59,7 @@ class _LibraryScreenState extends State<LibraryScreen>
           );
         },
       ),
-      body: DynamicSkyBackground(
+      body: ThemedBackground(
         child: SafeArea(
           child: Column(
             children: [
@@ -78,12 +79,12 @@ class _LibraryScreenState extends State<LibraryScreen>
                           icon: const Icon(
                             Icons.qr_code_scanner_rounded,
                           ),
-                          color: AppColors.orangePrimary,
+                          color: tc.primary,
                           tooltip: 'Scan a book',
                         ),
-                        const Icon(
+                        Icon(
                           Icons.auto_stories_rounded,
-                          color: AppColors.orangeAmber,
+                          color: AppColors.logoMarkColor(context),
                         ),
                       ],
                     ),
@@ -98,12 +99,10 @@ class _LibraryScreenState extends State<LibraryScreen>
                 ),
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.darkCard.withOpacity(0.8)
-                      : AppColors.lightCard.withOpacity(0.8),
+                  color: tc.card,
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: AppColors.orangePrimary.withOpacity(0.3),
+                    color: tc.border,
                   ),
                 ),
                 child: Row(
@@ -119,9 +118,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                           curve: Curves.easeInOut,
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: selected
-                                ? AppColors.orangePrimary.withOpacity(0.85)
-                                : Colors.transparent,
+                            color: selected ? tc.primary : Colors.transparent,
                             borderRadius: BorderRadius.circular(26),
                           ),
                           child: Text(
@@ -131,11 +128,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                               fontSize: 13,
                               fontWeight:
                                   selected ? FontWeight.w700 : FontWeight.w500,
-                              color: selected
-                                  ? Colors.white
-                                  : (isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.lightTextSecondary),
+                              color: selected ? Colors.white : tc.textSecondary,
                             ),
                           ),
                         ),
@@ -206,6 +199,7 @@ class _SpinFabState extends State<_SpinFab>
 
   @override
   Widget build(BuildContext context) {
+    final tc = context.pwColors;
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
@@ -223,16 +217,16 @@ class _SpinFabState extends State<_SpinFab>
         child: Container(
           width: 64,
           height: 64,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
-              colors: AppColors.gradientOrange,
+              colors: tc.gradientButton,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.orangeBright,
+                color: tc.primaryLight.withValues(alpha: 0.5),
                 blurRadius: 28,
-                offset: Offset(0, 10),
+                offset: const Offset(0, 10),
               ),
             ],
           ),
