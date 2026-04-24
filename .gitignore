@@ -22,6 +22,10 @@ migrate_working_dir/
 
 # Docs
 *.pdf
+!pagewalker/docs/PAGEWALKER_OPERATIONS_MANUAL.pdf
+
+# Local venv for docs build script
+pagewalker/docs/.venv/
 
 # Flutter/Dart/Pub related
 **/doc/api/
