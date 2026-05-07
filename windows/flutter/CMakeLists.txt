@@ -1,4 +1,4 @@
-# This file controls Flutter-level build steps. It should not be edited.
+
 cmake_minimum_required(VERSION 3.14)
 
 set(EPHEMERAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ephemeral")
@@ -15,7 +15,7 @@ if (NOT DEFINED FLUTTER_TARGET_PLATFORM)
   set(FLUTTER_TARGET_PLATFORM "windows-x64")
 endif()
 
-# === Flutter Library ===
+# Flutter Library 
 set(FLUTTER_LIBRARY "${EPHEMERAL_DIR}/flutter_windows.dll")
 
 # Published to parent scope for install step.
@@ -39,7 +39,7 @@ target_include_directories(flutter INTERFACE
 target_link_libraries(flutter INTERFACE "${FLUTTER_LIBRARY}.lib")
 add_dependencies(flutter flutter_assemble)
 
-# === Wrapper ===
+# Wrapper
 list(APPEND CPP_WRAPPER_SOURCES_CORE
   "core_implementations.cc"
   "standard_codec.cc"
@@ -83,9 +83,8 @@ target_include_directories(flutter_wrapper_app PUBLIC
 )
 add_dependencies(flutter_wrapper_app flutter_assemble)
 
-# === Flutter tool backend ===
-# _phony_ is a non-existent file to force this command to run every time,
-# since currently there's no way to get a full input/output list from the
+# Flutter tool backend 
+# rada to run every time,
 # flutter tool.
 set(PHONY_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/_phony_")
 set_source_files_properties("${PHONY_OUTPUT}" PROPERTIES SYMBOLIC TRUE)
