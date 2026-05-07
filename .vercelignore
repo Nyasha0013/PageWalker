@@ -1,4 +1,4 @@
-# Only ship static site + serverless API (avoid uploading full Flutter tree).
+# ship static site + serverless API (avoid uploading full Flutter tree).
 pagewalker/android
 pagewalker/ios
 pagewalker/linux
