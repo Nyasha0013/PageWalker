@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.13)
 project(runner LANGUAGES CXX)
 
-# The name of the executable created for the application. Change this to change
+# The name of the executable created for the application. 
 # the on-disk name of your application.
 set(BINARY_NAME "pagewalker")
 # The unique GTK application identifier for this application. See:
@@ -75,7 +75,7 @@ set_target_properties(${BINARY_NAME}
 include(flutter/generated_plugins.cmake)
 
 
-# === Installation ===
+# Installation
 # By default, "installing" just makes a relocatable bundle in the build
 # directory.
 set(BUILD_BUNDLE_DIR "${PROJECT_BINARY_DIR}/bundle")
