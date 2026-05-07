@@ -1,6 +1,6 @@
 # Production QA Checklist
 
-Use this checklist before major releases and after infra/env changes.
+checklist before major releases and after infra/env changes.
 
 ## 1) API and Environment Health
 
