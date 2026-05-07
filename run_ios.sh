@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run Pagewalker on iOS Simulator. Uses SSL cert so CocoaPods works.
+
 # Usage: ./run_ios.sh
 cd "$(dirname "$0")"
 export SSL_CERT_FILE="$HOME/.rbenv/cacert.pem"
