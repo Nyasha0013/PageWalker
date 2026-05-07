@@ -1,5 +1,5 @@
 #!/bin/bash
-# Use this so CocoaPods (Ruby) can verify HTTPS. Run from project root:
+ 
 #   source macos_env.sh
 #   flutter run -d macos
 export SSL_CERT_FILE="${HOME}/.rbenv/cacert.pem"
