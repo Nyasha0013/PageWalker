@@ -1,10 +1,6 @@
 // Microsoft Visual C++ generated resource script.
 //
-#pragma code_page(65001)
-#include "resource.h"
 
-#define APSTUDIO_READONLY_SYMBOLS
-/////////////////////////////////////////////////////////////////////////////
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
@@ -105,7 +101,7 @@ BEGIN
     END
 END
 
-#endif    // English (United States) resources
+#endif    // English (United Kingdom) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
