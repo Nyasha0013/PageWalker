@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // ─── DARK MODE (Black + Orange) ───────────────────────────
+  // DARK MODE (Black + Orange)
   static const Color darkBg = Color(0xFF0A0A0A);
   static const Color darkSurface = Color(0xFF141414);
   static const Color darkCard = Color(0xFF1C1C1C);
   static const Color darkGlass = Color(0x14FFFFFF);
   static const Color darkBorder = Color(0x30FF6B1A);
 
-  // ─── LIGHT MODE (White + Orange) ──────────────────────────
+  //LIGHT MODE (White + Orange) 
   static const Color lightBg = Color(0xFFFFFBF7);
   static const Color lightSurface = Color(0xFFFFF3E8);
   static const Color lightCard = Color(0xFFFFEDD5);
   static const Color lightGlass = Color(0x18FF6B1A);
   static const Color lightBorder = Color(0x40FF6B1A);
 
-  // ─── ORANGE BRAND (same in both modes) ────────────────────
+  // ORANGE BRAND (same in both modes) 
   static const Color orangePrimary = Color(0xFFFF6B1A); // Main orange
   static const Color orangeBright = Color(0xFFFF8C42); // Lighter orange
   static const Color orangeDeep = Color(0xFFE04E00); // Deep burnt orange
@@ -25,7 +25,7 @@ class AppColors {
   static const Color orangeEmber = Color(0xFFFF4500); // Ember red-orange
   static const Color orangeAmber = Color(0xFFFFB347); // Amber gold
 
-  // ─── TEXT ──────────────────────────────────────────────────
+  // TEXT
   static const Color darkTextPrimary = Color(0xFFF5F0EB);
   static const Color darkTextSecondary = Color(0xFFB8956A);
   static const Color darkTextMuted = Color(0xFF6B5040);
@@ -33,7 +33,7 @@ class AppColors {
   static const Color lightTextSecondary = Color(0xFF7A4020);
   static const Color lightTextMuted = Color(0xFFB07040);
 
-  // ─── GRADIENTS ─────────────────────────────────────────────
+  // GRADIENTS 
   static const List<Color> gradientOrange = [
     Color(0xFFFF6B1A),
     Color(0xFFFF8C42),
@@ -55,7 +55,7 @@ class AppColors {
     Color(0xFFFFF3E8),
   ];
 
-  // ─── SKY COLOURS per time of day ──────────────────────────
+  // SKY COLOURS per time of day 
   // These are used by the DynamicSkyBackground widget
 
   // Night (00:00 – 04:59)
