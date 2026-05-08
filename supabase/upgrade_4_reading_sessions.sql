@@ -1,5 +1,5 @@
--- PAGEWALKER — UPGRADE 4: READING TIMER
--- Run this in Supabase SQL editor.
+PAGEWALKER — UPGRADE 4: READING TIMER
+Run this in Supabase SQL editor.
 
 create table if not exists reading_sessions (
   id uuid default gen_random_uuid() primary key,
