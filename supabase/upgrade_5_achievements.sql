@@ -1,5 +1,5 @@
--- PAGEWALKER — UPGRADE 5: ACHIEVEMENTS & BADGES
--- Run this in Supabase SQL editor.
+PAGEWALKER — UPGRADE 5: ACHIEVEMENTS & BADGES
+Run this in Supabase SQL editor.
 
 create table if not exists achievements (
   id text primary key,
