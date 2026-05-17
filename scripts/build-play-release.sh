@@ -13,8 +13,7 @@ if [[ ! -f "$PROPS" ]]; then
 fi
 
 if [[ ! -f "$APP/lib/core/config/env.dart" ]]; then
-  echo "Missing $APP/lib/core/config/env.dart (Supabase + API keys for release)."
-  echo "Copy from a teammate or create from env.dart.example if present."
+  echo "Missing $APP/lib/core/config/env.dart"
   exit 1
 fi
 

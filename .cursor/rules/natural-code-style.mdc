@@ -1,0 +1,57 @@
+---
+description: Write comments and script output like a solo dev on the repo — no AI/meta tone
+alwaysApply: true
+---
+
+# Natural code comments and commands
+
+## Comments (code, SQL, config)
+
+Write comments the way you would for yourself in six months: short, specific, optional.
+
+**Do**
+- Explain non-obvious behavior, quirks, or workarounds (`// OL search times out at 8s`)
+- Use plain `//` lines; skip file-level essays unless the file is genuinely tricky
+- Match existing tone in the file
+
+**Don't**
+- Mention Cursor, AI, chat, "vibe coding", friends/colleagues helping, or hiding how code was written
+- Write tutorial voice (`Ensure you…`, `Make sure to…`, `Note:`, `Important:`)
+- Point readers at files to edit (`add key in env.dart`) — use docs or README for setup
+- Reference PDFs, prompts, or spec doc names unless the team already uses that name in tickets
+- Leave `///` doc blocks on obvious private helpers
+
+## Shell scripts and CLI messages
+
+Scripts should read like internal tooling, not a guide.
+
+**Do**
+- Terse errors: `Missing android/key.properties`
+- One-line headers: `# Play upload keystore`
+
+**Don't**
+- Long numbered walkthroughs in `echo` output
+- Social/meta asides in comments or prints
+
+## Docs vs code
+
+Setup steps (Play Console, API keys, keystores) belong in `docs/` or `README`, not in source comments.
+
+## Examples
+
+```dart
+// ❌
+// IMPORTANT: Add your Google Books key in env.dart before release!
+// Your friend can help debug this if search fails.
+
+// ✅
+// skips Google when hasGoogleBooksApiKey is false
+```
+
+```bash
+# ❌
+echo "Step 3: Make sure you back up the keystore for your teammate"
+
+# ✅
+echo "Missing key.properties — run ./scripts/android-create-keystore.sh"
+```

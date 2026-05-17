@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time upload keystore for Google Play (keep backups; loss = cannot update the app).
+# Play upload keystore (back it up)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

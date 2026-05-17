@@ -39,7 +39,7 @@ Create the app (if needed): [Google Play Console](https://play.google.com/consol
 
 | Section | What to provide |
 |--------|------------------|
-| **App access** | Login required → provide test account (email + password) for reviewers |
+| **App access** | Login required → test account (email + password) |
 | **Ads** | No (unless you add ads later) |
 | **Content rating** | Complete IARC questionnaire (book/reading app, user content in reviews/clubs) |
 | **Target audience** | 13+ or 18+ per your policy |
@@ -75,12 +75,12 @@ version: 6.0.0+4   # +4, +5, …
 
 Then rebuild and upload a new AAB.
 
-## 6. Reviewer test account
+## 6. Play review login
 
-Create a dedicated account, e.g. `playreview@pagewalker.org`, with:
+Dedicated account (e.g. `playreview@pagewalker.org`):
 
-- Email/password sign-in working  
+- Email/password sign-in works  
 - A few books on TBR / Reading  
 - Optional: one public review  
 
-Put credentials in **App access** → **Instructions for reviewers**.
+Add credentials under **App access** → **Instructions for access**.

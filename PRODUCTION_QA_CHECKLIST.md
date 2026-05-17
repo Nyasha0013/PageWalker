@@ -65,4 +65,4 @@ See **`pagewalker/docs/PLAY_STORE_RELEASE.md`** for the full flow.
 - [ ] `./scripts/build-play-release.sh` produces `app-release.aab`
 - [ ] Play Console: store listing, privacy URL, content rating, data safety form
 - [ ] Internal testing track: install on a physical device, sign-in, search, library
-- [ ] Reviewer test account documented under **App access**
+- [ ] Play review login documented under **App access**

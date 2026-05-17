@@ -1,5 +1,4 @@
-# Copy to android/key.properties (never commit key.properties or *.jks).
-# Generate the keystore first: ../../scripts/android-create-keystore.sh
+# android/key.properties — not committed. Run scripts/android-create-keystore.sh first.
 
 storePassword=YOUR_STORE_PASSWORD
 keyPassword=YOUR_KEY_PASSWORD
