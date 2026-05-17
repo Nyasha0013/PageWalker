@@ -12,11 +12,17 @@ if [[ -f "$KEYSTORE" ]]; then
   exit 0
 fi
 
-read -r -s -p "Keystore password (store): " STORE_PW
-echo
-read -r -s -p "Key password (Enter for same as store): " KEY_PW
-echo
-KEY_PW="${KEY_PW:-$STORE_PW}"
+# Hidden input breaks in some IDE terminals — set STORE_PW and KEY_PW in env instead.
+if [[ -n "${STORE_PW:-}" ]]; then
+  KEY_PW="${KEY_PW:-$STORE_PW}"
+else
+  echo "Password input is hidden (nothing prints as you type)."
+  read -r -s -p "Keystore password (store): " STORE_PW
+  echo
+  read -r -s -p "Key password (Enter for same as store): " KEY_PW
+  echo
+  KEY_PW="${KEY_PW:-$STORE_PW}"
+fi
 
 keytool -genkeypair -v \
   -keystore "$KEYSTORE" \
