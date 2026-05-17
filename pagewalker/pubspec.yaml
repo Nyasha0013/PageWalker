@@ -1,7 +1,7 @@
 name: pagewalker
 description: A magical book journaling app
 publish_to: 'none'
-version: 1.0.0+1
+version: 6.0.0+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -18,6 +18,7 @@ dependencies:
   # Backend
   supabase_flutter: ^2.3.4
   http: ^1.2.1
+  html: ^0.15.4
 
   # Animations
   flutter_animate: ^4.5.0
@@ -33,11 +34,14 @@ dependencies:
   flutter_staggered_grid_view: ^0.7.0
   reorderables: ^0.6.0
 
+  url_launcher: ^6.2.5
+
   # Utils
   shared_preferences: ^2.2.3
   share_plus: ^9.0.0
   home_widget: ^0.6.0
   intl: ^0.19.0
+  package_info_plus: ^8.0.0
   uuid: ^4.3.3
   image_picker: ^1.0.7
   mobile_scanner: ^5.1.1
@@ -57,7 +61,7 @@ flutter:
     - assets/animations/
     - assets/icon/
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon/pagewalker_icon.png"

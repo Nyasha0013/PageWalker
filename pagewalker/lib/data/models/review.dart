@@ -9,7 +9,6 @@ class Review {
   final DateTime updatedAt;
   final double? starRating;
 
-  /// Denormalized on `reviews` when present (see `reviews_catalog_columns.sql`).
   final String? bookTitle;
   final String? bookAuthor;
   final String? bookCoverUrl;

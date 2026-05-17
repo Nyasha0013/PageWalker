@@ -6,11 +6,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import '../../core/utils/catalog_book_id.dart';
 import '../../core/widgets/book_cover_widget.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/star_rating_widget.dart';
-import '../../core/widgets/trope_chip.dart';
+import '../catalog/catalog_book_detail_screen.dart';
 import 'widgets/character_ranking_widget.dart';
 import 'widgets/scrapbook_section.dart';
 import 'widgets/series_ranking_widget.dart';
@@ -20,6 +21,20 @@ class BookDetailScreen extends StatelessWidget {
   final String bookId;
 
   const BookDetailScreen({super.key, required this.bookId});
+
+  @override
+  Widget build(BuildContext context) {
+    if (isUnifiedCatalogBookId(bookId)) {
+      return CatalogBookDetailScreen(bookId: bookId);
+    }
+    return _LegacyBookDetailScreen(bookId: bookId);
+  }
+}
+
+class _LegacyBookDetailScreen extends StatelessWidget {
+  final String bookId;
+
+  const _LegacyBookDetailScreen({required this.bookId});
 
   @override
   Widget build(BuildContext context) {
@@ -208,4 +223,3 @@ class _TierChip extends StatelessWidget {
     );
   }
 }
-

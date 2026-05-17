@@ -5,17 +5,40 @@ import 'package:http/http.dart' as http;
 import '../../core/config/env.dart';
 import '../../core/config/supabase_config.dart';
 import '../models/book.dart';
+import 'catalog_book_repository.dart';
 
 class BookRepository {
   final _client = SupabaseConfig.client;
-  final String _googleBooksBase = 'https://www.googleapis.com/books/v1';
+
+  Uri _googleBooksSearchUri(String query) {
+    return Uri(
+      scheme: 'https',
+      host: 'www.googleapis.com',
+      pathSegments: ['books', 'v1', 'volumes'],
+      queryParameters: {
+        'q': query,
+        'maxResults': '20',
+        'key': Env.googleBooksApiKey,
+      },
+    );
+  }
+
+  Uri _googleBooksVolumeUri(String bookId) {
+    return Uri(
+      scheme: 'https',
+      host: 'www.googleapis.com',
+      pathSegments: ['books', 'v1', 'volumes', bookId],
+      queryParameters: {'key': Env.googleBooksApiKey},
+    );
+  }
 
   Future<List<Book>> searchBooks(String query) async {
-    final response = await http.get(
-      Uri.parse(
-        '$_googleBooksBase/volumes?q=${Uri.encodeComponent(query)}&maxResults=20&key=${Env.googleBooksApiKey}',
-      ),
-    );
+    if (!Env.hasGoogleBooksApiKey) {
+      final cat = CatalogBookRepository();
+      final list = await cat.searchAll(query);
+      return list.map(Book.fromCatalogBook).toList();
+    }
+    final response = await http.get(_googleBooksSearchUri(query));
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final items = data['items'] as List<dynamic>? ?? [];
@@ -29,7 +52,7 @@ class BookRepository {
   }
 
   Future<Book?> getBookById(String bookId) async {
-    // Check Supabase cache first
+    // cached copy first
     final cached = await _client
         .from('books')
         .select()
@@ -37,12 +60,8 @@ class BookRepository {
         .maybeSingle();
     if (cached != null) return Book.fromSupabase(cached);
 
-    // Fetch from Google Books
-    final response = await http.get(
-      Uri.parse(
-        '$_googleBooksBase/volumes/$bookId?key=${Env.googleBooksApiKey}',
-      ),
-    );
+    // google volume lookup
+    final response = await http.get(_googleBooksVolumeUri(bookId));
     if (response.statusCode == 200) {
       final book = Book.fromGoogleBooks(jsonDecode(response.body));
       await _client.from('books').upsert(book.toSupabase());
@@ -87,12 +106,14 @@ class BookRepository {
       final recommendations =
           jsonDecode(content) as List<dynamic>;
 
-      // Search Google Books for each recommendation
+      final catRepo = CatalogBookRepository();
       final books = <Book>[];
       for (final rec in recommendations) {
         final query = '${rec["title"]} ${rec["author"]}';
-        final results = await searchBooks(query);
-        if (results.isNotEmpty) books.add(results.first);
+        final results = await catRepo.searchAll(query);
+        if (results.isNotEmpty) {
+          books.add(Book.fromCatalogBook(results.first));
+        }
       }
       return books;
     }

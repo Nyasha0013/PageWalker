@@ -3,18 +3,19 @@ import 'dart:ui';
 
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/config/supabase_config.dart';
+import '../../core/utils/url_utils.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/widgets/book_cover_widget.dart';
-import '../../core/widgets/dynamic_sky_background.dart';
+import '../../core/widgets/themed_background.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../data/models/book.dart';
@@ -117,7 +118,7 @@ class _YearlyWrappedScreenState extends State<YearlyWrappedScreen>
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: DynamicSkyBackground(
+      body: ThemedBackground(
         child: AnimatedBuilder(
           animation: _bgDrift,
           builder: (context, _) {
@@ -333,7 +334,7 @@ class WrappedData {
           booksById[b.id] = b;
         }
       } catch (_) {
-        // Best-effort: leave empty, UI will degrade gracefully.
+        // empty ok — UI handles it
       }
     }
 
@@ -370,14 +371,14 @@ class WrappedData {
         pagesRead += (s['pages_read'] as int?) ?? 0;
       }
     } catch (_) {
-      // Fallback: approximate by summing page counts of finished books.
+      // fallback: sum pages on finished books
       pagesRead = allReadBooks.fold<int>(
         0,
         (sum, b) => sum + (b.pageCount ?? 0),
       );
     }
 
-    // Longest reading streak in the year (based on any session end date).
+    // longest streak this year
     int longestStreak = 0;
     try {
       final sessions = await client
@@ -412,7 +413,7 @@ class WrappedData {
       longestStreak = 0;
     }
 
-    // Top tropes: from book_tags if present, else fallback to genres on cached books.
+    // tropes from tags, else genres
     final tropeCounts = <String, int>{};
     if (bookIds.isNotEmpty) {
       try {
@@ -768,7 +769,10 @@ class _TinyCover extends StatelessWidget {
                 alignment: Alignment.center,
                 child: const Text('✦'),
               )
-            : Image.network(b.coverUrl!, fit: BoxFit.cover),
+            : Image.network(
+                fixCoverUrl(b.coverUrl) ?? b.coverUrl!,
+                fit: BoxFit.cover,
+              ),
       ),
     );
   }
@@ -1069,7 +1073,10 @@ class _FavouriteBookSlide extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(18),
                                 child: b.coverUrl != null
-                                    ? Image.network(b.coverUrl!, fit: BoxFit.cover)
+                                    ? Image.network(
+                                        fixCoverUrl(b.coverUrl) ?? b.coverUrl!,
+                                        fit: BoxFit.cover,
+                                      )
                                     : const BookCoverWidget(width: 200, height: 280),
                               ),
                             ),
@@ -1644,7 +1651,10 @@ class _CoverGrid9 extends StatelessWidget {
                       ),
                     ),
                   )
-                : Image.network(b!.coverUrl!, fit: BoxFit.cover),
+                : Image.network(
+                    fixCoverUrl(b!.coverUrl) ?? b.coverUrl!,
+                    fit: BoxFit.cover,
+                  ),
           ),
         );
       },

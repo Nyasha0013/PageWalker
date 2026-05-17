@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/config/env.dart';
 import '../../core/config/supabase_config.dart';
 import '../../core/providers/theme_provider.dart';
 import '../../core/services/notification_service.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../../core/widgets/dynamic_sky_background.dart';
+import '../../core/theme/pagewalker_theme_extension.dart';
+import '../../core/widgets/themed_background.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../data/models/profile.dart';
@@ -154,11 +157,11 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tc = context.pwColors;
     final profileAsync = ref.watch(profileProvider);
 
     return Scaffold(
-      body: DynamicSkyBackground(
+      body: ThemedBackground(
         child: SafeArea(
           child: profileAsync.when(
             data: (profile) {
@@ -172,7 +175,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     leading: IconButton(
                       onPressed: () => context.pop(),
                       icon: const Icon(Icons.arrow_back_rounded),
-                      color: AppColors.orangePrimary,
+                      color: tc.primary,
                     ),
                     title: Text(
                       'Settings',
@@ -193,7 +196,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                 'Appearance',
                                 style: AppText.bodySemiBold(
                                   15,
-                                  color: AppColors.orangePrimary,
+                                  color: tc.primary,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -201,32 +204,30 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                 children: [
                                   Expanded(
                                     child: GestureDetector(
-                                      onTap: () => ref.read(themeProvider.notifier).setDark(),
+                                      onTap: () => ref.read(themeProvider.notifier).setLight(),
                                       child: AnimatedContainer(
                                         duration: const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
                                         decoration: BoxDecoration(
-                                          color: ref.watch(themeProvider) == ThemeMode.dark
-                                              ? AppColors.orangePrimary
+                                          color: ref.watch(themeProvider) == ThemeMode.light
+                                              ? tc.primary
                                               : Colors.transparent,
                                           borderRadius: BorderRadius.circular(14),
                                           border: Border.all(
-                                            color: AppColors.orangePrimary.withOpacity(0.5),
+                                            color: tc.primary.withValues(alpha: 0.5),
                                           ),
                                         ),
                                         child: Column(
                                           children: [
-                                            const Text('🌙', style: TextStyle(fontSize: 24)),
+                                            const Text('☀️', style: TextStyle(fontSize: 22)),
                                             const SizedBox(height: 4),
                                             Text(
-                                              'Dark',
+                                              'Light',
                                               style: AppText.bodySemiBold(
-                                                13,
-                                                color: ref.watch(themeProvider) == ThemeMode.dark
+                                                12,
+                                                color: ref.watch(themeProvider) == ThemeMode.light
                                                     ? Colors.white
-                                                    : (isDark
-                                                        ? AppColors.darkTextSecondary
-                                                        : AppColors.lightTextSecondary),
+                                                    : tc.textSecondary,
                                               ),
                                             ),
                                           ],
@@ -234,35 +235,73 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 8),
                                   Expanded(
                                     child: GestureDetector(
-                                      onTap: () => ref.read(themeProvider.notifier).setLight(),
+                                      onTap: () => ref.read(themeProvider.notifier).setDark(),
                                       child: AnimatedContainer(
                                         duration: const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
                                         decoration: BoxDecoration(
-                                          color: ref.watch(themeProvider) == ThemeMode.light
-                                              ? AppColors.orangePrimary
+                                          color: ref.watch(themeProvider) == ThemeMode.dark
+                                              ? tc.primary
                                               : Colors.transparent,
                                           borderRadius: BorderRadius.circular(14),
                                           border: Border.all(
-                                            color: AppColors.orangePrimary.withOpacity(0.5),
+                                            color: tc.primary.withValues(alpha: 0.5),
                                           ),
                                         ),
                                         child: Column(
                                           children: [
-                                            const Text('☀️', style: TextStyle(fontSize: 24)),
+                                            const Text('🌙', style: TextStyle(fontSize: 22)),
                                             const SizedBox(height: 4),
                                             Text(
-                                              'Light',
+                                              'Dark',
                                               style: AppText.bodySemiBold(
-                                                13,
-                                                color: ref.watch(themeProvider) == ThemeMode.light
+                                                12,
+                                                color: ref.watch(themeProvider) == ThemeMode.dark
                                                     ? Colors.white
-                                                    : (isDark
-                                                        ? AppColors.darkTextSecondary
-                                                        : AppColors.lightTextSecondary),
+                                                    : tc.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () => ref.read(themeProvider.notifier).setSystem(),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: ref.watch(themeProvider) == ThemeMode.system
+                                              ? tc.primary
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(
+                                            color: tc.primary.withValues(alpha: 0.5),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Icon(
+                                              Icons.brightness_auto_rounded,
+                                              size: 22,
+                                              color: ref.watch(themeProvider) == ThemeMode.system
+                                                  ? Colors.white
+                                                  : tc.textSecondary,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'System',
+                                              style: AppText.bodySemiBold(
+                                                12,
+                                                color: ref.watch(themeProvider) == ThemeMode.system
+                                                    ? Colors.white
+                                                    : tc.textSecondary,
                                               ),
                                             ),
                                           ],
@@ -271,6 +310,56 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                     ),
                                   ),
                                 ],
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'Choose your theme',
+                                style: AppText.bodySemiBold(15, color: tc.primary),
+                              ),
+                              const SizedBox(height: 12),
+                              _buildThemeCard(
+                                context: context,
+                                ref: ref,
+                                type: AppThemeType.classic,
+                                name: 'Classic',
+                                subtitle: 'Black, Orange & White',
+                                description: 'Bold and striking. Perfect for BookTok energy.',
+                                previewColors: const [
+                                  Color(0xFF0A0A0A),
+                                  Color(0xFFFF6B1A),
+                                  Color(0xFFFFFFFF),
+                                ],
+                                emoji: '📙',
+                              ),
+                              const SizedBox(height: 12),
+                              _buildThemeCard(
+                                context: context,
+                                ref: ref,
+                                type: AppThemeType.midnightLibrary,
+                                name: 'Midnight Library',
+                                subtitle: 'Navy, Gold & Cream',
+                                description: 'Dark academia. Mysterious and literary.',
+                                previewColors: const [
+                                  Color(0xFF0A0A14),
+                                  Color(0xFFD4AF37),
+                                  Color(0xFFF5F0E8),
+                                ],
+                                emoji: '🌙',
+                              ),
+                              const SizedBox(height: 12),
+                              _buildThemeCard(
+                                context: context,
+                                ref: ref,
+                                type: AppThemeType.forestRetreat,
+                                name: 'Forest Retreat',
+                                subtitle: 'Forest Green, Amber & Cream',
+                                description: 'Cosy and natural. Cottagecore reader vibes.',
+                                previewColors: const [
+                                  Color(0xFF080F0A),
+                                  Color(0xFFC8861A),
+                                  Color(0xFFF0F5EC),
+                                ],
+                                emoji: '🌿',
                               ),
                             ],
                           ),
@@ -285,7 +374,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                             children: [
                               Text(
                                 'Personal Info',
-                                style: AppText.bodySemiBold(15, color: AppColors.orangePrimary),
+                                style: AppText.bodySemiBold(15, color: tc.primary),
                               ),
                               const SizedBox(height: 12),
                               TextFormField(
@@ -346,7 +435,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                             children: [
                               Text(
                                 'Social Links',
-                                style: AppText.bodySemiBold(15, color: AppColors.orangePrimary),
+                                style: AppText.bodySemiBold(15, color: tc.primary),
                               ),
                               const SizedBox(height: 12),
                               TextFormField(
@@ -371,7 +460,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                 'Add your socials so other Pagewalker readers can connect with you!',
                                 style: AppText.body(
                                   12,
-                                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                  color: tc.textMuted,
                                 ),
                               ),
                             ],
@@ -390,7 +479,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                 'Notifications',
                                 style: AppText.bodySemiBold(
                                   15,
-                                  color: AppColors.orangePrimary,
+                                  color: tc.primary,
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -408,7 +497,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                         'Get nudged to read every day',
                                         style: AppText.body(
                                           12,
-                                          color: AppColors.darkTextSecondary,
+                                          color: tc.textSecondary,
                                         ),
                                       ),
                                     ],
@@ -428,7 +517,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                         await NotificationService().cancelAll();
                                       }
                                     },
-                                    activeColor: AppColors.orangePrimary,
+                                    activeThumbColor: tc.primary,
                                   ),
                                 ],
                               ),
@@ -441,9 +530,9 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                       initialTime: _reminderTime,
                                       builder: (context, child) => Theme(
                                         data: Theme.of(context).copyWith(
-                                          colorScheme: const ColorScheme.dark(
-                                            primary: AppColors.orangePrimary,
-                                          ),
+                                          colorScheme: Theme.of(context)
+                                              .colorScheme
+                                              .copyWith(primary: tc.primary),
                                         ),
                                         child: child!,
                                       ),
@@ -463,10 +552,10 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                       vertical: 12,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.darkCard,
+                                      color: tc.card,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: AppColors.orangePrimary.withOpacity(0.3),
+                                        color: tc.primary.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     child: Row(
@@ -480,7 +569,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                           _formatTime(_reminderTime),
                                           style: AppText.bodySemiBold(
                                             14,
-                                            color: AppColors.orangePrimary,
+                                            color: tc.primary,
                                           ),
                                         ),
                                       ],
@@ -503,7 +592,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                         'Alert when streak is at risk',
                                         style: AppText.body(
                                           12,
-                                          color: AppColors.darkTextSecondary,
+                                          color: tc.textSecondary,
                                         ),
                                       ),
                                     ],
@@ -514,7 +603,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                       setState(() => _streakWarnings = val);
                                       await _saveNotificationPrefs();
                                     },
-                                    activeColor: AppColors.orangePrimary,
+                                    activeThumbColor: tc.primary,
                                   ),
                                 ],
                               ),
@@ -541,9 +630,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                       'Allow other readers to find and follow you',
                                       style: AppText.body(
                                         12,
-                                        color: isDark
-                                            ? AppColors.darkTextSecondary
-                                            : AppColors.lightTextSecondary,
+                                        color: tc.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -552,7 +639,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                               Switch(
                                 value: _isPublic,
                                 onChanged: (v) => setState(() => _isPublic = v),
-                                activeColor: AppColors.orangePrimary,
+                                activeThumbColor: tc.primary,
                               ),
                             ],
                           ),
@@ -569,7 +656,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                 'Home Screen Widget',
                                 style: AppText.bodySemiBold(
                                   15,
-                                  color: AppColors.orangePrimary,
+                                  color: tc.primary,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -577,9 +664,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                 'Add the Pagewalker widget to your home screen to see your current read at a glance.',
                                 style: AppText.body(
                                   13,
-                                  color: isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.lightTextSecondary,
+                                  color: tc.textSecondary,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -589,7 +674,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                   color: const Color(0xE6120800),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: AppColors.orangePrimary.withOpacity(0.3),
+                                    color: tc.primary.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Column(
@@ -599,7 +684,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                       'Pagewalker',
                                       style: AppText.label(
                                         10,
-                                        color: AppColors.orangePrimary,
+                                        color: tc.primary,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -611,18 +696,14 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                       'Author name',
                                       style: AppText.body(
                                         11,
-                                        color: isDark
-                                            ? AppColors.darkTextSecondary
-                                            : AppColors.lightTextSecondary,
+                                        color: tc.textSecondary,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
                                     LinearProgressIndicator(
                                       value: 0.65,
-                                      backgroundColor: AppColors.orangeDeep.withOpacity(0.3),
-                                      valueColor: const AlwaysStoppedAnimation(
-                                        AppColors.orangePrimary,
-                                      ),
+                                      backgroundColor: tc.accent.withValues(alpha: 0.25),
+                                      valueColor: AlwaysStoppedAnimation(tc.primary),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     const SizedBox(height: 4),
@@ -630,9 +711,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                       'Page 258 of 400 · 35% left',
                                       style: AppText.body(
                                         10,
-                                        color: isDark
-                                            ? AppColors.darkTextMuted
-                                            : AppColors.lightTextMuted,
+                                        color: tc.textMuted,
                                       ),
                                     ),
                                   ],
@@ -643,9 +722,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                 'To add: long press your home screen → Widgets → Pagewalker',
                                 style: AppText.body(
                                   12,
-                                  color: isDark
-                                      ? AppColors.darkTextMuted
-                                      : AppColors.lightTextMuted,
+                                  color: tc.textMuted,
                                 ),
                               ),
                             ],
@@ -661,16 +738,16 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                             children: [
                               Text(
                                 'Account',
-                                style: AppText.bodySemiBold(15, color: AppColors.orangePrimary),
+                                style: AppText.bodySemiBold(15, color: tc.primary),
                               ),
                               const SizedBox(height: 12),
                               OutlinedButton(
                                 onPressed: () {},
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(
-                                    color: AppColors.orangePrimary.withOpacity(0.5),
+                                    color: tc.primary.withValues(alpha: 0.5),
                                   ),
-                                  foregroundColor: AppColors.orangePrimary,
+                                  foregroundColor: tc.primary,
                                 ),
                                 child: const Text('Change Password'),
                               ),
@@ -694,7 +771,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                     'Delete Account',
                                     style: AppText.body(
                                       12,
-                                      color: const Color(0xFFFF4444).withOpacity(0.7),
+                                      color: const Color(0xFFFF4444)
+                                          .withValues(alpha: 0.7),
                                     ),
                                   ),
                                 ),
@@ -711,31 +789,79 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                             children: [
                               ListTile(
                                 title: Text('Privacy Policy', style: AppText.body(15, context: context)),
-                                trailing: const Icon(
+                                trailing: Icon(
                                   Icons.arrow_forward_ios_rounded,
                                   size: 16,
-                                  color: AppColors.orangePrimary,
+                                  color: tc.primary,
                                 ),
                                 onTap: () => context.push('/privacy'),
                                 contentPadding: EdgeInsets.zero,
                               ),
-                              Divider(color: AppColors.orangePrimary.withOpacity(0.1)),
+                              Divider(color: tc.primary.withValues(alpha: 0.1)),
                               ListTile(
                                 title: Text('Terms of Service', style: AppText.body(15, context: context)),
-                                trailing: const Icon(
+                                trailing: Icon(
                                   Icons.arrow_forward_ios_rounded,
                                   size: 16,
-                                  color: AppColors.orangePrimary,
+                                  color: tc.primary,
                                 ),
                                 onTap: () => context.push('/terms'),
                                 contentPadding: EdgeInsets.zero,
                               ),
-                              Divider(color: AppColors.orangePrimary.withOpacity(0.1)),
+                              Divider(color: tc.primary.withValues(alpha: 0.1)),
+                              ListTile(
+                                title: Text('Contact Us', style: AppText.body(15, context: context)),
+                                subtitle: Text(
+                                  Env.contactEmail,
+                                  style: AppText.body(12, color: tc.textSecondary, context: context),
+                                ),
+                                leading: Icon(
+                                  Icons.email_rounded,
+                                  color: tc.primary,
+                                ),
+                                onTap: () async {
+                                  final uri = Uri(
+                                    scheme: 'mailto',
+                                    path: Env.contactEmail,
+                                    queryParameters: const {
+                                      'subject': 'Pagewalker Support',
+                                    },
+                                  );
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri);
+                                  }
+                                },
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              Divider(color: tc.primary.withValues(alpha: 0.1)),
                               ListTile(
                                 title: Text('App Version', style: AppText.body(15, context: context)),
-                                trailing: Text(
-                                  '1.0.0',
-                                  style: AppText.body(14, color: AppColors.darkTextMuted, context: context),
+                                subtitle: Text(
+                                  '© ${Env.copyrightYear} ${Env.appName}',
+                                  style: AppText.body(11, color: tc.textMuted, context: context),
+                                ),
+                                trailing: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: tc.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: tc.primary.withValues(alpha: 0.3)),
+                                  ),
+                                  child: FutureBuilder<PackageInfo>(
+                                    future: PackageInfo.fromPlatform(),
+                                    builder: (context, snapshot) {
+                                      final info = snapshot.data;
+                                      final label = info == null
+                                          ? 'v${Env.appVersion}'
+                                          : info.buildNumber.isEmpty
+                                              ? 'v${info.version}'
+                                              : 'v${info.version} (${info.buildNumber})';
+                                      return Text(
+                                        label,
+                                        style: AppText.bodySemiBold(12, color: tc.primary, context: context),
+                                      );
+                                    },
+                                  ),
                                 ),
                                 contentPadding: EdgeInsets.zero,
                               ),
@@ -760,8 +886,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 ],
               );
             },
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColors.orangePrimary),
+            loading: () => Center(
+              child: CircularProgressIndicator(color: tc.primary),
             ),
             error: (e, _) => Center(
               child: Padding(
@@ -774,6 +900,120 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeCard({
+    required BuildContext context,
+    required WidgetRef ref,
+    required AppThemeType type,
+    required String name,
+    required String subtitle,
+    required String description,
+    required List<Color> previewColors,
+    required String emoji,
+  }) {
+    final currentTheme = ref.watch(appThemeProvider);
+    final isSelected = currentTheme == type;
+    final themeColors = context.pwColors;
+    return GestureDetector(
+      onTap: () => ref.read(appThemeProvider.notifier).setTheme(type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? themeColors.primary.withValues(alpha: 0.1)
+              : themeColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? themeColors.primary : themeColors.border,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 56,
+              height: 56,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: previewColors[0],
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    child: Container(
+                      width: 28,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: previewColors[1],
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(28),
+                          bottomRight: Radius.circular(28),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 4,
+                    left: 8,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: previewColors[2],
+                        border: Border.all(color: Colors.black12, width: 1),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(emoji, style: const TextStyle(fontSize: 16)),
+                      const SizedBox(width: 6),
+                      Text(
+                        name,
+                        style: AppText.bodySemiBold(15, context: context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppText.body(12, color: themeColors.primary),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: AppText.body(12, color: themeColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle_rounded,
+                color: themeColors.primary,
+                size: 24,
+              ),
+          ],
         ),
       ),
     );

@@ -33,6 +33,17 @@ class ProfileRepository {
     return Profile.fromSupabase(data);
   }
 
+  Future<Map<String, Profile>> getProfilesByIds(List<String> ids) async {
+    if (ids.isEmpty) return {};
+    final rows = await _client.from('profiles').select().inFilter('id', ids);
+    final map = <String, Profile>{};
+    for (final e in rows as List) {
+      final p = Profile.fromSupabase(e as Map<String, dynamic>);
+      map[p.id] = p;
+    }
+    return map;
+  }
+
   Future<List<Profile>> searchPublicProfiles({
     String? query,
     int limit = 25,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
+import '../theme/pagewalker_theme_extension.dart';
 import '../theme/app_text.dart';
 
 class GradientButton extends StatefulWidget {
@@ -54,7 +54,9 @@ class _GradientButtonState extends State<GradientButton>
 
   @override
   Widget build(BuildContext context) {
-    final colors = widget.gradientColors ?? AppColors.gradientOrange;
+    final tc = context.pwColors;
+    final colors = widget.gradientColors ?? tc.gradientButton;
+
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
@@ -76,7 +78,7 @@ class _GradientButtonState extends State<GradientButton>
             borderRadius: BorderRadius.circular(widget.borderRadius),
             boxShadow: [
               BoxShadow(
-                color: AppColors.orangePrimary.withOpacity(0.5),
+                color: tc.primary.withValues(alpha: 0.45),
                 blurRadius: 20,
                 offset: const Offset(0, 6),
               ),
@@ -111,4 +113,3 @@ class _GradientButtonState extends State<GradientButton>
     );
   }
 }
-

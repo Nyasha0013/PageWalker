@@ -10,7 +10,6 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/themed_background.dart';
 
-/// Shown after the user opens the password-recovery link (deep link / session).
 class UpdatePasswordScreen extends StatefulWidget {
   const UpdatePasswordScreen({super.key});
 

@@ -11,7 +11,7 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/themed_background.dart';
 
-/// Same deep link host as OAuth; add to Supabase Auth redirect URLs.
+// matches OAuth redirect host
 const String _mobilePasswordRedirect = 'com.pagewalker.app://login-callback';
 
 class ForgotPasswordScreen extends StatefulWidget {

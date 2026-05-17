@@ -7,7 +7,6 @@ import '../utils/url_utils.dart';
 class BookCoverWidget extends StatelessWidget {
   final String? coverUrl;
 
-  /// Used for initials when the cover image fails to load.
   final String? title;
   final double width;
   final double height;

@@ -21,6 +21,11 @@ Future<void> main() async {
   );
   try {
     await SupabaseConfig.initialize();
+    if (!SupabaseConfig.isConnected) {
+      debugPrint(
+        'WARNING: Supabase credentials not set or still contain placeholders in env.dart',
+      );
+    }
   } catch (_) {
     // Continue without Supabase so app works offline / without auth
   }

@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/config/supabase_config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../../core/widgets/dynamic_sky_background.dart';
+import '../../core/widgets/themed_background.dart';
 import '../../core/widgets/glass_card.dart';
 
 class AchievementsScreen extends StatefulWidget {
@@ -79,7 +79,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     final unlockedCount = _unlocked.length;
 
     return Scaffold(
-      body: DynamicSkyBackground(
+      body: ThemedBackground(
         child: SafeArea(
           child: _loading
               ? const Center(

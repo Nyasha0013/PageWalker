@@ -6,8 +6,7 @@ import '../models/review.dart';
 class ReviewRepository {
   final _client = SupabaseConfig.client;
 
-  /// Books with the most reviews in the last 7 days (for Discover “Hot right now”).
-  /// Uses optional `book_title`, `book_author`, `book_cover_url` on `reviews` when present.
+  // hot row: most reviewed in the last week
   Future<List<Map<String, dynamic>>> getHotBooksThisWeek() async {
     try {
       final weekAgo = DateTime.now().subtract(const Duration(days: 7));
@@ -79,7 +78,7 @@ class ReviewRepository {
     );
   }
 
-  /// Newest reviews first (for Social feed). Best-effort; returns empty on error.
+  // social feed, newest first
   Future<List<Review>> getRecentReviews({int limit = 120}) async {
     try {
       final rows = await _client

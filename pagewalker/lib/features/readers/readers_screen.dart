@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../../core/widgets/dynamic_sky_background.dart';
+import '../../core/widgets/themed_background.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/services/achievement_service.dart';
@@ -92,7 +92,7 @@ class _ReadersScreenState extends State<ReadersScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: DynamicSkyBackground(
+      body: ThemedBackground(
         child: SafeArea(
           child: Column(
             children: [

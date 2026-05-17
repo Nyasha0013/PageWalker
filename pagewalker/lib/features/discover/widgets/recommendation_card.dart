@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/book_cover_widget.dart';
 import '../../../core/widgets/glass_card.dart';
@@ -23,9 +22,10 @@ class RecommendationCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          const BookCoverWidget(
+          BookCoverWidget(
             width: 60,
             height: 90,
+            title: title,
           ),
           const SizedBox(width: 12),
           Expanded(

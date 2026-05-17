@@ -74,7 +74,7 @@ class _SignupScreenState extends State<SignupScreen> {
             'display_name': _displayNameController.text.trim(),
           }, onConflict: 'id');
         } catch (_) {
-          // Ignore profile upsert failures here to avoid blocking successful auth.
+          // don't block signup if profile row fails
         }
         if (!mounted) return;
         if (authRes.session != null) {

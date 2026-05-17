@@ -1,7 +1,5 @@
 import '../../core/config/env.dart';
 
-/// Full Terms & Privacy text (Pagewalker Final Vision And Legal Prompt.pdf).
-/// Public support: [Env.contactEmail] only (no personal admin addresses).
 class LegalDocuments {
   LegalDocuments._();
 

@@ -1,8 +1,6 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
+import '../theme/pagewalker_theme_extension.dart';
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -10,7 +8,6 @@ class GlassCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final Color? borderColor;
-  final double blurSigma;
   final List<Color>? gradientColors;
 
   const GlassCard({
@@ -20,19 +17,16 @@ class GlassCard extends StatelessWidget {
     this.padding,
     this.margin,
     this.borderColor,
-    this.blurSigma = 10,
     this.gradientColors,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final fillColor = gradientColors == null
-        ? (isDark ? AppColors.darkGlass : AppColors.lightGlass)
-        : null;
+    final tc = context.pwColors;
 
     return Container(
       margin: margin,
+      padding: padding,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
         gradient: gradientColors != null
@@ -42,30 +36,20 @@ class GlassCard extends StatelessWidget {
                 end: Alignment.bottomRight,
               )
             : null,
+        color: gradientColors == null ? tc.card.withValues(alpha: 0.88) : null,
         border: Border.all(
-          color: borderColor ?? AppColors.orangePrimary.withOpacity(0.25),
+          color: borderColor ?? tc.border,
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.orangePrimary.withOpacity(0.08),
-            blurRadius: 20,
+            color: tc.primary.withValues(alpha: 0.06),
+            blurRadius: 16,
             spreadRadius: 0,
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-          child: Container(
-            color: fillColor,
-            padding: padding,
-            child: child,
-          ),
-        ),
-      ),
+      child: child,
     );
   }
 }
-

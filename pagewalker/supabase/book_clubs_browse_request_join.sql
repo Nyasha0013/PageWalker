@@ -1,5 +1,4 @@
--- Book clubs: directory browsing, join requests, member_count, and RLS fixes.
--- Run in Supabase SQL editor (after book_clubs.sql). Safe to re-run with IF NOT EXISTS / DROP IF EXISTS where noted.
+-- book clubs browse + join requests (run after book_clubs.sql)
 
 -- 1) Member count on book_clubs (avoids loading full rosters for browse cards)
 ALTER TABLE book_clubs

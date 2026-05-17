@@ -8,15 +8,11 @@ class AppText {
 
   static Color _text(BuildContext context, {Color? override}) {
     if (override != null) return override;
-    return Theme.of(context).brightness == Brightness.dark
-        ? AppColors.darkTextPrimary
-        : AppColors.lightTextPrimary;
+    return Theme.of(context).colorScheme.onSurface;
   }
 
   static Color _textSecondary(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
+    return Theme.of(context).colorScheme.onSurfaceVariant;
   }
 
   static TextStyle display(
@@ -27,7 +23,8 @@ class AppText {
       GoogleFonts.cormorantGaramond(
         fontSize: size,
         fontWeight: FontWeight.w700,
-        color: color ?? (context != null ? _text(context) : AppColors.darkTextPrimary),
+        color: color ??
+            (context != null ? _text(context) : AppColors.classicDarkTextPrimary),
         letterSpacing: 0.5,
       );
 
@@ -60,7 +57,8 @@ class AppText {
       GoogleFonts.nunito(
         fontSize: size,
         fontWeight: FontWeight.w400,
-        color: color ?? (context != null ? _text(context) : AppColors.darkTextPrimary),
+        color: color ??
+            (context != null ? _text(context) : AppColors.classicDarkTextPrimary),
       );
 
   static TextStyle bodySemiBold(
@@ -71,7 +69,8 @@ class AppText {
       GoogleFonts.nunito(
         fontSize: size,
         fontWeight: FontWeight.w600,
-        color: color ?? (context != null ? _text(context) : AppColors.darkTextPrimary),
+        color: color ??
+            (context != null ? _text(context) : AppColors.classicDarkTextPrimary),
       );
 
   static TextStyle bodyBold(
@@ -82,7 +81,8 @@ class AppText {
       GoogleFonts.nunito(
         fontSize: size,
         fontWeight: FontWeight.w700,
-        color: color ?? (context != null ? _text(context) : AppColors.darkTextPrimary),
+        color: color ??
+            (context != null ? _text(context) : AppColors.classicDarkTextPrimary),
       );
 
   static TextStyle label(

@@ -19,7 +19,6 @@ import '../../data/repositories/book_repository.dart';
 import '../../data/repositories/catalog_book_repository.dart';
 import '../../data/repositories/review_repository.dart';
 
-/// Discover “Hot right now” row — in-app buzz or API fallback.
 class HotNowRow {
   final String id;
   final String title;

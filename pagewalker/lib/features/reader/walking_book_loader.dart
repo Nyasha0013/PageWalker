@@ -5,7 +5,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/widgets/shimmer_loader.dart';
 
-/// Magical loading state for the Gutenberg reader (animated book + shimmer).
 class WalkingBookLoader extends StatelessWidget {
   final String? title;
 

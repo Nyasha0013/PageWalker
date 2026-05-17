@@ -1,3 +1,6 @@
+import '../../core/utils/url_utils.dart';
+import 'catalog_book.dart';
+
 class Book {
   final String id;
   final String title;
@@ -27,15 +30,19 @@ class Book {
     final imageLinks =
         volumeInfo['imageLinks'] as Map<String, dynamic>? ?? {};
     String? cover = imageLinks['thumbnail'] as String?;
-    if (cover != null) {
-      cover = cover.replaceAll('http://', 'https://');
-    }
+    cover = fixCoverUrl(cover);
     return Book(
       id: json['id'] as String,
       title: volumeInfo['title'] as String? ?? 'Unknown Title',
-      author: (volumeInfo['authors'] as List<dynamic>?)
-              ?.join(', ') ??
-          'Unknown Author',
+      author: () {
+        final a = volumeInfo['authors'];
+        if (a is! List) return 'Unknown Author';
+        final s = a
+            .map((e) => e.toString())
+            .where((x) => x.isNotEmpty)
+            .join(', ');
+        return s.isEmpty ? 'Unknown Author' : s;
+      }(),
       coverUrl: cover,
       description: volumeInfo['description'] as String?,
       pageCount: volumeInfo['pageCount'] as int?,
@@ -56,12 +63,26 @@ class Book {
     );
   }
 
+  factory Book.fromCatalogBook(CatalogBook c) {
+    return Book(
+      id: c.id,
+      title: c.title,
+      author: c.author,
+      coverUrl: c.coverUrl,
+      description: c.description,
+      pageCount: c.pageCount,
+      genres: c.genres,
+      publishedYear: c.publishedYear,
+      isbn: null,
+    );
+  }
+
   factory Book.fromSupabase(Map<String, dynamic> json) {
     return Book(
       id: json['id'] as String,
       title: json['title'] as String,
       author: json['author'] as String? ?? '',
-      coverUrl: json['cover_url'] as String?,
+      coverUrl: httpsCoverUrl(json['cover_url'] as String?),
       description: json['description'] as String?,
       pageCount: json['page_count'] as int?,
       genres: List<String>.from(json['genre'] ?? []),

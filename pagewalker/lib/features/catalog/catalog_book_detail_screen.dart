@@ -24,7 +24,6 @@ import '../../data/repositories/catalog_book_repository.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../data/repositories/review_repository.dart';
 
-/// IMDB-style book page: metadata, external links, library, discussion — no reader.
 class CatalogBookDetailScreen extends StatefulWidget {
   final String bookId;
 

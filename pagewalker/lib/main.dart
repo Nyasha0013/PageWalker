@@ -28,9 +28,7 @@ Future<void> main() async {
     }
   });
   if (!SupabaseConfig.isConnected) {
-    debugPrint(
-      'WARNING: Supabase credentials not set or still contain placeholders in env.dart',
-    );
+    debugPrint('Supabase: missing or placeholder credentials in env.dart');
   }
   runApp(const ProviderScope(child: PagewalkerApp()));
 }

@@ -11,7 +11,7 @@ import '../../core/widgets/gradient_button.dart';
 import 'book_club_models.dart';
 
 class BookClubsScreen extends StatefulWidget {
-  /// When true (e.g. Social tab), omits [Scaffold] back affordance — parent owns navigation.
+  // embedded in Social tab — no back button
   final bool embedded;
 
   const BookClubsScreen({super.key, this.embedded = false});
@@ -25,7 +25,7 @@ class _BookClubsScreenState extends State<BookClubsScreen> {
     final user = SupabaseConfig.client.auth.currentUser;
     if (user == null) return [];
 
-    // Best-effort: try a join via book_club_members -> book_clubs relationship.
+    // join through members table if the view exists
     try {
       final rows = await SupabaseConfig.client
           .from('book_club_members')

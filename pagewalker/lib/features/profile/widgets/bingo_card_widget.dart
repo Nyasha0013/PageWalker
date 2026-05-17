@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/glass_card.dart';
+import '../bingo_challenges.dart';
 
 class BingoCardWidget extends StatelessWidget {
   const BingoCardWidget({super.key});
@@ -23,6 +24,9 @@ class BingoCardWidget extends StatelessWidget {
         ),
         itemBuilder: (context, index) {
           final completed = index % 3 == 0;
+          final label = index < kReadingBingoChallenges.length
+              ? kReadingBingoChallenges[index]
+              : '—';
           return AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
@@ -39,16 +43,23 @@ class BingoCardWidget extends StatelessWidget {
               ),
               color: completed ? null : AppColors.darkCard,
             ),
+            padding: const EdgeInsets.all(4),
             child: Center(
-              child: Text(
-                'B${index + 1}',
-                style: AppText.body(
-                  10,
-                  color: completed
-                      ? Colors.white
-                      : AppColors.darkTextSecondary,
-                ),
-              ),
+              child: completed
+                  ? Text(
+                      '✓',
+                      style: AppText.body(12, color: Colors.white),
+                    )
+                  : Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.body(
+                        8,
+                        color: AppColors.darkTextSecondary,
+                      ),
+                    ),
             ),
           );
         },

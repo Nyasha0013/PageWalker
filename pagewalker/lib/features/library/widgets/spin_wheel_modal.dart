@@ -3,11 +3,15 @@ import 'dart:math';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/config/supabase_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/book_cover_widget.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/gradient_button.dart';
+import '../../../data/models/book.dart';
+import '../../../data/models/user_book.dart';
+import '../../../data/repositories/user_book_repository.dart';
 
 class SpinWheelModal extends StatefulWidget {
   final ConfettiController confettiController;
@@ -26,17 +30,33 @@ class _SpinWheelModalState extends State<SpinWheelModal>
   late AnimationController _controller;
   late Animation<double> _animation;
   final _random = Random();
+  final _repo = UserBookRepository();
   double _targetAngle = 0;
   int _selectedIndex = 0;
+  List<Book> _tbrBooks = [];
+  bool _loadingTbr = true;
 
-  final _books = List<String>.generate(
-    8,
-    (i) => 'Book ${i + 1}',
-  );
+  // short label for the wheel (no covers)
+  static String _wheelLabel(String title) {
+    final words = title
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .take(3)
+        .toList();
+    if (words.isEmpty) return '…';
+    return words.join(' ');
+  }
+
+  List<String> get _wheelTitles =>
+      _tbrBooks.take(8).map((b) => _wheelLabel(b.title)).toList();
+
+  int get _segmentCount => _wheelTitles.length;
 
   @override
   void initState() {
     super.initState();
+    _loadTbr();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 5),
@@ -53,10 +73,28 @@ class _SpinWheelModalState extends State<SpinWheelModal>
     super.dispose();
   }
 
+  Future<void> _loadTbr() async {
+    final user = SupabaseConfig.client.auth.currentUser;
+    if (user == null) {
+      if (mounted) setState(() => _loadingTbr = false);
+      return;
+    }
+    final books = await _repo.getBooksForStatus(user.id, BookStatus.tbr);
+    if (!mounted) return;
+    setState(() {
+      _tbrBooks = books;
+      _loadingTbr = false;
+      if (_segmentCount > 0) {
+        _selectedIndex = _selectedIndex.clamp(0, _segmentCount - 1);
+      }
+    });
+  }
+
   void _spin() {
+    if (_segmentCount < 2) return;
     final spins = 4 + _random.nextInt(4);
-    final segmentAngle = 2 * pi / _books.length;
-    _selectedIndex = _random.nextInt(_books.length);
+    final segmentAngle = 2 * pi / _segmentCount;
+    _selectedIndex = _random.nextInt(_segmentCount);
     final randomOffset = _random.nextDouble() * segmentAngle;
     _targetAngle = spins * 2 * pi +
         _selectedIndex * segmentAngle +
@@ -132,6 +170,21 @@ class _SpinWheelModalState extends State<SpinWheelModal>
                     mainAxisAlignment:
                         MainAxisAlignment.center,
                     children: [
+                      if (_loadingTbr)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(),
+                        )
+                      else if (_segmentCount < 2)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            'Add at least two books to your TBR to spin the wheel.',
+                            textAlign: TextAlign.center,
+                            style: AppText.body(14),
+                          ),
+                        )
+                      else
                       SizedBox(
                         height: size.width * 0.9,
                         width: size.width * 0.9,
@@ -150,7 +203,7 @@ class _SpinWheelModalState extends State<SpinWheelModal>
                                       size.width * 0.8,
                                     ),
                                     painter: _WheelPainter(
-                                      books: _books,
+                                      titles: _wheelTitles,
                                     ),
                                   ),
                                 );
@@ -166,7 +219,9 @@ class _SpinWheelModalState extends State<SpinWheelModal>
                           ],
                         ),
                       ),
+                      if (!_loadingTbr && _segmentCount >= 2)
                       const SizedBox(height: 24),
+                      if (!_loadingTbr && _segmentCount >= 2)
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
@@ -174,7 +229,8 @@ class _SpinWheelModalState extends State<SpinWheelModal>
                         child: GradientButton(
                           label: '✦ SPIN',
                           width: double.infinity,
-                          onPressed: _spin,
+                          onPressed:
+                              _segmentCount >= 2 ? _spin : null,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -183,8 +239,11 @@ class _SpinWheelModalState extends State<SpinWheelModal>
                         minChildSize: 0.18,
                         maxChildSize: 0.5,
                         builder: (context, controller) {
-                          final selectedTitle =
-                              _books[_selectedIndex];
+                          final hasPick = _segmentCount > 0 &&
+                              _selectedIndex < _tbrBooks.length;
+                          final selectedBook =
+                              hasPick ? _tbrBooks[_selectedIndex] : null;
+                          final selectedTitle = selectedBook?.title ?? '';
                           return GlassCard(
                             borderRadius: 24,
                             margin:
@@ -197,9 +256,11 @@ class _SpinWheelModalState extends State<SpinWheelModal>
                               children: [
                                 Row(
                                   children: [
-                                    const BookCoverWidget(
+                                    BookCoverWidget(
                                       width: 70,
                                       height: 105,
+                                      title: selectedBook?.title,
+                                      coverUrl: selectedBook?.coverUrl,
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
@@ -209,7 +270,9 @@ class _SpinWheelModalState extends State<SpinWheelModal>
                                                 .start,
                                         children: [
                                           Text(
-                                            selectedTitle,
+                                            selectedTitle.isEmpty
+                                                ? 'Add at least two TBR books to spin'
+                                                : selectedTitle,
                                             style:
                                                 AppText.bodySemiBold(
                                               16,
@@ -294,27 +357,32 @@ class _SpinWheelModalState extends State<SpinWheelModal>
 }
 
 class _WheelPainter extends CustomPainter {
-  final List<String> books;
+  final List<String> titles;
 
-  _WheelPainter({required this.books});
+  _WheelPainter({required this.titles});
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (titles.isEmpty) return;
     final center =
         Offset(size.width / 2, size.height / 2);
     final radius =
         min(size.width, size.height) / 2 - 8;
-    final segmentAngle = 2 * pi / books.length;
+    final segmentAngle = 2 * pi / titles.length;
     final paint = Paint()
       ..style = PaintingStyle.fill;
     final colors = [
+      AppColors.orangeDeep,
       AppColors.orangePrimary,
       AppColors.orangeBright,
       AppColors.orangeEmber,
       AppColors.orangeAmber,
+      const Color(0xFFE85D04),
+      const Color(0xFFF48C06),
+      const Color(0xFFFFA32B),
     ];
 
-    for (int i = 0; i < books.length; i++) {
+    for (int i = 0; i < titles.length; i++) {
       paint.color = colors[i % colors.length];
       final startAngle = -pi / 2 + i * segmentAngle;
       canvas.drawArc(
@@ -327,7 +395,7 @@ class _WheelPainter extends CustomPainter {
 
       final textPainter = TextPainter(
         text: TextSpan(
-          text: books[i],
+          text: titles[i],
           style: AppText.body(
             11,
             color: Colors.white,
@@ -351,7 +419,7 @@ class _WheelPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _WheelPainter oldDelegate) {
-    return oldDelegate.books != books;
+    return oldDelegate.titles != titles;
   }
 }
 

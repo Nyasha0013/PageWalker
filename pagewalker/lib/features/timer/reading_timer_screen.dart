@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/config/supabase_config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../../core/widgets/dynamic_sky_background.dart';
+import '../../core/widgets/themed_background.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../data/models/book.dart';
@@ -53,7 +53,7 @@ class _ReadingTimerScreenState extends State<ReadingTimerScreen> {
       if (!mounted) return;
       setState(() => _book = b);
     } catch (_) {
-      // Best-effort: timer works even without book metadata.
+      // timer still runs without book row
     }
   }
 
@@ -95,7 +95,7 @@ class _ReadingTimerScreenState extends State<ReadingTimerScreen> {
 
     final pagesRead = await _askPagesRead();
     if (pagesRead == null) {
-      // If user cancels pages dialog, keep the session running state as paused.
+      // cancelled pages dialog — stay paused
       setState(() => _running = false);
       return;
     }
@@ -197,7 +197,7 @@ class _ReadingTimerScreenState extends State<ReadingTimerScreen> {
         behavior: HitTestBehavior.opaque,
         child: Stack(
           children: [
-            DynamicSkyBackground(
+            ThemedBackground(
               child: SizedBox.expand(
                 child: Stack(
                   children: [

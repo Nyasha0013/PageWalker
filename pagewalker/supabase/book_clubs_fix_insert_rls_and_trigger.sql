@@ -1,6 +1,4 @@
--- Fix: "new row violates row-level security policy for table book_clubs" when creating a club
--- or when anyone joins and member_count is synced.
--- Run in Supabase → SQL Editor. Safe to run more than once.
+-- RLS fix for book_clubs insert + member_count trigger (idempotent)
 --
 -- 1) INSERT: allow authenticated users to create a row only when they set created_by to self.
 --    (Drops the older name from book_clubs.sql if present.)

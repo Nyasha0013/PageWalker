@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/config/supabase_config.dart';
+import '../../core/services/guest_mode_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -97,8 +98,10 @@ class _SplashScreenState extends State<SplashScreen>
         prefs.getBool('onboarding_complete') ?? false;
     final hasSession =
         SupabaseConfig.client.auth.currentSession != null;
+    final isGuest = await GuestModeService.isGuestModeEnabled();
+    if (!mounted) return;
 
-    if (hasSession) {
+    if (hasSession || isGuest) {
       context.go('/home');
     } else if (!onboardingComplete) {
       context.go('/onboarding');
@@ -262,7 +265,7 @@ class _ParticlePainter extends CustomPainter {
       final y = (p.y + p.vy * progress) * size.height;
       final opacity = (1.0 - progress).clamp(0.0, 1.0);
       final paint = Paint()
-        ..color = p.color.withOpacity(opacity)
+        ..color = p.color.withValues(alpha: opacity)
         ..maskFilter = const MaskFilter.blur(
           BlurStyle.normal,
           2,

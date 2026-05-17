@@ -1,5 +1,4 @@
--- Fix: "infinite recursion detected in policy for relation 'book_club_members'"
--- Safe to run multiple times. Run in Supabase → SQL Editor (project admin).
+-- break RLS recursion on book_club_members (idempotent)
 --
 -- 1) Drop helper that re-queried book_club_members under RLS
 DROP FUNCTION IF EXISTS public.is_book_club_member(uuid, uuid);

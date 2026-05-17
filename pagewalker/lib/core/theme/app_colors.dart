@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../providers/theme_provider.dart';
 
-/// Static palette + [ThemeColors] for the active app theme + light/dark mode.
 class AppColors {
   AppColors._();
 
-  // ═══ THEME 1 — CLASSIC ═══
+  // Classic
   static const Color classicDarkBg = Color(0xFF0A0A0A);
   static const Color classicDarkSurface = Color(0xFF141414);
   static const Color classicDarkCard = Color(0xFF1C1C1C);
@@ -27,13 +26,10 @@ class AppColors {
   static const Color classicPrimaryLight = Color(0xFFFF8C42);
   static const Color classicAccent = Color(0xFFFFAA55);
 
-  /// Website `styles.css` `--primary` / `js/pw-theme.js` BRAND_ORANGE — **#ff6b1a** (same as [classicPrimary]).
   static const Color webLogoOrange = classicPrimary;
-
-  /// Website `styles.css` light `--text` / `js/pw-theme.js` LOGO_INK — **#0a0a0a** (same as [classicLightTextPrimary]).
   static const Color webLogoInk = classicLightTextPrimary;
 
-  // ═══ THEME 2 — MIDNIGHT LIBRARY ═══
+  // Midnight Library
   static const Color midnightDarkBg = Color(0xFF0A0A14);
   static const Color midnightDarkSurface = Color(0xFF0F0F1E);
   static const Color midnightDarkCard = Color(0xFF161628);
@@ -54,7 +50,7 @@ class AppColors {
   static const Color midnightPrimaryLight = Color(0xFFE8C84A);
   static const Color midnightAccent = Color(0xFF4A3F8F);
 
-  // ═══ THEME 3 — FOREST RETREAT ═══
+  // Forest Retreat
   static const Color forestDarkBg = Color(0xFF080F0A);
   static const Color forestDarkSurface = Color(0xFF0D1810);
   static const Color forestDarkCard = Color(0xFF122016);
@@ -75,13 +71,12 @@ class AppColors {
   static const Color forestPrimaryLight = Color(0xFFDFA040);
   static const Color forestAccent = Color(0xFF2D6A30);
 
-  // ═══ UNIVERSAL ═══
+  // shared
   static const Color gold = Color(0xFFFFD700);
   static const Color error = Color(0xFFE53935);
   static const Color success = Color(0xFF43A047);
   static const Color starColor = Color(0xFFFFB300);
 
-  /// Legacy — Classic palette (prefer [ThemeColors] / Theme).
   static const Color darkBg = classicDarkBg;
   static const Color lightBg = classicLightBg;
   static const Color darkSurface = classicDarkSurface;
@@ -139,20 +134,17 @@ class AppColors {
   static List<Color> get gradientButton => gradientOrange;
   static const List<Color> gradientMystic = gradientEmber;
 
-  /// Web header parity: **#ff6b1a** in dark, **#0a0a0a** in light (not [ColorScheme.onSurface], so all app themes match the site).
   static Color logoMarkColor(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return dark ? webLogoOrange : webLogoInk;
   }
 
-  /// Subtle fill behind logo-shaped placeholders (empty covers, etc.).
   static Color logoMarkSurfaceTint(BuildContext context) {
     return logoMarkColor(context).withValues(
       alpha: Theme.of(context).brightness == Brightness.dark ? 0.15 : 0.1,
     );
   }
 
-  /// Ring / badge fill for logo-style initials (PW, profile fallback avatar).
   static List<Color> logoMarkRingGradient(BuildContext context) {
     if (Theme.of(context).brightness == Brightness.dark) {
       return gradientOrange;
@@ -171,7 +163,6 @@ class AppColors {
   }
 }
 
-/// Resolves semantic colours for the selected [AppThemeType] and light/dark mode.
 class ThemeColors {
   final AppThemeType appTheme;
   final bool isDark;

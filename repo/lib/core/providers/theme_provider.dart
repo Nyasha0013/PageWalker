@@ -7,28 +7,58 @@ final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
 });
 
 class ThemeNotifier extends StateNotifier<ThemeMode> {
-  ThemeNotifier() : super(ThemeMode.dark) {
+  ThemeNotifier() : super(ThemeMode.light) {
     _loadTheme();
   }
 
-  static const _key = 'pagewalker_theme';
+  static const _keyV2 = 'pw_theme_mode_v2';
+  static const _keyLegacy = 'pw_theme_mode';
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool(_key) ?? true;
-    state = isDark ? ThemeMode.dark : ThemeMode.light;
+    if (prefs.containsKey(_keyV2)) {
+      final v = prefs.getInt(_keyV2) ?? 0;
+      state = _modeFromInt(v);
+      return;
+    }
+    if (prefs.containsKey(_keyLegacy)) {
+      final isDark = prefs.getBool(_keyLegacy) ?? true;
+      state = isDark ? ThemeMode.dark : ThemeMode.light;
+      await prefs.setInt(_keyV2, isDark ? 1 : 0);
+      return;
+    }
+    state = ThemeMode.light;
+  }
+
+  static ThemeMode _modeFromInt(int v) {
+    switch (v) {
+      case 1:
+        return ThemeMode.dark;
+      case 2:
+        return ThemeMode.system;
+      default:
+        return ThemeMode.light;
+    }
+  }
+
+  Future<void> _persist(int mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyV2, mode);
   }
 
   Future<void> setDark() async {
     state = ThemeMode.dark;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_key, true);
+    await _persist(1);
   }
 
   Future<void> setLight() async {
     state = ThemeMode.light;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_key, false);
+    await _persist(0);
+  }
+
+  Future<void> setSystem() async {
+    state = ThemeMode.system;
+    await _persist(2);
   }
 
   Future<void> toggle() async {
@@ -41,4 +71,3 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
 
   bool get isDark => state == ThemeMode.dark;
 }
-
