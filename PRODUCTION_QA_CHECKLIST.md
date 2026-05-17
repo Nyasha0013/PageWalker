@@ -55,3 +55,14 @@ checklist before major releases and after infra/env changes.
 - [ ] API cache headers visible on `/api/books` responses
 - [ ] No large layout shifts on route transitions
 - [ ] Poster grids lazy-load and remain scrollable on mobile
+
+## 6) Google Play (Android)
+
+See **`pagewalker/docs/PLAY_STORE_RELEASE.md`** for the full flow.
+
+- [ ] Upload keystore created (`./scripts/android-create-keystore.sh`) and backed up
+- [ ] `env.dart` present locally with production keys
+- [ ] `./scripts/build-play-release.sh` produces `app-release.aab`
+- [ ] Play Console: store listing, privacy URL, content rating, data safety form
+- [ ] Internal testing track: install on a physical device, sign-in, search, library
+- [ ] Reviewer test account documented under **App access**
