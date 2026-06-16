@@ -2860,6 +2860,7 @@ async function renderRoute(supabase, session) {
   root.classList.remove("pw-route-enter");
   root.innerHTML = renderRouteSkeleton(route);
   root.innerHTML = await renderCurrentRoute(supabase, session, route);
+  if (route === "/" && window.initHeroAnimation) window.initHeroAnimation();
   requestAnimationFrame(() => {
     root.classList.add("pw-route-enter");
     if (route === "/club") {
