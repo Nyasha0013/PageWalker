@@ -2839,3 +2839,113 @@ html[data-theme="dark"] .pw-shimmer-line::after {
     grid-template-columns: 1fr;
   }
 }
+
+/* ───── Marketing site (app download funnel) ───── */
+html[data-pw-marketing] .pw-header-menu,
+html[data-pw-marketing] #pw-app-drawer,
+html[data-pw-marketing] #pw-drawer-backdrop,
+html[data-pw-marketing] .pw-user-menu {
+  display: none !important;
+}
+
+html[data-pw-marketing] .pw-header-get-app {
+  display: inline-flex;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.pw-landing-promise {
+  text-align: center;
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+.pw-landing-features .grid,
+.pw-landing-quotes .grid {
+  margin-top: 0.5rem;
+}
+
+.pw-landing-feature {
+  position: relative;
+  text-align: left;
+}
+
+.pw-landing-feature__icon {
+  display: block;
+  font-size: 1.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.pw-landing-feature__pill {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: rgba(255, 107, 26, 0.12);
+  border: 1px solid rgba(255, 107, 26, 0.25);
+}
+
+.pw-landing-quotes__intro {
+  text-align: center;
+  color: var(--text-secondary);
+  margin: -1rem auto 1.5rem;
+  max-width: 32rem;
+}
+
+.pw-app-gate {
+  text-align: center;
+  padding: clamp(3rem, 12vw, 6rem) 1rem clamp(4rem, 14vw, 7rem);
+  max-width: 36rem;
+  margin-inline: auto;
+}
+
+.pw-app-gate h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  margin: 0 0 0.75rem;
+}
+
+.pw-app-gate__lede {
+  color: var(--text-secondary);
+  margin: 0 0 1.75rem;
+  line-height: 1.6;
+}
+
+.pw-app-gate__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pw-sticky-download {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  pointer-events: none;
+}
+
+.pw-sticky-download__btn {
+  pointer-events: all;
+  width: 100%;
+  max-width: 22rem;
+  margin-inline: auto;
+  display: flex;
+  box-shadow: 0 8px 28px rgba(255, 107, 26, 0.45);
+}
+
+@media (min-width: 781px) {
+  .pw-sticky-download {
+    display: none;
+  }
+}

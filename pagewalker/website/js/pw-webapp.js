@@ -14,6 +14,17 @@ const APP_ROUTES = new Set([
   "/reader",
   "/profile",
 ]);
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.pagewalker.app";
+const MARKETING_APP_ROUTES = new Set([
+  "/book",
+  "/discover",
+  "/library",
+  "/social",
+  "/clubs",
+  "/club",
+  "/reader",
+  "/profile",
+]);
 /* /discover is public so guests can browse; library actions use auth nudge. */
 const PROTECTED_ROUTES = new Set([
   "/library",
@@ -856,19 +867,56 @@ async function fetchReviewsForBook(supabase, bookId, limit = 40) {
   return data.map((r) => ({ ...r, profiles: byId[r.user_id] || null }));
 }
 
-async function renderHome(_supabase, _session) {
-  const [trendingBooks, latestReviews] = await Promise.all([
-    runSafeQuery(async () => {
-      const json = await fetchJson("/api/books?type=trending");
-      return extractBooksFromApiResponse(json).slice(0, 6);
-    }, "Trending unavailable."),
-    runSafeQuery(async () => {
-      const supabase = await getSupabase();
-      return fetchReviewsWithAuthorRows(supabase, 4);
-    }, "Reviews unavailable."),
-  ]);
-  const trendRows = trendingBooks.filter((x) => !x.__error);
-  const reviewRows = latestReviews.filter((x) => !x.__error);
+function setMarketingSiteMode(on) {
+  document.documentElement.toggleAttribute("data-pw-marketing", on);
+}
+
+function playStoreBadgeHtml(label) {
+  const alt = escapeHtml(label || t("home.playAlt", "Get it on Google Play"));
+  return `<a class="badge-play" href="${PLAY_STORE_URL}" rel="noopener noreferrer" aria-label="${alt}">
+    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="${alt}" width="646" height="250" />
+  </a>`;
+}
+
+function marketingFeatureCard(icon, title, desc) {
+  return `<article class="card pw-landing-feature">
+    <span class="pw-landing-feature__icon" aria-hidden="true">${icon}</span>
+    <h3>${escapeHtml(title)}</h3>
+    <p>${escapeHtml(desc)}</p>
+    <span class="pw-landing-feature__pill">${t("marketing.inApp", "In the app")}</span>
+  </article>`;
+}
+
+function renderAppDownloadGate(route) {
+  const sectionNames = {
+    "/discover": t("appNav.discover", "Discover"),
+    "/library": t("appNav.library", "Library"),
+    "/social": t("appNav.social", "Social"),
+    "/clubs": t("appNav.clubs", "Clubs"),
+    "/club": t("appNav.clubs", "Clubs"),
+    "/reader": t("appNav.reader", "Reader"),
+    "/profile": t("appNav.profile", "Profile"),
+    "/book": t("marketing.gate.book", "Book pages"),
+  };
+  const section = sectionNames[route] || t("marketing.gate.section", "This feature");
+  return `
+    <section class="pw-app-gate">
+      <p class="pw-kicker">${escapeHtml(section)}</p>
+      <h1>${t("marketing.gate.title", "PageWalker lives on your phone")}</h1>
+      <p class="pw-app-gate__lede">${t(
+        "marketing.gate.body",
+        "Library, discover, reviews, clubs, and reading tools — download the app to dive in.",
+      )}</p>
+      <div class="pw-app-gate__actions">
+        ${playStoreBadgeHtml()}
+        <a class="btn btn-outline" href="/" data-link-route="/">${t("marketing.gate.home", "Back to home")}</a>
+      </div>
+    </section>
+  `;
+}
+
+function renderHome(_supabase, _session) {
+  const playAlt = t("home.playAlt", "Get it on Google Play");
   return `
     <section class="hero">
       <div class="hero-inner">
@@ -876,59 +924,66 @@ async function renderHome(_supabase, _session) {
           <span>${t("home.heroLine1", "Walk your shelves.")}</span><br />
           <span class="accent">${t("home.heroLine2", "Share the story.")}</span>
         </h1>
-        <p class="lede">${t("home.heroLede", "Your cozy corner for TBR piles, reading streaks, spicy reviews, and book-club chaos — all the bookish energy, none of the pirated pages.")}</p>
+        <p class="lede">${t(
+          "home.heroLede",
+          "Your cozy corner for TBR piles, reading streaks, spicy reviews, and book-club chaos — built for your phone, not your browser tab.",
+        )}</p>
         <div class="hero-actions">
-          <a class="badge-play" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer" aria-label="${t("home.playAlt", "Get it on Google Play")}">
-            <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="${t("home.playAlt", "Get it on Google Play")}" width="646" height="250" />
-          </a>
+          ${playStoreBadgeHtml(playAlt)}
         </div>
-        <p class="hero-tagline">${t("home.heroTagline", "Free on Google Play · same login here & in the app")}</p>
+        <p class="hero-tagline">${t("home.heroTagline", "Free on Google Play · your shelf lives in your pocket")}</p>
       </div>
     </section>
-    <section class="app-panel pw-editorial">
-      <p class="pw-kicker">The Pagewalker edit</p>
-      <h2>A reading home inspired by your best ideas</h2>
-      <p>Discover books in a poster-first view, keep a diary of your reading life, and share reviews with your community in one place.</p>
-    </section>
-    <section class="app-panel">
-      <div class="pw-section-head">
-        <h3>Hot this week</h3>
-        <a href="/discover" data-link-route="/discover">See more</a>
-      </div>
-      <div class="pw-poster-grid">
-        ${trendRows.map((book) => renderBookPosterCard(book)).join("")}
-      </div>
-    </section>
-    <section class="app-panel">
-      <div class="pw-section-head">
-        <h3>Reader buzz</h3>
-        <a href="/social" data-link-route="/social">Go to Social</a>
-      </div>
-      <p class="muted pw-section-note">${t(
-        "home.readerBuzzExplainer",
-        "Recent reviews from other readers. Open Social for the full feed. Trending books and search are on Discover.",
+    <section class="pw-landing-promise app-panel pw-editorial">
+      <p class="pw-kicker">${t("marketing.promiseKicker", "The app")}</p>
+      <h2>${t("marketing.promiseHeading", "A reading home worth opening every day")}</h2>
+      <p>${t(
+        "marketing.promiseBody",
+        "Track what you read, discover what’s next, roast or rave in reviews, and argue about endings in book clubs — all in one place on your phone.",
       )}</p>
-      <div class="pw-review-feed">
-        ${reviewRows.length ? reviewRows.map((review) => `
-          <article class="pw-review-row">
-            <p><strong>${escapeHtml(review.book_title || review.title || "Book")}</strong> · ${toStars(review.rating ?? review.star_rating)}</p>
-            <p>${escapeHtml(truncateText(review.review_text || "", 130))}</p>
-            <p class="muted">by ${escapeHtml(review.profiles?.display_name || review.profiles?.username || "Reader")}</p>
-          </article>
-        `).join("") : `<p class="muted">Reviews will appear here as readers post.</p>`}
+    </section>
+    <section class="features pw-landing-features">
+      <h2>${t("home.featuresHeading", "Your reading universe")}</h2>
+      <div class="grid">
+        ${marketingFeatureCard("📚", t("home.feature1Title", "Discover & stack"), t("home.feature1Desc", "Hunt your next obsession, curate your TBR, and flex your finished pile like the main character you are."))}
+        ${marketingFeatureCard("⏱", t("home.feature2Title", "Track the vibe"), t("home.feature2Desc", "Sessions, streaks, and yearly wraps so your reading era gets the spotlight."))}
+        ${marketingFeatureCard("💬", t("home.feature3Title", "Gossip & clubs"), t("home.feature3Desc", "Hot takes, profiles, and book-club rooms for when you need to process that ending together."))}
       </div>
     </section>
-    <section class="cta-band">
+    <section class="features pw-landing-quotes">
+      <h2>${t("home.quotesHeading", "Little reading joys")}</h2>
+      <p class="pw-landing-quotes__intro">${t("home.quotesIntro", "Tiny reminders for when you need one more chapter.")}</p>
+      <div class="grid">
+        <figure class="quote-card">
+          <blockquote>${t("home.quote1", "Stack the TBR. Slay the slump. Repeat.")}</blockquote>
+          <figcaption>${t("home.quote1Cap", "— The Pagewalker mood")}</figcaption>
+        </figure>
+        <figure class="quote-card">
+          <blockquote>${t("home.quote2", "Your plot-twist era starts on page one.")}</blockquote>
+          <figcaption>${t("home.quote2Cap", "— For night-owl readers")}</figcaption>
+        </figure>
+        <figure class="quote-card">
+          <blockquote>${t("home.quote3", "Stars, shelves, and a little bit of chaos.")}</blockquote>
+          <figcaption>${t("home.quote3Cap", "— Book club optional, drama guaranteed")}</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section class="cta-band" id="pw-download">
       <div class="cta-inner">
-        <h2>${t("home.ctaHeading", "Start your next chapter")}</h2>
-        <p class="cta-lede">${t("home.ctaLede", "Get the app on Google Play, read release notes, or reach out for support.")}</p>
+        <h2>${t("marketing.ctaHeading", "Your next chapter starts in the app")}</h2>
+        <p class="cta-lede">${t(
+          "marketing.ctaLede",
+          "Download PageWalker free on Google Play. Subscriptions and premium features live in the app.",
+        )}</p>
         <div class="cta-actions">
-          <a class="btn" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer">${t("home.ctaPlay", "Get it on Google Play")}</a>
+          <a class="btn" href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("home.ctaPlay", "Get it on Google Play")}</a>
           <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
-          <a class="btn btn-outline" href="/about">${t("nav.about", "About")}</a>
         </div>
       </div>
     </section>
+    <div class="pw-sticky-download" aria-hidden="false">
+      <a class="btn pw-sticky-download__btn" href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("marketing.getApp", "Get the app")}</a>
+    </div>
   `;
 }
 
@@ -2845,78 +2900,27 @@ async function renderRoute(supabase, session) {
   const route = APP_ROUTES.has(window.location.pathname) ? window.location.pathname : "/";
   const pathForNav = window.location.pathname === "/club" ? "/clubs" : route;
   setActiveRoute(pathForNav);
+  setMarketingSiteMode(true);
   const root = document.getElementById("pw-route-content");
   if (!root) return;
 
   hideBanners();
-  if (route !== "/book") {
-    bookPageReviewPanelOpen = false;
-  }
-  if (!session?.user && PROTECTED_ROUTES.has(route)) {
-    root.innerHTML = renderProtectedRouteGate(route);
-    bindLockedGateActions();
+  bookPageReviewPanelOpen = false;
+
+  if (MARKETING_APP_ROUTES.has(route)) {
+    root.classList.remove("pw-route-enter");
+    root.innerHTML = renderAppDownloadGate(route);
+    requestAnimationFrame(() => root.classList.add("pw-route-enter"));
     return;
   }
+
   root.classList.remove("pw-route-enter");
   root.innerHTML = renderRouteSkeleton(route);
   root.innerHTML = await renderCurrentRoute(supabase, session, route);
   if (route === "/" && window.initHeroAnimation) window.initHeroAnimation();
   requestAnimationFrame(() => {
     root.classList.add("pw-route-enter");
-    if (route === "/club") {
-      const sc = document.getElementById("pw-club-chat-scroll");
-      if (sc) sc.scrollTop = sc.scrollHeight;
-    }
-    if (route === "/discover") {
-      requestAnimationFrame(() => {
-        applyDiscoverPanelFromHash();
-      });
-    }
   });
-  const rerender = () => renderRoute(supabase, session);
-  if (route === "/discover") bindDiscoverActions(supabase, session, rerender);
-  if (route === "/library") bindLibraryActions(supabase, session, rerender);
-  if (route === "/social") bindSocialActions(supabase, session, rerender);
-  if (route === "/reader") bindReaderActions(supabase, session, rerender);
-  if (route === "/clubs") bindClubsActions(supabase, session, rerender);
-  if (route === "/club") bindClubDetailActions(supabase, session, rerender);
-  if (route === "/profile" && session?.user) {
-    bindClubsActions(supabase, session, rerender);
-    bindProfileTabActions();
-  }
-  if (route === "/profile") {
-    const signInBtn = document.getElementById("pw-profile-signin");
-    const signUpBtn = document.getElementById("pw-profile-signup");
-    const signOutBtn = document.getElementById("pw-profile-signout");
-    signInBtn?.addEventListener("click", () => {
-      window.location.href = "/sign-in";
-    });
-    signUpBtn?.addEventListener("click", () => {
-      window.location.href = "/sign-up";
-    });
-    signOutBtn?.addEventListener("click", async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        showBanner("error", error.message);
-        return;
-      }
-      showBanner("success", t("appShell.signedOut", "You are signed out."));
-    });
-    if (session?.user) {
-      bindProfilePhotoActions(supabase, async () => {
-        if (typeof window.pwUserMenuRefresh === "function") {
-          await window.pwUserMenuRefresh();
-        }
-        if (typeof window.pwRerender === "function") {
-          await window.pwRerender();
-        }
-      });
-    }
-  }
-  if (route === "/book") {
-    bindBookPageActions(supabase, session, rerender);
-  }
-  bindBookModalActions();
 }
 
 function initLinks(render) {

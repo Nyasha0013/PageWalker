@@ -1,7 +1,9 @@
-// pw-hero-animation.js — cinematic book-opening hero (Kim version)
+// pw-hero-animation.js — cinematic book-opening hero
 
 (function () {
   "use strict";
+
+  const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.pagewalker.app";
 
   function initHeroAnimation() {
     const hero = document.querySelector(".hero");
@@ -512,7 +514,9 @@
     }
 
     skip.addEventListener("click", finishHero);
-    document.getElementById("pw-enter-btn").addEventListener("click", finishHero);
+    document.getElementById("pw-enter-btn").addEventListener("click", () => {
+      window.location.href = PLAY_STORE_URL;
+    });
 
     loop();
   }
