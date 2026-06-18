@@ -916,24 +916,26 @@ function renderAppDownloadGate(route) {
 }
 
 function renderHome(_supabase, _session) {
-  const playAlt = t("home.playAlt", "Get it on Google Play");
   return `
-    <section class="hero">
-      <div class="hero-inner">
-        <h1>
-          <span>${t("home.heroLine1", "Walk your shelves.")}</span><br />
-          <span class="accent">${t("home.heroLine2", "Share the story.")}</span>
-        </h1>
-        <p class="lede">${t(
-          "home.heroLede",
-          "Your cozy corner for TBR piles, reading streaks, spicy reviews, and book-club chaos — built for your phone, not your browser tab.",
-        )}</p>
-        <div class="hero-actions">
-          ${playStoreBadgeHtml(playAlt)}
+    <div id="pw-fe-mount" class="pw-fe-mount">
+      <canvas id="pw-fe-canvas" aria-hidden="true"></canvas>
+      <div id="pw-fe-scroller" class="pw-fe-scroller"></div>
+      <div id="pw-fe-ui" class="pw-fe-ui">
+        <div id="pw-fe-logo" class="pw-fe-logo">
+          <h1>Page<span>Walker</span></h1>
+          <div id="pw-fe-logo-line" class="pw-fe-logo-line"></div>
+          <p>${t("marketing.feTagline", "Discover your next world")}</p>
         </div>
-        <p class="hero-tagline">${t("home.heroTagline", "Free on Google Play · your shelf lives in your pocket")}</p>
+        <div id="pw-fe-cta" class="pw-fe-cta">
+          <a href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("marketing.feDownload", "Download on Android")}</a>
+          <span class="pw-fe-cta-sub">${t("marketing.feIosSoon", "iOS coming soon")}</span>
+        </div>
       </div>
-    </section>
+      <div id="pw-fe-scroll-hint" class="pw-fe-scroll-hint">${t("marketing.feScroll", "scroll to explore ↓")}</div>
+      <div id="pw-fe-disc-label" class="pw-fe-disc-label">${t("marketing.feDiscovering", "Now discovering")}</div>
+      <button type="button" id="pw-fe-skip" class="pw-fe-skip">${t("marketing.feSkip", "skip →")}</button>
+    </div>
+    <div class="pw-landing-below">
     <section class="pw-landing-promise app-panel pw-editorial">
       <p class="pw-kicker">${t("marketing.promiseKicker", "The app")}</p>
       <h2>${t("marketing.promiseHeading", "A reading home worth opening every day")}</h2>
@@ -949,6 +951,22 @@ function renderHome(_supabase, _session) {
         ${marketingFeatureCard("⏱", t("home.feature2Title", "Track the vibe"), t("home.feature2Desc", "Sessions, streaks, and yearly wraps so your reading era gets the spotlight."))}
         ${marketingFeatureCard("💬", t("home.feature3Title", "Gossip & clubs"), t("home.feature3Desc", "Hot takes, profiles, and book-club rooms for when you need to process that ending together."))}
       </div>
+    </section>
+    <section class="app-panel pw-landing-whatsnew">
+      <p class="pw-kicker">${t("home.whatsNew", "What's new")}</p>
+      <h2>${t("marketing.whatsNewHeading", "Fresh in the app")}</h2>
+      <ul class="pw-whatsnew-teasers">
+        <li>
+          <strong>${t("updates.i2.title", "English & Hungarian")}</strong>
+          <span>${t("marketing.whatsNewTease1", "Pick your language in the app settings.")}</span>
+        </li>
+        <li>
+          <strong>${t("updates.i4.title", "Built for readers")}</strong>
+          <span>${t("marketing.whatsNewTease2", "Discovery, TBR stacks, sessions, reviews, and book clubs.")}</span>
+        </li>
+      </ul>
+      <p class="pw-whatsnew-foot">${t("marketing.whatsNewFoot", "Update the app to try the latest — details on our updates page.")}</p>
+      <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
     </section>
     <section class="features pw-landing-quotes">
       <h2>${t("home.quotesHeading", "Little reading joys")}</h2>
@@ -968,6 +986,7 @@ function renderHome(_supabase, _session) {
         </figure>
       </div>
     </section>
+    </div>
     <section class="cta-band" id="pw-download">
       <div class="cta-inner">
         <h2>${t("marketing.ctaHeading", "Your next chapter starts in the app")}</h2>
@@ -2908,6 +2927,7 @@ async function renderRoute(supabase, session) {
   bookPageReviewPanelOpen = false;
 
   if (MARKETING_APP_ROUTES.has(route)) {
+    if (window.destroyFullExperience) window.destroyFullExperience();
     root.classList.remove("pw-route-enter");
     root.innerHTML = renderAppDownloadGate(route);
     requestAnimationFrame(() => root.classList.add("pw-route-enter"));
@@ -2917,7 +2937,11 @@ async function renderRoute(supabase, session) {
   root.classList.remove("pw-route-enter");
   root.innerHTML = renderRouteSkeleton(route);
   root.innerHTML = await renderCurrentRoute(supabase, session, route);
-  if (route === "/" && window.initHeroAnimation) window.initHeroAnimation();
+  if (route === "/") {
+    if (window.initFullExperience) window.initFullExperience();
+  } else if (window.destroyFullExperience) {
+    window.destroyFullExperience();
+  }
   requestAnimationFrame(() => {
     root.classList.add("pw-route-enter");
   });
