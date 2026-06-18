@@ -19,8 +19,10 @@
   let planets = [];
   let shooting = [];
   let nextShoot = 120;
+  let isMobile = false;
 
   function resize() {
+    isMobile = window.innerWidth < 720;
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
     initScene();
@@ -28,7 +30,8 @@
 
   function initScene() {
     stars = [];
-    for (let i = 0; i < 320; i++) {
+    const starCount = isMobile ? 150 : 260;
+    for (let i = 0; i < starCount; i++) {
       stars.push({
         x: Math.random() * W,
         y: Math.random() * H,
@@ -40,7 +43,8 @@
     }
 
     constellations = [];
-    for (let g = 0; g < 5; g++) {
+    const constellationCount = isMobile ? 3 : 5;
+    for (let g = 0; g < constellationCount; g++) {
       const cx = Math.random() * W;
       const cy = Math.random() * H * 0.85;
       const pts = [];
@@ -57,9 +61,9 @@
     }
 
     planets = [
-      { x: W * 0.82, y: H * 0.18, r: 38, c1: "rgba(80,120,255,0.14)", c2: "rgba(40,60,180,0.04)", ring: true },
-      { x: W * 0.12, y: H * 0.72, r: 52, c1: "rgba(255,107,26,0.1)", c2: "rgba(120,40,10,0.03)", ring: false },
-      { x: W * 0.55, y: H * 0.88, r: 24, c1: "rgba(180,100,255,0.09)", c2: "rgba(60,20,100,0.02)", ring: false },
+      { x: W * 0.82, y: H * 0.18, r: isMobile ? 24 : 38, c1: "rgba(80,120,255,0.1)", c2: "rgba(40,60,180,0.025)", ring: true },
+      { x: W * 0.12, y: H * 0.72, r: isMobile ? 34 : 52, c1: "rgba(255,107,26,0.075)", c2: "rgba(120,40,10,0.025)", ring: false },
+      { x: W * 0.55, y: H * 0.88, r: isMobile ? 18 : 24, c1: "rgba(180,100,255,0.07)", c2: "rgba(60,20,100,0.02)", ring: false },
     ];
   }
 
@@ -68,8 +72,8 @@
     const y = Math.random() * H * 0.35;
     const len = 80 + Math.random() * 120;
     const ang = Math.PI * 0.22 + Math.random() * 0.25;
-    shooting.push({ x, y, len, ang, life: 1, spd: 0.018 + Math.random() * 0.012 });
-    nextShoot = 90 + Math.floor(Math.random() * 180);
+    shooting.push({ x, y, len, ang, life: 1, spd: 0.015 + Math.random() * 0.01 });
+    nextShoot = (isMobile ? 180 : 120) + Math.floor(Math.random() * 220);
   }
 
   function drawBackground() {
@@ -186,6 +190,7 @@
   function loop() {
     requestAnimationFrame(loop);
     frame++;
+    canvas.style.opacity = document.documentElement.hasAttribute("data-pw-fe-active") ? "0.42" : "1";
     if (nextShoot <= 0) spawnShootingStar();
     else nextShoot--;
     drawBackground();

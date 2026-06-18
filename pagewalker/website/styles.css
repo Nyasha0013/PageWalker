@@ -64,6 +64,7 @@ body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  transition: opacity 0.6s ease;
 }
 
 body > *:not(#pw-space-canvas) {
@@ -2871,6 +2872,11 @@ html[data-pw-fe-active] .webapp-content {
   overflow: visible;
 }
 
+html[data-pw-fe-active] .site-header {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .pw-fe-mount {
   position: relative;
   height: 600vh;
@@ -2885,6 +2891,32 @@ html[data-pw-fe-active] .webapp-content {
   height: 100%;
   z-index: 1;
   transition: opacity 0.6s ease;
+}
+
+.pw-fe-letter-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+  perspective: 900px;
+  transform-style: preserve-3d;
+}
+
+.pw-fe-letter {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  display: block;
+  font-family: Georgia, serif;
+  font-size: clamp(2.3rem, 8vw, 6.2rem);
+  font-weight: 500;
+  line-height: 1;
+  color: #f8f2ff;
+  text-shadow:
+    0 0 18px rgba(255, 107, 26, 0.48),
+    0 0 54px rgba(120, 90, 255, 0.32);
+  will-change: transform, opacity;
+  transform-origin: center;
 }
 
 .pw-fe-scroller {
@@ -2904,6 +2936,7 @@ html[data-pw-fe-active] .webapp-content {
   padding-top: 7vh;
   z-index: 10;
   pointer-events: none;
+  text-align: center;
 }
 
 .pw-fe-logo {
@@ -3042,7 +3075,7 @@ html[data-pw-fe-active] .webapp-content {
   text-transform: uppercase;
   font-family: Georgia, serif;
   z-index: 9;
-  transition: opacity 0.8s;
+  transition: color 0.8s;
 }
 
 .pw-fe-skip {
@@ -3065,10 +3098,65 @@ html[data-pw-fe-active] .webapp-content {
   color: rgba(255, 255, 255, 0.55);
 }
 
+@media (max-width: 780px) {
+  .pw-fe-mount {
+    height: 520vh;
+  }
+
+  .pw-fe-ui {
+    padding-top: 8vh;
+    padding-inline: 1.25rem;
+  }
+
+  .pw-fe-logo h1 {
+    font-size: clamp(1.75rem, 9vw, 2.9rem);
+    letter-spacing: 0.055em;
+  }
+
+  .pw-fe-cta {
+    margin-top: 1.1rem;
+  }
+
+  .pw-fe-cta a {
+    padding: 12px 24px;
+    font-size: 12px;
+  }
+
+  .pw-fe-letter {
+    font-size: clamp(2rem, 12vw, 3.6rem);
+  }
+
+  .pw-fe-disc-label {
+    left: 1rem;
+    bottom: 5.2rem;
+    font-size: 9px;
+  }
+
+  .pw-fe-scroll-hint {
+    bottom: 5.1rem;
+  }
+
+  .pw-fe-skip {
+    bottom: 1rem;
+    right: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-fe-letter-stage,
+  #pw-fe-canvas,
+  .pw-fe-scroll-hint,
+  .pw-fe-disc-label,
+  .pw-fe-skip {
+    display: none !important;
+  }
+}
+
 .pw-landing-below {
   position: relative;
   z-index: 12;
   background: transparent;
+  padding-top: clamp(1rem, 5vw, 3rem);
 }
 
 .pw-landing-whatsnew {

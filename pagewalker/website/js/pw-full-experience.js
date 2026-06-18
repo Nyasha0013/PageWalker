@@ -1,9 +1,10 @@
-// pw-full-experience.js — scroll-driven Three.js book-globe intro
+// pw-full-experience.js — PageWalker space intro and scroll-driven book globe
 
 (function () {
   "use strict";
 
   const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.pagewalker.app";
+  const WORD = "PAGEWALKER";
 
   let rafId = 0;
   let onScroll = null;
@@ -21,288 +22,394 @@
       window._pwFeDispose = null;
     }
     document.documentElement.removeAttribute("data-pw-fe-active");
-    document.querySelectorAll(".pw-fe-disc-card").forEach((el) => el.remove());
+    document.querySelectorAll(".pw-fe-letter-stage").forEach((el) => el.remove());
+  }
+
+  function clamp01(v) {
+    return Math.max(0, Math.min(1, v));
+  }
+
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function easeOut(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function easeIn(t) {
+    return t * t * t;
+  }
+
+  function easeInOut(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   }
 
   function initFullExperience() {
-    if (typeof THREE === "undefined") return;
+    const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const canvas = document.getElementById("pw-fe-canvas");
     if (!canvas || canvas.dataset.pwFeInit) return;
     destroyFullExperience();
     canvas.dataset.pwFeInit = "1";
     document.documentElement.setAttribute("data-pw-fe-active", "1");
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.setSize(innerWidth, innerHeight);
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 2000);
-    camera.position.set(0, 5, 22);
-    camera.lookAt(0, 1, 0);
+    const logo = document.getElementById("pw-fe-logo");
+    const logoLine = document.getElementById("pw-fe-logo-line");
+    const cta = document.getElementById("pw-fe-cta");
+    const skip = document.getElementById("pw-fe-skip");
+    const scrollHint = document.getElementById("pw-fe-scroll-hint");
+    const discLabel = document.getElementById("pw-fe-disc-label");
 
-    onResize = () => {
-      camera.aspect = innerWidth / innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight);
+    if (discLabel) discLabel.textContent = "Books forming";
+
+    function revealUi() {
+      if (logo) {
+        logo.style.opacity = "1";
+        logo.style.transform = "translateY(0)";
+      }
+      if (logoLine) logoLine.style.width = "200px";
+      setTimeout(() => {
+        if (cta) cta.style.opacity = "1";
+        if (skip) skip.style.display = "none";
+      }, 700);
+    }
+
+    if (reducedMotion || typeof THREE === "undefined") {
+      canvas.style.display = "none";
+      if (skip) skip.style.display = "none";
+      if (scrollHint) scrollHint.style.display = "none";
+      if (discLabel) discLabel.style.display = "none";
+      revealUi();
+      window._pwFeDispose = () => {
+        canvas.removeAttribute("data-pw-fe-init");
+      };
+      return;
+    }
+
+    const isMobile = window.innerWidth < 720;
+    const isSmallPhone = window.innerWidth < 420;
+    const config = {
+      bookCount: isMobile ? (isSmallPhone ? 96 : 128) : 220,
+      starCount: isMobile ? 520 : 1100,
+      pixelRatio: Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2),
+      globeRadius: isMobile ? 3.25 : 5.0,
+      cameraZ: isMobile ? 20 : 22,
+      cameraY: isMobile ? 4.5 : 5.2,
+      letterDuration: isMobile ? 4.3 : 5.1,
+      bookDuration: isMobile ? 3.5 : 4.4,
+      globeRestY: isMobile ? 1.2 : 1.7,
     };
-    window.addEventListener("resize", onResize);
 
-    const c01 = (v) => Math.max(0, Math.min(1, v));
-    const lerp = (a, b, t) => a + (b - a) * t;
-    const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-    const easeIn = (t) => t * t * t;
-    const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, alpha: true });
+    renderer.setPixelRatio(config.pixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
 
-    let time = 0;
-    let dt = 0;
-    let lastTs = 0;
-    let scrollP = 0;
-    let revealed = false;
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x04020e, 0.0065);
 
-    const GLOBE_R = 5.0;
-    const GLOBE_X = 0;
-    const GLOBE_Y_START = 6.5;
-    const GLOBE_Y_REST = 1.8;
-    const GLOBE_CNT = 220;
-    const BOOK_COLS = [
-      0xff6b1a, 0xd44010, 0xb83008, 0x2d1060, 0x1a0848, 0x4a1080,
-      0x8b1818, 0x601010, 0x1a4055, 0x0a2840, 0xc89020, 0xa06010,
-      0x402080, 0x301060, 0x205030, 0x103020,
-    ];
+    const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, config.cameraY, config.cameraZ);
+    camera.lookAt(0, 1.5, 0);
 
-    const starsMat = new THREE.ShaderMaterial({
+    const letterStage = document.createElement("div");
+    letterStage.className = "pw-fe-letter-stage";
+    letterStage.setAttribute("aria-hidden", "true");
+    document.body.appendChild(letterStage);
+
+    const letterEls = WORD.split("").map((char, index) => {
+      const span = document.createElement("span");
+      span.className = "pw-fe-letter";
+      span.textContent = char;
+      letterStage.appendChild(span);
+      return { el: span, char, index };
+    });
+
+    function updateLetters(t) {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      const gap = Math.min(Math.max(W * 0.065, 23), isMobile ? 34 : 54);
+      const startX = -((WORD.length - 1) * gap) / 2;
+      const baseY = H * (isMobile ? 0.42 : 0.43);
+      const initialOffset = W * 0.62 + 120;
+
+      letterEls.forEach((letter) => {
+        const i = letter.index;
+        const side = i <= 4 ? -1 : 1;
+        const order = side < 0 ? i : WORD.length - 1 - i;
+        const stagger = order * 0.045;
+        const p = clamp01((t - stagger) / 0.74);
+        const h = easeInOut(p);
+        const settle = clamp01((t - 0.68 - stagger * 0.35) / 0.22);
+        const fade = clamp01((t - 0.82) / 0.16);
+        const finalX = startX + i * gap;
+        const swirl = (1 - h) * (isMobile ? 82 : 135);
+        const angle = (p * Math.PI * 3.6) + i * 0.72;
+        const x = lerp(side * initialOffset, finalX + Math.cos(angle) * swirl, h);
+        const y = lerp(baseY + Math.sin(i * 0.8) * 190, baseY + Math.sin(angle) * swirl * 0.46, h);
+        const z = Math.sin(angle) * (1 - settle) * 180;
+        const scale = lerp(1.4, 1, settle) * (1 - fade * 0.9);
+        const opacity = p < 0.04 ? p / 0.04 : 1 - fade;
+        const rot = side * (1 - settle) * (160 - p * 60);
+
+        letter.el.style.opacity = String(Math.max(0, opacity));
+        letter.el.style.transform = [
+          `translate3d(${x}px, ${y}px, ${z}px)`,
+          `rotateY(${rot}deg)`,
+          `rotateZ(${Math.sin(angle) * 22 * (1 - settle)}deg)`,
+          `scale(${Math.max(0.04, scale)})`,
+        ].join(" ");
+      });
+
+      if (t >= 1) letterStage.style.display = "none";
+    }
+
+    const starMat = new THREE.ShaderMaterial({
       uniforms: { uTime: { value: 0 } },
       vertexShader: `
         attribute float aSize; attribute float aTw; uniform float uTime; varying float vA;
         void main(){
-          vA=.45+.55*sin(aTw+uTime*.45);
-          gl_PointSize=aSize*vA*(320./length((modelViewMatrix*vec4(position,1.)).xyz));
-          gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);
+          vA=.42+.58*sin(aTw+uTime*.38);
+          vec4 mv=modelViewMatrix*vec4(position,1.);
+          gl_PointSize=aSize*vA*(260./length(mv.xyz));
+          gl_Position=projectionMatrix*mv;
         }
       `,
       fragmentShader: `
         varying float vA;
         void main(){
           float d=length(gl_PointCoord-.5); if(d>.5)discard;
-          gl_FragColor=vec4(1.,1.,1.,(1.-smoothstep(0.,.5,d))*vA*.65);
+          gl_FragColor=vec4(1.,1.,1.,(1.-smoothstep(0.,.5,d))*vA*.45);
         }
       `,
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
+
+    const starGeo = new THREE.BufferGeometry();
     {
-      const n = 1600;
-      const pos = new Float32Array(n * 3);
-      const sz = new Float32Array(n);
-      const tw = new Float32Array(n);
-      for (let i = 0; i < n; i++) {
+      const pos = new Float32Array(config.starCount * 3);
+      const size = new Float32Array(config.starCount);
+      const tw = new Float32Array(config.starCount);
+      for (let i = 0; i < config.starCount; i += 1) {
         const phi = Math.acos(2 * Math.random() - 1);
         const theta = Math.random() * Math.PI * 2;
-        const r = 500 + Math.random() * 300;
+        const r = 420 + Math.random() * 360;
         pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
         pos[i * 3 + 1] = r * Math.cos(phi);
         pos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-        sz[i] = Math.random() * 2 + 0.3;
+        size[i] = Math.random() * 1.7 + 0.25;
         tw[i] = Math.random() * Math.PI * 2;
       }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-      geo.setAttribute("aSize", new THREE.BufferAttribute(sz, 1));
-      geo.setAttribute("aTw", new THREE.BufferAttribute(tw, 1));
-      scene.add(new THREE.Points(geo, starsMat));
+      starGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      starGeo.setAttribute("aSize", new THREE.BufferAttribute(size, 1));
+      starGeo.setAttribute("aTw", new THREE.BufferAttribute(tw, 1));
+      scene.add(new THREE.Points(starGeo, starMat));
     }
+
+    scene.add(new THREE.AmbientLight(0x1a1235, 0.46));
+    const keyLight = new THREE.DirectionalLight(0xffb06a, 0.85);
+    keyLight.position.set(7, 10, 6);
+    scene.add(keyLight);
 
     const globeGroup = new THREE.Group();
-    globeGroup.position.set(GLOBE_X, GLOBE_Y_START, 0);
+    globeGroup.position.set(0, config.globeRestY, 0);
+    globeGroup.visible = false;
     scene.add(globeGroup);
 
-    globeGroup.add(new THREE.Mesh(
-      new THREE.SphereGeometry(GLOBE_R * 1.22, 32, 32),
-      new THREE.MeshBasicMaterial({ color: 0xff6b1a, transparent: true, opacity: 0.05, side: THREE.BackSide, depthWrite: false }),
-    ));
-    globeGroup.add(new THREE.Mesh(
-      new THREE.SphereGeometry(GLOBE_R * 0.97, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0xff6b1a, wireframe: true, transparent: true, opacity: 0.03 }),
-    ));
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(config.globeRadius * 1.18, isMobile ? 24 : 36, isMobile ? 16 : 24),
+      new THREE.MeshBasicMaterial({
+        color: 0xff6b1a,
+        transparent: true,
+        opacity: 0.055,
+        side: THREE.BackSide,
+        depthWrite: false,
+      }),
+    );
+    globeGroup.add(halo);
 
-    const startPos = [];
-    const endPos = [];
-    const startQuats = [];
-    const endQuats = [];
-    const dummy = new THREE.Object3D();
-    const GORIGIN = new THREE.Vector3(GLOBE_X, GLOBE_Y_START, 0);
+    const wire = new THREE.Mesh(
+      new THREE.SphereGeometry(config.globeRadius * 0.98, 16, 12),
+      new THREE.MeshBasicMaterial({
+        color: 0xff9a4a,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.035,
+      }),
+    );
+    globeGroup.add(wire);
 
-    for (let i = 0; i < GLOBE_CNT; i++) {
-      const t = i / GLOBE_CNT;
-      startPos.push(new THREE.Vector3(-30 + t * 26, Math.sin(t * Math.PI * 4) * 3.5, Math.cos(t * Math.PI * 3) * 2.5));
-      const phi = Math.acos(1 - 2 * (i + 0.5) / GLOBE_CNT);
-      const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5);
-      const nx = Math.sin(phi) * Math.cos(theta);
-      const ny = Math.cos(phi);
-      const nz = Math.sin(phi) * Math.sin(theta);
-      const ep = new THREE.Vector3(nx * GLOBE_R, ny * GLOBE_R, nz * GLOBE_R);
-      endPos.push(ep);
-      dummy.position.copy(ep);
-      dummy.lookAt(new THREE.Vector3(0, 0, 0));
-      endQuats.push(dummy.quaternion.clone());
-      startQuats.push(new THREE.Quaternion());
-    }
-    const startPosLocal = startPos.map((p) => p.clone().sub(GORIGIN));
+    const globeLight = new THREE.PointLight(0xff6b1a, 3.2, 30);
+    globeGroup.add(globeLight);
 
-    const bkGeo = new THREE.BoxGeometry(0.30, 0.50, 0.09);
-    const bkMat = new THREE.MeshStandardMaterial({ roughness: 0.65, metalness: 0.08 });
-    const globe = new THREE.InstancedMesh(bkGeo, bkMat, GLOBE_CNT);
-    globeGroup.add(globe);
-    const colBuf = new THREE.Color();
-    for (let i = 0; i < GLOBE_CNT; i++) {
-      dummy.position.copy(startPosLocal[i]);
-      dummy.quaternion.copy(startQuats[i]);
-      dummy.updateMatrix();
-      globe.setMatrixAt(i, dummy.matrix);
-      colBuf.setHex(BOOK_COLS[i % BOOK_COLS.length]);
-      globe.setColorAt(i, colBuf);
-    }
-    globe.instanceMatrix.needsUpdate = true;
-    globe.instanceColor.needsUpdate = true;
-
-    scene.add(new THREE.AmbientLight(0x1a0838, 0.42));
-    const keyLight = new THREE.DirectionalLight(0xffa040, 0.9);
-    keyLight.position.set(6, 12, 6);
-    scene.add(keyLight);
-    const globePt = new THREE.PointLight(0xff6b1a, 3.5, 28);
-    globeGroup.add(globePt);
-    const fillPt = new THREE.PointLight(0x4020a0, 0.5, 22);
-    fillPt.position.set(-12, 4, 5);
-    scene.add(fillPt);
-    const bookLight = new THREE.PointLight(0xffd080, 1.5, 18);
-    bookLight.position.set(0, 3, 3);
-    scene.add(bookLight);
-    scene.fog = new THREE.FogExp2(0x04020e, 0.007);
-
-    let phase = "assembly";
-    let phaseT = 0;
-    let globeVY = 0;
-    let globeY = GLOBE_Y_START;
-    const ASSEMBLY_DUR = 3.8;
-
-    const streamBooks = [];
-    const streamCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(GLOBE_R + 0.4, 0.0, 0.0),
-      new THREE.Vector3(8, 0.8, 3.5),
-      new THREE.Vector3(13, 0.3, 7.0),
-      new THREE.Vector3(18, -0.3, 10.0),
-      new THREE.Vector3(23, -0.9, 13.0),
-    ]);
-    let streamTimer = 0;
-
-    function updateStream() {
-      streamTimer++;
-      if (streamBooks.length < 24 && streamTimer % 10 === 0) {
-        const w = 0.26 + Math.random() * 0.22;
-        const h = 0.42 + Math.random() * 0.22;
-        const d = 0.06 + Math.random() * 0.04;
-        const mat = new THREE.MeshStandardMaterial({
-          color: BOOK_COLS[Math.floor(Math.random() * BOOK_COLS.length)],
-          roughness: 0.6,
-          metalness: 0.1,
-          transparent: true,
-          opacity: 0,
-        });
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-        scene.add(mesh);
-        const axis = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
-        streamBooks.push({ mesh, t: 0, speed: 0.003 + Math.random() * 0.002, axis, rotSpd: (Math.random() - 0.5) * 0.04 });
-      }
-      for (let i = streamBooks.length - 1; i >= 0; i--) {
-        const b = streamBooks[i];
-        b.t += b.speed;
-        if (b.t > 1.12) {
-          scene.remove(b.mesh);
-          b.mesh.geometry.dispose();
-          b.mesh.material.dispose();
-          streamBooks.splice(i, 1);
-          continue;
-        }
-        const cp = streamCurve.getPoint(Math.min(b.t, 1.0));
-        b.mesh.position.set(globeGroup.position.x + cp.x, globeGroup.position.y + cp.y, globeGroup.position.z + cp.z);
-        b.mesh.rotateOnAxis(b.axis, b.rotSpd);
-        b.mesh.material.opacity = b.t < 0.08 ? b.t / 0.08 : b.t > 0.8 ? c01(1 - (b.t - 0.8) / 0.3) : 1;
-      }
-    }
-
-    const DISC = [
-      { title: "The Way of Kings", author: "Brandon Sanderson", genre: "Fantasy", col: "#180840", acc: "#8040ff" },
-      { title: "Dune", author: "Frank Herbert", genre: "Sci-Fi", col: "#102010", acc: "#28a830" },
-      { title: "Project Hail Mary", author: "Andy Weir", genre: "Sci-Fi", col: "#081828", acc: "#2878d8" },
-      { title: "The Name of the Wind", author: "Patrick Rothfuss", genre: "Fantasy", col: "#180a08", acc: "#ff6b1a" },
-      { title: "Hyperion", author: "Dan Simmons", genre: "Sci-Fi", col: "#200818", acc: "#c840a8" },
-      { title: "Mistborn", author: "Brandon Sanderson", genre: "Fantasy", col: "#080820", acc: "#6848ff" },
-      { title: "The Martian", author: "Andy Weir", genre: "Sci-Fi", col: "#180800", acc: "#e03010" },
-      { title: "Ender's Game", author: "Orson Scott Card", genre: "Sci-Fi", col: "#001018", acc: "#00a8d8" },
-    ];
-    const cardEls = [];
-    const discLabel = document.getElementById("pw-fe-disc-label");
-    const scrollHint = document.getElementById("pw-fe-scroll-hint");
-    DISC.forEach((b) => {
-      const el = document.createElement("div");
-      el.className = "pw-fe-disc-card";
-      el.style.background = b.col;
-      el.style.borderLeft = `4px solid ${b.acc}`;
-      el.innerHTML = `<div class="genre" style="color:${b.acc}">${b.genre}</div><div class="title">${b.title}</div><div class="author">${b.author}</div>`;
-      document.body.appendChild(el);
-      cardEls.push(el);
+    const bookGeo = new THREE.BoxGeometry(0.28, 0.47, 0.075);
+    const bookMat = new THREE.MeshStandardMaterial({
+      roughness: 0.72,
+      metalness: 0.05,
+      transparent: true,
+      opacity: 0.98,
     });
-    let currentCard = -1;
+    const books = new THREE.InstancedMesh(bookGeo, bookMat, config.bookCount);
+    books.frustumCulled = false;
+    globeGroup.add(books);
 
-    function updateCards() {
-      const cs = 0.22;
-      const ce = 0.82;
-      const cp = c01((scrollP - cs) / (ce - cs));
-      const idx = Math.min(Math.floor(cp * DISC.length), DISC.length - 1);
-      if (discLabel) discLabel.style.color = "rgba(255,255,255,.4)";
-      if (idx !== currentCard) {
-        if (currentCard >= 0) {
-          const old = cardEls[currentCard];
-          old.style.transition = "transform .55s cubic-bezier(.55,0,1,.45),opacity .45s ease";
-          old.style.transform = "translate(260px,-260px) rotate(10deg)";
-          old.style.opacity = "0";
+    const palette = [
+      0xff6b1a, 0xd64612, 0x26104f, 0x3d1b82,
+      0x142f55, 0x0f5168, 0x7b1c2d, 0xa97518,
+      0x1f5b35, 0x201448, 0x5d235f, 0x0b3b49,
+    ];
+    const color = new THREE.Color();
+    for (let i = 0; i < config.bookCount; i += 1) {
+      color.setHex(palette[i % palette.length]);
+      books.setColorAt(i, color);
+    }
+    books.instanceColor.needsUpdate = true;
+
+    const dummy = new THREE.Object3D();
+    const startPositions = [];
+    const globePositions = [];
+    const exitPositions = [];
+    const startQuats = [];
+    const globeQuats = [];
+    const exitQuats = [];
+
+    function makeBookSpiralPosition(i, total) {
+      const u = i / Math.max(total - 1, 1);
+      const angle = u * Math.PI * (isMobile ? 6.5 : 8.5);
+      const radius = lerp(isMobile ? 1.5 : 2.3, isMobile ? 4.8 : 7.0, u);
+      return new THREE.Vector3(
+        lerp(isMobile ? -15 : -24, isMobile ? -5.5 : -8.5, u),
+        Math.sin(angle) * radius * 0.62 + lerp(-1.4, 2.2, u),
+        Math.cos(angle) * radius,
+      );
+    }
+
+    function makeGlobePosition(i, total) {
+      const phi = Math.acos(1 - 2 * (i + 0.5) / total);
+      const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5);
+      return new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta) * config.globeRadius,
+        Math.cos(phi) * config.globeRadius,
+        Math.sin(phi) * Math.sin(theta) * config.globeRadius,
+      );
+    }
+
+    function makeExitSpiralPosition(i, total) {
+      const u = i / Math.max(total - 1, 1);
+      const angle = u * Math.PI * (isMobile ? 7.2 : 9.4) + Math.PI * 0.4;
+      const radius = lerp(isMobile ? 1.4 : 2.2, isMobile ? 5.2 : 8.4, u);
+      return new THREE.Vector3(
+        lerp(isMobile ? 5.6 : 8.2, isMobile ? 17 : 28, u),
+        Math.sin(angle) * radius * 0.56 + lerp(2.1, -1.7, u),
+        Math.cos(angle) * radius,
+      );
+    }
+
+    function lookAlong(position, target, outQuat) {
+      dummy.position.copy(position);
+      dummy.lookAt(target);
+      outQuat.copy(dummy.quaternion);
+    }
+
+    for (let i = 0; i < config.bookCount; i += 1) {
+      const sp = makeBookSpiralPosition(i, config.bookCount);
+      const gp = makeGlobePosition(i, config.bookCount);
+      const ep = makeExitSpiralPosition(i, config.bookCount);
+      startPositions.push(sp);
+      globePositions.push(gp);
+      exitPositions.push(ep);
+      const sq = new THREE.Quaternion();
+      const gq = new THREE.Quaternion();
+      const eq = new THREE.Quaternion();
+      lookAlong(sp, new THREE.Vector3(0, 0, 0), sq);
+      lookAlong(gp, new THREE.Vector3(0, 0, 0), gq);
+      lookAlong(ep, new THREE.Vector3(ep.x + 2, ep.y, ep.z), eq);
+      startQuats.push(sq);
+      globeQuats.push(gq);
+      exitQuats.push(eq);
+    }
+
+    function setBooks(stage, scrollExitP) {
+      const total = config.bookCount;
+      for (let i = 0; i < total; i += 1) {
+        let p = 0;
+        let scale = 0.001;
+
+        if (stage === "incoming") {
+          const stagger = (i / total) * 0.36;
+          p = easeOut(clamp01((scrollExitP - stagger) / (1 - stagger)));
+          dummy.position.copy(startPositions[i]).lerp(globePositions[i], p);
+          dummy.quaternion.copy(startQuats[i]).slerp(globeQuats[i], p);
+          scale = lerp(0.15, 1, p);
+        } else if (stage === "globe") {
+          dummy.position.copy(globePositions[i]);
+          dummy.quaternion.copy(globeQuats[i]);
+          scale = 1;
+        } else if (stage === "exit") {
+          const stagger = (i / total) * 0.28;
+          p = easeInOut(clamp01((scrollExitP - stagger) / (1 - stagger)));
+          dummy.position.copy(globePositions[i]).lerp(exitPositions[i], p);
+          dummy.quaternion.copy(globeQuats[i]).slerp(exitQuats[i], p);
+          scale = lerp(1, 0.48, p);
         }
-        currentCard = idx;
-        const el = cardEls[idx];
-        el.style.transition = "none";
-        el.style.transform = "translate(-260px,260px) rotate(-10deg)";
-        el.style.opacity = "0";
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          el.style.transition = "transform .72s cubic-bezier(.23,1,.32,1),opacity .55s ease";
-          el.style.transform = "translate(0,0) rotate(0deg)";
-          el.style.opacity = "1";
-        }));
+
+        dummy.scale.setScalar(scale);
+        dummy.updateMatrix();
+        books.setMatrixAt(i, dummy.matrix);
       }
+      books.instanceMatrix.needsUpdate = true;
     }
 
-    function hideCards() {
-      cardEls.forEach((el) => {
-        el.style.opacity = "0";
-        el.style.transform = "translate(-400px,400px)";
-      });
-      if (discLabel) discLabel.style.color = "rgba(255,255,255,0)";
-      currentCard = -1;
+    setBooks("incoming", 0);
+
+    let phase = "letters";
+    let phaseT = 0;
+    let time = 0;
+    let lastTs = 0;
+    let dt = 0;
+    let scrollP = 0;
+    let uiRevealed = false;
+
+    function revealWhenReady() {
+      if (uiRevealed) return;
+      uiRevealed = true;
+      if (discLabel) {
+        discLabel.textContent = "Book globe formed";
+        discLabel.style.color = "rgba(255,255,255,.36)";
+      }
+      if (scrollHint) scrollHint.style.color = "rgba(255,255,255,.32)";
+      revealUi();
     }
+
+    function skipToGlobe() {
+      phase = "settled";
+      phaseT = 0;
+      letterStage.style.display = "none";
+      globeGroup.visible = true;
+      canvas.style.opacity = "1";
+      setBooks("globe", 0);
+      revealWhenReady();
+      if (skip) skip.style.display = "none";
+    }
+
+    if (skip) skip.addEventListener("click", skipToGlobe);
+
+    const ctaLink = document.querySelector("#pw-fe-cta a");
+    if (ctaLink && !ctaLink.getAttribute("href")) ctaLink.href = PLAY_STORE_URL;
 
     onScroll = () => {
-      if (phase !== "settled") return;
       const scroller = document.getElementById("pw-fe-scroller");
       const zone = scroller ? scroller.offsetHeight : document.body.scrollHeight;
       const max = Math.max(zone - window.innerHeight, 1);
-      scrollP = c01(window.scrollY / max);
+      scrollP = clamp01(window.scrollY / max);
       if (scrollHint) {
-        scrollHint.style.color = scrollP > 0.05 ? "rgba(255,255,255,0)" : "rgba(255,255,255,.3)";
+        scrollHint.style.color = scrollP > 0.08 ? "rgba(255,255,255,0)" : "rgba(255,255,255,.32)";
       }
       if (window.scrollY > zone * 0.92) {
         canvas.style.opacity = "0";
         canvas.style.pointerEvents = "none";
-        hideCards();
         if (discLabel) discLabel.style.color = "rgba(255,255,255,0)";
       } else {
         canvas.style.opacity = "1";
@@ -311,105 +418,55 @@
     };
     window.addEventListener("scroll", onScroll);
 
-    function revealUI() {
-      const logo = document.getElementById("pw-fe-logo");
-      if (logo) {
-        logo.style.opacity = "1";
-        logo.style.transform = "translateY(0)";
-      }
-      const line = document.getElementById("pw-fe-logo-line");
-      if (line) line.style.width = "200px";
-      setTimeout(() => {
-        const cta = document.getElementById("pw-fe-cta");
-        if (cta) cta.style.opacity = "1";
-        const skip = document.getElementById("pw-fe-skip");
-        if (skip) skip.style.display = "none";
-      }, 1500);
-    }
-
-    function skipAnim() {
-      for (let i = 0; i < GLOBE_CNT; i++) {
-        dummy.position.copy(endPos[i]);
-        dummy.quaternion.copy(endQuats[i]);
-        dummy.updateMatrix();
-        globe.setMatrixAt(i, dummy.matrix);
-      }
-      globe.instanceMatrix.needsUpdate = true;
-      globeGroup.position.set(GLOBE_X, GLOBE_Y_REST, 0);
-      phase = "settled";
-      phaseT = 0;
-      if (scrollHint) scrollHint.style.color = "rgba(255,255,255,.3)";
-      const skip = document.getElementById("pw-fe-skip");
-      if (skip) skip.style.display = "none";
-      if (!revealed) {
-        revealed = true;
-        revealUI();
-      }
-    }
-
-    const skipBtn = document.getElementById("pw-fe-skip");
-    if (skipBtn) skipBtn.addEventListener("click", skipAnim);
-
-    const ctaLink = document.querySelector("#pw-fe-cta a");
-    if (ctaLink && !ctaLink.getAttribute("href")) {
-      ctaLink.href = PLAY_STORE_URL;
-    }
+    onResize = () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+    window.addEventListener("resize", onResize);
 
     function updatePhase() {
-      if (phase === "assembly") {
-        phaseT += dt;
-        const ov = c01(phaseT / ASSEMBLY_DUR);
-        for (let i = 0; i < GLOBE_CNT; i++) {
-          const stagger = (i / GLOBE_CNT) * 0.42;
-          const ip = easeOut(c01((ov - stagger) / (1 - stagger)));
-          dummy.position.lerpVectors(startPosLocal[i], endPos[i], ip);
-          dummy.quaternion.copy(startQuats[i]).slerp(endQuats[i], ip);
-          dummy.updateMatrix();
-          globe.setMatrixAt(i, dummy.matrix);
-        }
-        globe.instanceMatrix.needsUpdate = true;
-        if (ov >= 1) { phase = "spinBounce"; phaseT = 0; }
-      } else if (phase === "spinBounce") {
-        phaseT += dt;
-        const p = c01(phaseT / 4.5);
-        globeGroup.rotation.y += lerp(0.008, 0.065, easeInOut(c01(phaseT / 1.5)));
-        if (phaseT > 1.2) {
-          const bt = phaseT - 1.2;
-          const amp = Math.max(0, 2.0 * Math.exp(-bt * 0.85));
-          globeGroup.position.y = GLOBE_Y_START + Math.sin(bt * 5.5) * amp;
-        }
+      if (phase === "letters") {
+        const p = clamp01(phaseT / config.letterDuration);
+        updateLetters(p);
+        if (discLabel) discLabel.style.color = "rgba(255,255,255,0)";
         if (p >= 1) {
-          phase = "fall";
+          phase = "booksIn";
           phaseT = 0;
-          globeVY = 0;
-          globeY = globeGroup.position.y;
-        }
-      } else if (phase === "fall") {
-        phaseT += dt;
-        globeVY -= 0.007;
-        globeY += globeVY;
-        if (globeY <= GLOBE_Y_REST) {
-          globeY = GLOBE_Y_REST;
-          globeVY = -globeVY * 0.46;
-          if (Math.abs(globeVY) < 0.012) {
-            globeVY = 0;
-            globeY = GLOBE_Y_REST;
-            phase = "settled";
-            phaseT = 0;
-            if (scrollHint) scrollHint.style.color = "rgba(255,255,255,.3)";
-            if (!revealed) {
-              revealed = true;
-              setTimeout(revealUI, 400);
-            }
+          globeGroup.visible = true;
+          if (discLabel) {
+            discLabel.textContent = "Books spiraling";
+            discLabel.style.color = "rgba(255,255,255,.32)";
           }
         }
-        globeGroup.position.y = globeY;
-        globeGroup.rotation.y += 0.055;
+      } else if (phase === "booksIn") {
+        const p = clamp01(phaseT / config.bookDuration);
+        setBooks("incoming", p);
+        globeGroup.rotation.y += 0.012 + p * 0.035;
+        globeGroup.rotation.x = Math.sin(p * Math.PI) * 0.08;
+        if (p >= 1) {
+          phase = "settled";
+          phaseT = 0;
+          setBooks("globe", 0);
+          revealWhenReady();
+        }
       } else if (phase === "settled") {
-        globeGroup.rotation.y += 0.035 + scrollP * 0.045;
-        if (scrollP > 0.05 && scrollP < 0.33) updateStream();
-        if (scrollP >= 0.22 && scrollP < 0.83) updateCards();
-        else if (scrollP >= 0.83) hideCards();
+        const exitP = clamp01((scrollP - 0.38) / 0.46);
+        if (exitP > 0) {
+          setBooks("exit", exitP);
+          if (discLabel) {
+            discLabel.textContent = exitP > 0.95 ? "Open the app" : "Books unspiraling";
+            discLabel.style.color = exitP > 0.9 ? "rgba(255,255,255,0)" : "rgba(255,255,255,.32)";
+          }
+        } else {
+          setBooks("globe", 0);
+          if (discLabel) {
+            discLabel.textContent = "Book globe formed";
+            discLabel.style.color = "rgba(255,255,255,.32)";
+          }
+        }
+        globeGroup.rotation.y += 0.018 + scrollP * 0.05;
+        globeGroup.rotation.x = Math.sin(time * 0.28) * 0.045;
       }
     }
 
@@ -418,24 +475,26 @@
       dt = Math.min((ts - lastTs) / 1000, 0.05);
       lastTs = ts;
       time += dt;
-      starsMat.uniforms.uTime.value = time;
-      globePt.intensity = 2.8 + Math.sin(time * 1.6) * 0.7;
+      phaseT += dt;
+      starMat.uniforms.uTime.value = time;
+      globeLight.intensity = 2.6 + Math.sin(time * 1.4) * 0.55;
       updatePhase();
-      camera.position.x = Math.sin(time * 0.04) * 0.5;
-      camera.lookAt(0, 2, 0);
+      camera.position.x = Math.sin(time * 0.045) * (isMobile ? 0.22 : 0.5);
+      camera.lookAt(0, 1.4, 0);
       renderer.render(scene, camera);
     }
 
     window._pwFeDispose = () => {
       renderer.dispose();
-      bkGeo.dispose();
-      bkMat.dispose();
-      starsMat.dispose();
-      streamBooks.forEach((b) => {
-        scene.remove(b.mesh);
-        b.mesh.geometry.dispose();
-        b.mesh.material.dispose();
-      });
+      starGeo.dispose();
+      starMat.dispose();
+      bookGeo.dispose();
+      bookMat.dispose();
+      halo.geometry.dispose();
+      halo.material.dispose();
+      wire.geometry.dispose();
+      wire.material.dispose();
+      letterStage.remove();
       canvas.removeAttribute("data-pw-fe-init");
     };
 
