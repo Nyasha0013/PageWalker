@@ -166,75 +166,6 @@
     globe.instanceMatrix.needsUpdate = true;
     globe.instanceColor.needsUpdate = true;
 
-    const openBook = new THREE.Group();
-    openBook.position.set(GLOBE_X, -3.2, 0);
-    openBook.visible = false;
-    scene.add(openBook);
-
-    openBook.add(new THREE.Mesh(
-      new THREE.BoxGeometry(12, 0.22, 8.5),
-      new THREE.MeshStandardMaterial({ color: 0x0d0620, roughness: 0.85 }),
-    ));
-    {
-      const m = new THREE.Mesh(
-        new THREE.PlaneGeometry(5.5, 8),
-        new THREE.MeshStandardMaterial({ color: 0xf2ecd8, roughness: 0.92, side: THREE.DoubleSide }),
-      );
-      m.rotation.x = -Math.PI / 2;
-      m.rotation.z = 0.2;
-      m.position.set(-2.9, 0.15, 0);
-      openBook.add(m);
-      for (let l = 0; l < 6; l++) {
-        const ln = new THREE.Mesh(
-          new THREE.PlaneGeometry(4, 0.03),
-          new THREE.MeshBasicMaterial({ color: 0xc0a880, transparent: true, opacity: 0.35 }),
-        );
-        ln.rotation.x = -Math.PI / 2;
-        ln.rotation.z = 0.2;
-        ln.position.set(-2.9, 0.17, -2.2 + l * 0.9);
-        openBook.add(ln);
-      }
-    }
-    {
-      const m = new THREE.Mesh(
-        new THREE.PlaneGeometry(5.5, 8),
-        new THREE.MeshStandardMaterial({ color: 0xf2ecd8, roughness: 0.92, side: THREE.DoubleSide }),
-      );
-      m.rotation.x = -Math.PI / 2;
-      m.rotation.z = -0.2;
-      m.position.set(2.9, 0.15, 0);
-      openBook.add(m);
-    }
-
-    function makeSpineTexture() {
-      const c = document.createElement("canvas");
-      c.width = 512;
-      c.height = 80;
-      const ctx = c.getContext("2d");
-      ctx.fillStyle = "#ff6b1a";
-      ctx.fillRect(0, 0, 512, 80);
-      ctx.strokeStyle = "rgba(255,255,255,.2)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(6, 6, 500, 68);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 30px Georgia, serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("P A G E W A L K E R", 256, 40);
-      return new THREE.CanvasTexture(c);
-    }
-    {
-      const spineMat = new THREE.MeshStandardMaterial({ map: makeSpineTexture(), roughness: 0.65 });
-      const spineMesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.38, 8.5), spineMat);
-      spineMesh.position.set(0, 0.12, 0);
-      openBook.add(spineMesh);
-      const labelTex = makeSpineTexture();
-      const label = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 0.55), new THREE.MeshBasicMaterial({ map: labelTex }));
-      label.rotation.x = -Math.PI / 2;
-      label.position.set(0, 0.33, 0);
-      openBook.add(label);
-    }
-
     scene.add(new THREE.AmbientLight(0x1a0838, 0.42));
     const keyLight = new THREE.DirectionalLight(0xffa040, 0.9);
     keyLight.position.set(6, 12, 6);
@@ -405,8 +336,6 @@
       }
       globe.instanceMatrix.needsUpdate = true;
       globeGroup.position.set(GLOBE_X, GLOBE_Y_REST, 0);
-      openBook.visible = true;
-      openBook.scale.setScalar(1);
       phase = "settled";
       phaseT = 0;
       if (scrollHint) scrollHint.style.color = "rgba(255,255,255,.3)";
@@ -454,12 +383,9 @@
           phaseT = 0;
           globeVY = 0;
           globeY = globeGroup.position.y;
-          openBook.visible = true;
-          openBook.scale.setScalar(0.01);
         }
       } else if (phase === "fall") {
         phaseT += dt;
-        openBook.scale.setScalar(Math.min(phaseT / 0.65, 1));
         globeVY -= 0.007;
         globeY += globeVY;
         if (globeY <= GLOBE_Y_REST) {
