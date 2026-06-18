@@ -1,21 +1,50 @@
-// pw-full-experience.js — PageWalker space intro and scroll-driven book globe
+// pw-full-experience.js — PageWalker space intro and horizontal page globe
 
 (function () {
   "use strict";
 
-  const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.pagewalker.app";
+  const THREE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js";
   const WORD = "PAGEWALKER";
 
   let rafId = 0;
-  let onScroll = null;
   let onResize = null;
+  let landingTrack = null;
+  let onTrackScroll = null;
+  let onWheel = null;
+  let pageObserver = null;
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (window.THREE) {
+        resolve();
+        return;
+      }
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        existing.addEventListener("load", () => resolve(), { once: true });
+        existing.addEventListener("error", () => reject(new Error("script load failed")), { once: true });
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("script load failed"));
+      document.head.appendChild(script);
+    });
+  }
 
   function destroyFullExperience() {
     if (rafId) cancelAnimationFrame(rafId);
     rafId = 0;
-    if (onScroll) window.removeEventListener("scroll", onScroll);
+    if (landingTrack && onTrackScroll) landingTrack.removeEventListener("scroll", onTrackScroll);
+    if (landingTrack && onWheel) landingTrack.removeEventListener("wheel", onWheel);
+    if (pageObserver) pageObserver.disconnect();
+    landingTrack = null;
+    onTrackScroll = null;
+    onWheel = null;
+    pageObserver = null;
     if (onResize) window.removeEventListener("resize", onResize);
-    onScroll = null;
     onResize = null;
     if (typeof window._pwFeDispose === "function") {
       window._pwFeDispose();
@@ -37,30 +66,72 @@
     return 1 - Math.pow(1 - t, 3);
   }
 
-  function easeIn(t) {
-    return t * t * t;
-  }
-
   function easeInOut(t) {
     return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   }
 
-  function initFullExperience() {
+  function initLandingTrack(track) {
+    const pages = track.querySelectorAll(".pw-landing-page");
+    const dots = document.querySelectorAll(".pw-landing-dot");
+
+    pageObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          entry.target.classList.toggle("is-visible", entry.isIntersecting && entry.intersectionRatio > 0.35);
+        });
+      },
+      { root: track, threshold: [0.35, 0.55] },
+    );
+    pages.forEach((page) => pageObserver.observe(page));
+    if (pages[0]) pages[0].classList.add("is-visible");
+
+    dots.forEach((dot) => {
+      dot.addEventListener("click", () => {
+        const index = Number(dot.getAttribute("data-page") || "0");
+        track.scrollTo({ left: index * window.innerWidth, behavior: "smooth" });
+      });
+    });
+
+    onWheel = (event) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      event.preventDefault();
+      track.scrollLeft += event.deltaY;
+    };
+    track.addEventListener("wheel", onWheel, { passive: false });
+  }
+
+  function bindTrackScroll(track, handlers) {
+    onTrackScroll = () => {
+      const pageW = Math.max(window.innerWidth, 1);
+      const pageProgress = track.scrollLeft / pageW;
+      handlers.onProgress(pageProgress);
+      const active = Math.round(pageProgress);
+      document.querySelectorAll(".pw-landing-dot").forEach((dot, index) => {
+        const on = index === active;
+        dot.classList.toggle("is-active", on);
+        dot.setAttribute("aria-current", on ? "true" : "false");
+      });
+      track.querySelectorAll(".pw-landing-page").forEach((page, index) => {
+        page.classList.toggle("is-near", Math.abs(index - pageProgress) < 0.55);
+      });
+    };
+    track.addEventListener("scroll", onTrackScroll, { passive: true });
+    onTrackScroll();
+  }
+
+  async function initFullExperience() {
     const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const canvas = document.getElementById("pw-fe-canvas");
-    if (!canvas || canvas.dataset.pwFeInit) return;
+    const track = document.getElementById("pw-landing-track");
+    if (!canvas || !track || canvas.dataset.pwFeInit) return;
     destroyFullExperience();
     canvas.dataset.pwFeInit = "1";
+    landingTrack = track;
     document.documentElement.setAttribute("data-pw-fe-active", "1");
 
     const logo = document.getElementById("pw-fe-logo");
     const logoLine = document.getElementById("pw-fe-logo-line");
-    const cta = document.getElementById("pw-fe-cta");
-    const skip = document.getElementById("pw-fe-skip");
-    const scrollHint = document.getElementById("pw-fe-scroll-hint");
-    const discLabel = document.getElementById("pw-fe-disc-label");
-
-    if (discLabel) discLabel.textContent = "Books forming";
+    const feUi = document.getElementById("pw-fe-ui");
 
     function revealUi() {
       if (logo) {
@@ -68,17 +139,34 @@
         logo.style.transform = "translateY(0)";
       }
       if (logoLine) logoLine.style.width = "200px";
-      setTimeout(() => {
-        if (cta) cta.style.opacity = "1";
-        if (skip) skip.style.display = "none";
-      }, 700);
+    }
+
+    initLandingTrack(track);
+
+    let scrollP = 0;
+    let resumeRender = null;
+
+    bindTrackScroll(track, {
+      onProgress(pageProgress) {
+        scrollP = clamp01(pageProgress);
+        const fade = clamp01((pageProgress - 0.75) / 0.4);
+        canvas.style.opacity = String(1 - fade);
+        canvas.style.pointerEvents = fade > 0.95 ? "none" : "";
+        if (feUi) feUi.style.opacity = pageProgress > 0.45 ? "0" : "1";
+        if (resumeRender) resumeRender();
+      },
+    });
+
+    if (!reducedMotion) {
+      try {
+        await loadScript(THREE_CDN);
+      } catch (_) {
+        /* static fallback below */
+      }
     }
 
     if (reducedMotion || typeof THREE === "undefined") {
       canvas.style.display = "none";
-      if (skip) skip.style.display = "none";
-      if (scrollHint) scrollHint.style.display = "none";
-      if (discLabel) discLabel.style.display = "none";
       revealUi();
       window._pwFeDispose = () => {
         canvas.removeAttribute("data-pw-fe-init");
@@ -89,18 +177,17 @@
     const isMobile = window.innerWidth < 720;
     const isSmallPhone = window.innerWidth < 420;
     const config = {
-      bookCount: isMobile ? (isSmallPhone ? 96 : 128) : 220,
-      starCount: isMobile ? 520 : 1100,
-      pixelRatio: Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2),
+      bookCount: isMobile ? (isSmallPhone ? 72 : 96) : 100,
+      pixelRatio: Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.5),
       globeRadius: isMobile ? 3.25 : 5.0,
       cameraZ: isMobile ? 20 : 22,
       cameraY: isMobile ? 4.5 : 5.2,
-      letterDuration: isMobile ? 4.3 : 5.1,
-      bookDuration: isMobile ? 3.5 : 4.4,
+      letterDuration: isMobile ? 3.0 : 3.6,
+      bookDuration: isMobile ? 2.2 : 2.8,
       globeRestY: isMobile ? 1.2 : 1.7,
     };
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(config.pixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 0);
@@ -164,50 +251,6 @@
       if (t >= 1) letterStage.style.display = "none";
     }
 
-    const starMat = new THREE.ShaderMaterial({
-      uniforms: { uTime: { value: 0 } },
-      vertexShader: `
-        attribute float aSize; attribute float aTw; uniform float uTime; varying float vA;
-        void main(){
-          vA=.42+.58*sin(aTw+uTime*.38);
-          vec4 mv=modelViewMatrix*vec4(position,1.);
-          gl_PointSize=aSize*vA*(260./length(mv.xyz));
-          gl_Position=projectionMatrix*mv;
-        }
-      `,
-      fragmentShader: `
-        varying float vA;
-        void main(){
-          float d=length(gl_PointCoord-.5); if(d>.5)discard;
-          gl_FragColor=vec4(1.,1.,1.,(1.-smoothstep(0.,.5,d))*vA*.45);
-        }
-      `,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-
-    const starGeo = new THREE.BufferGeometry();
-    {
-      const pos = new Float32Array(config.starCount * 3);
-      const size = new Float32Array(config.starCount);
-      const tw = new Float32Array(config.starCount);
-      for (let i = 0; i < config.starCount; i += 1) {
-        const phi = Math.acos(2 * Math.random() - 1);
-        const theta = Math.random() * Math.PI * 2;
-        const r = 420 + Math.random() * 360;
-        pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-        pos[i * 3 + 1] = r * Math.cos(phi);
-        pos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-        size[i] = Math.random() * 1.7 + 0.25;
-        tw[i] = Math.random() * Math.PI * 2;
-      }
-      starGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-      starGeo.setAttribute("aSize", new THREE.BufferAttribute(size, 1));
-      starGeo.setAttribute("aTw", new THREE.BufferAttribute(tw, 1));
-      scene.add(new THREE.Points(starGeo, starMat));
-    }
-
     scene.add(new THREE.AmbientLight(0x1a1235, 0.46));
     const keyLight = new THREE.DirectionalLight(0xffb06a, 0.85);
     keyLight.position.set(7, 10, 6);
@@ -219,7 +262,7 @@
     scene.add(globeGroup);
 
     const halo = new THREE.Mesh(
-      new THREE.SphereGeometry(config.globeRadius * 1.18, isMobile ? 24 : 36, isMobile ? 16 : 24),
+      new THREE.SphereGeometry(config.globeRadius * 1.18, isMobile ? 16 : 24, isMobile ? 12 : 16),
       new THREE.MeshBasicMaterial({
         color: 0xff6b1a,
         transparent: true,
@@ -230,18 +273,7 @@
     );
     globeGroup.add(halo);
 
-    const wire = new THREE.Mesh(
-      new THREE.SphereGeometry(config.globeRadius * 0.98, 16, 12),
-      new THREE.MeshBasicMaterial({
-        color: 0xff9a4a,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.035,
-      }),
-    );
-    globeGroup.add(wire);
-
-    const globeLight = new THREE.PointLight(0xff6b1a, 3.2, 30);
+    const globeLight = new THREE.PointLight(0xff6b1a, 3.0, 30);
     globeGroup.add(globeLight);
 
     const bookGeo = new THREE.BoxGeometry(0.28, 0.47, 0.075);
@@ -369,54 +401,14 @@
     let time = 0;
     let lastTs = 0;
     let dt = 0;
-    let scrollP = 0;
     let uiRevealed = false;
+    let renderActive = true;
 
     function revealWhenReady() {
       if (uiRevealed) return;
       uiRevealed = true;
-      if (discLabel) {
-        discLabel.textContent = "Book globe formed";
-        discLabel.style.color = "rgba(255,255,255,.36)";
-      }
-      if (scrollHint) scrollHint.style.color = "rgba(255,255,255,.32)";
       revealUi();
     }
-
-    function skipToGlobe() {
-      phase = "settled";
-      phaseT = 0;
-      letterStage.style.display = "none";
-      globeGroup.visible = true;
-      canvas.style.opacity = "1";
-      setBooks("globe", 0);
-      revealWhenReady();
-      if (skip) skip.style.display = "none";
-    }
-
-    if (skip) skip.addEventListener("click", skipToGlobe);
-
-    const ctaLink = document.querySelector("#pw-fe-cta a");
-    if (ctaLink && !ctaLink.getAttribute("href")) ctaLink.href = PLAY_STORE_URL;
-
-    onScroll = () => {
-      const scroller = document.getElementById("pw-fe-scroller");
-      const zone = scroller ? scroller.offsetHeight : document.body.scrollHeight;
-      const max = Math.max(zone - window.innerHeight, 1);
-      scrollP = clamp01(window.scrollY / max);
-      if (scrollHint) {
-        scrollHint.style.color = scrollP > 0.08 ? "rgba(255,255,255,0)" : "rgba(255,255,255,.32)";
-      }
-      if (window.scrollY > zone * 0.92) {
-        canvas.style.opacity = "0";
-        canvas.style.pointerEvents = "none";
-        if (discLabel) discLabel.style.color = "rgba(255,255,255,0)";
-      } else {
-        canvas.style.opacity = "1";
-        canvas.style.pointerEvents = "";
-      }
-    };
-    window.addEventListener("scroll", onScroll);
 
     onResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -425,82 +417,80 @@
     };
     window.addEventListener("resize", onResize);
 
+    function needsRender() {
+      return phase !== "settled" || scrollP < 1.35;
+    }
+
     function updatePhase() {
       if (phase === "letters") {
         const p = clamp01(phaseT / config.letterDuration);
         updateLetters(p);
-        if (discLabel) discLabel.style.color = "rgba(255,255,255,0)";
         if (p >= 1) {
           phase = "booksIn";
           phaseT = 0;
           globeGroup.visible = true;
-          if (discLabel) {
-            discLabel.textContent = "Books spiraling";
-            discLabel.style.color = "rgba(255,255,255,.32)";
-          }
         }
       } else if (phase === "booksIn") {
         const p = clamp01(phaseT / config.bookDuration);
         setBooks("incoming", p);
-        globeGroup.rotation.y += 0.012 + p * 0.035;
-        globeGroup.rotation.x = Math.sin(p * Math.PI) * 0.08;
         if (p >= 1) {
           phase = "settled";
           phaseT = 0;
+          globeGroup.rotation.set(0, 0, 0);
           setBooks("globe", 0);
           revealWhenReady();
         }
       } else if (phase === "settled") {
-        const exitP = clamp01((scrollP - 0.38) / 0.46);
+        const exitP = clamp01((scrollP - 0.12) / 0.88);
         if (exitP > 0) {
           setBooks("exit", exitP);
-          if (discLabel) {
-            discLabel.textContent = exitP > 0.95 ? "Open the app" : "Books unspiraling";
-            discLabel.style.color = exitP > 0.9 ? "rgba(255,255,255,0)" : "rgba(255,255,255,.32)";
-          }
         } else {
           setBooks("globe", 0);
-          if (discLabel) {
-            discLabel.textContent = "Book globe formed";
-            discLabel.style.color = "rgba(255,255,255,.32)";
-          }
         }
-        globeGroup.rotation.y += 0.018 + scrollP * 0.05;
-        globeGroup.rotation.x = Math.sin(time * 0.28) * 0.045;
+        globeGroup.rotation.set(0, 0, 0);
       }
     }
 
     function animate(ts) {
+      if (!renderActive) return;
       rafId = requestAnimationFrame(animate);
       dt = Math.min((ts - lastTs) / 1000, 0.05);
       lastTs = ts;
       time += dt;
       phaseT += dt;
-      starMat.uniforms.uTime.value = time;
-      globeLight.intensity = 2.6 + Math.sin(time * 1.4) * 0.55;
+      globeLight.intensity = 2.6 + Math.sin(time * 1.4) * 0.35;
       updatePhase();
-      camera.position.x = Math.sin(time * 0.045) * (isMobile ? 0.22 : 0.5);
-      camera.lookAt(0, 1.4, 0);
       renderer.render(scene, camera);
+      if (!needsRender()) {
+        renderActive = false;
+        rafId = 0;
+      }
     }
+
+    resumeRender = () => {
+      if (needsRender() && !renderActive) {
+        renderActive = true;
+        lastTs = 0;
+        rafId = requestAnimationFrame(animate);
+      }
+    };
 
     window._pwFeDispose = () => {
       renderer.dispose();
-      starGeo.dispose();
-      starMat.dispose();
       bookGeo.dispose();
       bookMat.dispose();
       halo.geometry.dispose();
       halo.material.dispose();
-      wire.geometry.dispose();
-      wire.material.dispose();
       letterStage.remove();
       canvas.removeAttribute("data-pw-fe-init");
     };
 
+    renderActive = true;
     rafId = requestAnimationFrame(animate);
   }
 
-  window.initFullExperience = initFullExperience;
+  window.initFullExperience = () => {
+    void initFullExperience();
+  };
   window.destroyFullExperience = destroyFullExperience;
 })();

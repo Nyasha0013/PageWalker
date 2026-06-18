@@ -917,89 +917,101 @@ function renderAppDownloadGate(route) {
 
 function renderHome(_supabase, _session) {
   return `
-    <div id="pw-fe-mount" class="pw-fe-mount">
+    <div class="pw-landing" id="pw-landing">
       <canvas id="pw-fe-canvas" aria-hidden="true"></canvas>
-      <div id="pw-fe-scroller" class="pw-fe-scroller"></div>
       <div id="pw-fe-ui" class="pw-fe-ui">
         <div id="pw-fe-logo" class="pw-fe-logo">
           <h1>Page<span>Walker</span></h1>
           <div id="pw-fe-logo-line" class="pw-fe-logo-line"></div>
           <p>${t("marketing.feTagline", "Discover your next world")}</p>
         </div>
-        <div id="pw-fe-cta" class="pw-fe-cta">
-          <a href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("marketing.feDownload", "Download on Android")}</a>
-          <span class="pw-fe-cta-sub">${t("marketing.feIosSoon", "iOS coming soon")}</span>
-        </div>
       </div>
-      <div id="pw-fe-scroll-hint" class="pw-fe-scroll-hint">${t("marketing.feScroll", "scroll to explore ↓")}</div>
-      <div id="pw-fe-disc-label" class="pw-fe-disc-label">${t("marketing.feDiscovering", "Now discovering")}</div>
-      <button type="button" id="pw-fe-skip" class="pw-fe-skip">${t("marketing.feSkip", "skip →")}</button>
+      <div class="pw-landing-track" id="pw-landing-track" tabindex="0" aria-label="PageWalker homepage">
+        <section class="pw-landing-page pw-landing-page--hero" data-page="0" aria-label="Intro">
+          <div class="pw-landing-page__inner pw-landing-page__inner--hero"></div>
+        </section>
+        <section class="pw-landing-page" data-page="1" aria-label="The app">
+          <div class="pw-landing-page__inner app-panel pw-editorial pw-landing-promise">
+            <p class="pw-kicker">${t("marketing.promiseKicker", "The app")}</p>
+            <h2>${t("marketing.promiseHeading", "A reading home worth opening every day")}</h2>
+            <p>${t(
+              "marketing.promiseBody",
+              "Track what you read, discover what's next, roast or rave in reviews, and argue about endings in book clubs — all in one place on your phone.",
+            )}</p>
+          </div>
+        </section>
+        <section class="pw-landing-page" data-page="2" aria-label="Features">
+          <div class="pw-landing-page__inner features pw-landing-features">
+            <h2>${t("home.featuresHeading", "Your reading universe")}</h2>
+            <div class="grid">
+              ${marketingFeatureCard("📚", t("home.feature1Title", "Discover & stack"), t("home.feature1Desc", "Hunt your next obsession, curate your TBR, and flex your finished pile like the main character you are."))}
+              ${marketingFeatureCard("⏱", t("home.feature2Title", "Track the vibe"), t("home.feature2Desc", "Sessions, streaks, and yearly wraps so your reading era gets the spotlight."))}
+              ${marketingFeatureCard("💬", t("home.feature3Title", "Gossip & clubs"), t("home.feature3Desc", "Hot takes, profiles, and book-club rooms for when you need to process that ending together."))}
+            </div>
+          </div>
+        </section>
+        <section class="pw-landing-page" data-page="3" aria-label="What's new">
+          <div class="pw-landing-page__inner app-panel pw-landing-whatsnew">
+            <p class="pw-kicker">${t("home.whatsNew", "What's new")}</p>
+            <h2>${t("marketing.whatsNewHeading", "Fresh in the app")}</h2>
+            <ul class="pw-whatsnew-teasers">
+              <li>
+                <strong>${t("updates.i2.title", "English & Hungarian")}</strong>
+                <span>${t("marketing.whatsNewTease1", "Pick your language in the app settings.")}</span>
+              </li>
+              <li>
+                <strong>${t("updates.i4.title", "Built for readers")}</strong>
+                <span>${t("marketing.whatsNewTease2", "Discovery, TBR stacks, sessions, reviews, and book clubs.")}</span>
+              </li>
+            </ul>
+            <p class="pw-whatsnew-foot">${t("marketing.whatsNewFoot", "Update the app to try the latest — details on our updates page.")}</p>
+            <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
+          </div>
+        </section>
+        <section class="pw-landing-page" data-page="4" aria-label="Download">
+          <div class="pw-landing-page__inner pw-landing-page__inner--cta">
+            <section class="features pw-landing-quotes">
+              <h2>${t("home.quotesHeading", "Little reading joys")}</h2>
+              <p class="pw-landing-quotes__intro">${t("home.quotesIntro", "Tiny reminders for when you need one more chapter.")}</p>
+              <div class="grid">
+                <figure class="quote-card">
+                  <blockquote>${t("home.quote1", "Stack the TBR. Slay the slump. Repeat.")}</blockquote>
+                  <figcaption>${t("home.quote1Cap", "— The Pagewalker mood")}</figcaption>
+                </figure>
+                <figure class="quote-card">
+                  <blockquote>${t("home.quote2", "Your plot-twist era starts on page one.")}</blockquote>
+                  <figcaption>${t("home.quote2Cap", "— For night-owl readers")}</figcaption>
+                </figure>
+                <figure class="quote-card">
+                  <blockquote>${t("home.quote3", "Stars, shelves, and a little bit of chaos.")}</blockquote>
+                  <figcaption>${t("home.quote3Cap", "— Book club optional, drama guaranteed")}</figcaption>
+                </figure>
+              </div>
+            </section>
+            <section class="cta-band pw-landing-cta" id="pw-download">
+              <div class="cta-inner">
+                <h2>${t("marketing.ctaHeading", "Your next chapter starts in the app")}</h2>
+                <p class="cta-lede">${t(
+                  "marketing.ctaLede",
+                  "Download PageWalker free on Google Play. Subscriptions and premium features live in the app.",
+                )}</p>
+                <div class="cta-actions">
+                  <a class="btn" href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("home.ctaPlay", "Get it on Google Play")}</a>
+                  <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+      <nav class="pw-landing-dots" id="pw-landing-dots" aria-label="Page sections">
+        <button type="button" class="pw-landing-dot is-active" data-page="0" aria-label="Intro" aria-current="true"></button>
+        <button type="button" class="pw-landing-dot" data-page="1" aria-label="The app"></button>
+        <button type="button" class="pw-landing-dot" data-page="2" aria-label="Features"></button>
+        <button type="button" class="pw-landing-dot" data-page="3" aria-label="What's new"></button>
+        <button type="button" class="pw-landing-dot" data-page="4" aria-label="Download"></button>
+      </nav>
     </div>
-    <div class="pw-landing-below">
-    <section class="pw-landing-promise app-panel pw-editorial">
-      <p class="pw-kicker">${t("marketing.promiseKicker", "The app")}</p>
-      <h2>${t("marketing.promiseHeading", "A reading home worth opening every day")}</h2>
-      <p>${t(
-        "marketing.promiseBody",
-        "Track what you read, discover what’s next, roast or rave in reviews, and argue about endings in book clubs — all in one place on your phone.",
-      )}</p>
-    </section>
-    <section class="features pw-landing-features">
-      <h2>${t("home.featuresHeading", "Your reading universe")}</h2>
-      <div class="grid">
-        ${marketingFeatureCard("📚", t("home.feature1Title", "Discover & stack"), t("home.feature1Desc", "Hunt your next obsession, curate your TBR, and flex your finished pile like the main character you are."))}
-        ${marketingFeatureCard("⏱", t("home.feature2Title", "Track the vibe"), t("home.feature2Desc", "Sessions, streaks, and yearly wraps so your reading era gets the spotlight."))}
-        ${marketingFeatureCard("💬", t("home.feature3Title", "Gossip & clubs"), t("home.feature3Desc", "Hot takes, profiles, and book-club rooms for when you need to process that ending together."))}
-      </div>
-    </section>
-    <section class="app-panel pw-landing-whatsnew">
-      <p class="pw-kicker">${t("home.whatsNew", "What's new")}</p>
-      <h2>${t("marketing.whatsNewHeading", "Fresh in the app")}</h2>
-      <ul class="pw-whatsnew-teasers">
-        <li>
-          <strong>${t("updates.i2.title", "English & Hungarian")}</strong>
-          <span>${t("marketing.whatsNewTease1", "Pick your language in the app settings.")}</span>
-        </li>
-        <li>
-          <strong>${t("updates.i4.title", "Built for readers")}</strong>
-          <span>${t("marketing.whatsNewTease2", "Discovery, TBR stacks, sessions, reviews, and book clubs.")}</span>
-        </li>
-      </ul>
-      <p class="pw-whatsnew-foot">${t("marketing.whatsNewFoot", "Update the app to try the latest — details on our updates page.")}</p>
-      <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
-    </section>
-    <section class="features pw-landing-quotes">
-      <h2>${t("home.quotesHeading", "Little reading joys")}</h2>
-      <p class="pw-landing-quotes__intro">${t("home.quotesIntro", "Tiny reminders for when you need one more chapter.")}</p>
-      <div class="grid">
-        <figure class="quote-card">
-          <blockquote>${t("home.quote1", "Stack the TBR. Slay the slump. Repeat.")}</blockquote>
-          <figcaption>${t("home.quote1Cap", "— The Pagewalker mood")}</figcaption>
-        </figure>
-        <figure class="quote-card">
-          <blockquote>${t("home.quote2", "Your plot-twist era starts on page one.")}</blockquote>
-          <figcaption>${t("home.quote2Cap", "— For night-owl readers")}</figcaption>
-        </figure>
-        <figure class="quote-card">
-          <blockquote>${t("home.quote3", "Stars, shelves, and a little bit of chaos.")}</blockquote>
-          <figcaption>${t("home.quote3Cap", "— Book club optional, drama guaranteed")}</figcaption>
-        </figure>
-      </div>
-    </section>
-    </div>
-    <section class="cta-band" id="pw-download">
-      <div class="cta-inner">
-        <h2>${t("marketing.ctaHeading", "Your next chapter starts in the app")}</h2>
-        <p class="cta-lede">${t(
-          "marketing.ctaLede",
-          "Download PageWalker free on Google Play. Subscriptions and premium features live in the app.",
-        )}</p>
-        <div class="cta-actions">
-          <a class="btn" href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("home.ctaPlay", "Get it on Google Play")}</a>
-          <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
-        </div>
-      </div>
-    </section>
     <div class="pw-sticky-download" aria-hidden="false">
       <a class="btn pw-sticky-download__btn" href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("marketing.getApp", "Get the app")}</a>
     </div>
