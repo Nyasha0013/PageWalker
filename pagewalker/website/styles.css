@@ -1,56 +1,21 @@
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Dancing+Script:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap");
 
-/* ───── Palette (mirrors Flutter `AppColors` Classic + webLogo* tokens) ───── */
+/* ───── Palette — deep space (dark only) ───── */
 :root {
-  /* Light (default) */
-  --bg: #ffffff;
-  --bg-soft: #fafafa;
-  --surface: #f5f5f5;
-  --card: #ffffff;
-  --card-alt: #eeeeee;
-  --border: rgba(255, 107, 26, 0.22);
+  --bg: #04020e;
+  --bg-soft: #08051a;
+  --surface: #0c0820;
+  --card: rgba(14, 10, 32, 0.82);
+  --card-alt: rgba(20, 14, 40, 0.88);
+  --border: rgba(255, 107, 26, 0.28);
   --border-strong: rgba(255, 107, 26, 0.55);
-  --text: #0a0a0a;
-  --text-secondary: #444444;
-  --text-muted: #888888;
+  --text: #f0eaf8;
+  --text-secondary: #b8b0cc;
+  --text-muted: #7a7290;
 
   --primary: #ff6b1a;
   --primary-light: #ff8c42;
   --accent: #ffaa55;
-  --primary-soft: rgba(255, 107, 26, 0.1);
-
-  --error-bg: #fee;
-  --error-border: rgba(229, 57, 53, 0.5);
-  --error-text: #9b1c1c;
-  --success-bg: #e9f7ee;
-  --success-border: rgba(67, 160, 71, 0.45);
-  --success-text: #1b5e20;
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 8px 28px rgba(10, 10, 10, 0.08);
-  --shadow-lg: 0 16px 48px rgba(10, 10, 10, 0.1);
-  --header-bg: rgba(255, 255, 255, 0.85);
-  --header-border: rgba(10, 10, 10, 0.06);
-
-  --radius: 14px;
-  --radius-lg: 22px;
-  --font: "Nunito", system-ui, -apple-system, sans-serif;
-  --font-display: "Cormorant Garamond", Georgia, serif;
-  --font-wordmark: "Dancing Script", "Brush Script MT", cursive;
-}
-
-html[data-theme="dark"] {
-  --bg: #0a0a0a;
-  --bg-soft: #111111;
-  --surface: #141414;
-  --card: #1c1c1c;
-  --card-alt: #242424;
-  --border: rgba(255, 107, 26, 0.25);
-  --border-strong: rgba(255, 107, 26, 0.55);
-  --text: #f5f5f5;
-  --text-secondary: #bbbbbb;
-  --text-muted: #777777;
-
   --primary-soft: rgba(255, 107, 26, 0.16);
 
   --error-bg: rgba(229, 57, 53, 0.15);
@@ -63,8 +28,14 @@ html[data-theme="dark"] {
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 18px 60px rgba(0, 0, 0, 0.65);
-  --header-bg: rgba(10, 10, 10, 0.78);
-  --header-border: rgba(255, 107, 26, 0.18);
+  --header-bg: rgba(4, 2, 14, 0.82);
+  --header-border: rgba(255, 107, 26, 0.2);
+
+  --radius: 14px;
+  --radius-lg: 22px;
+  --font: "Nunito", system-ui, -apple-system, sans-serif;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-wordmark: "Dancing Script", "Brush Script MT", cursive;
 }
 
 /* ───── Base ───── */
@@ -76,7 +47,7 @@ html[data-theme="dark"] {
 
 html {
   scroll-behavior: smooth;
-  color-scheme: light dark;
+  color-scheme: dark;
 }
 
 body {
@@ -85,23 +56,17 @@ body {
   color: var(--text);
   line-height: 1.65;
   min-height: 100vh;
-  background: var(--bg);
-  transition: background-color 0.25s ease, color 0.25s ease;
+  background: transparent;
 }
 
-/* Subtle orange ambient glow in dark mode only */
-html[data-theme="dark"] body::before {
-  content: "";
+#pw-space-canvas {
   position: fixed;
   inset: 0;
-  pointer-events: none;
   z-index: 0;
-  background:
-    radial-gradient(ellipse 600px 360px at 10% 0%, rgba(255, 107, 26, 0.1), transparent 60%),
-    radial-gradient(ellipse 500px 320px at 90% 100%, rgba(255, 107, 26, 0.06), transparent 60%);
+  pointer-events: none;
 }
 
-body > * {
+body > *:not(#pw-space-canvas) {
   position: relative;
   z-index: 1;
 }
@@ -252,53 +217,6 @@ a:focus-visible {
   border-color: var(--primary);
 }
 
-.pw-theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  width: auto;
-  min-width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--text);
-  cursor: pointer;
-  padding: 0 0.65rem;
-  transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
-}
-
-.pw-theme-toggle:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  transform: translateY(-1px);
-}
-
-.pw-theme-toggle svg {
-  width: 18px;
-  height: 18px;
-  display: block;
-}
-
-.pw-theme-toggle-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.pw-theme-toggle [data-icon] {
-  display: none;
-}
-
-html[data-theme="light"] .pw-theme-toggle[data-mode="light"] [data-icon="sun"] { display: block; }
-html[data-theme="light"] .pw-theme-toggle[data-mode="dark"]  [data-icon="moon"] { display: block; }
-html[data-theme="light"] .pw-theme-toggle[data-mode="system"] [data-icon="system"] { display: block; }
-html[data-theme="dark"] .pw-theme-toggle[data-mode="light"] [data-icon="sun"] { display: block; }
-html[data-theme="dark"] .pw-theme-toggle[data-mode="dark"]  [data-icon="moon"] { display: block; }
-html[data-theme="dark"] .pw-theme-toggle[data-mode="system"] [data-icon="system"] { display: block; }
-
 /* ───── Buttons ───── */
 .btn {
   display: inline-flex;
@@ -432,6 +350,8 @@ html[data-theme="dark"] .pw-theme-toggle[data-mode="system"] [data-icon="system"
 
 .card {
   background: var(--card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-lg);
   padding: 1.75rem 1.6rem;
   box-shadow: var(--shadow-md);
@@ -589,8 +509,16 @@ footer {
   border-top: 1px solid var(--header-border);
   padding: 2rem 0;
   margin-top: 1rem;
-  background: var(--bg-soft);
+  background: rgba(4, 2, 14, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    background: var(--bg);
+  }
 }
 
 footer .inner {
@@ -724,10 +652,6 @@ footer .copy {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-html[data-theme="dark"] .form-stack input {
-  background: var(--bg-soft);
-}
-
 .form-stack input:focus {
   outline: none;
   border-color: var(--primary);
@@ -811,6 +735,8 @@ html[data-theme="dark"] .form-stack input {
 
 .updates-list li {
   background: var(--card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   border-left: 3px solid var(--primary);
   border-radius: var(--radius-lg);
@@ -1155,18 +1081,6 @@ body.pw-app-drawer-open {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-}
-
-.site-controls--drawer .pw-theme-toggle {
-  width: 100%;
-  min-height: 2.4rem;
-  height: auto;
-  min-width: 0;
-  padding: 0.45rem 0.7rem;
-  box-sizing: border-box;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.4rem 0.5rem;
 }
 
 a.pw-drawer__item {
@@ -1773,9 +1687,6 @@ a.pw-discover-tablink[data-active] {
 .pw-auth-nudge {
   box-sizing: border-box;
   pointer-events: auto;
-  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.12));
-}
-html[data-theme="dark"] .pw-auth-nudge {
   filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.55));
 }
 
@@ -1896,6 +1807,8 @@ html[data-theme="dark"] .pw-auth-nudge {
 
 .app-panel {
   background: var(--card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -2774,13 +2687,8 @@ body.pw-modal-open {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.36) 50%, transparent 100%);
-  animation: pw-shimmer 1.2s infinite;
-}
-
-html[data-theme="dark"] .pw-shimmer-block::after,
-html[data-theme="dark"] .pw-shimmer-line::after {
   background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.11) 50%, transparent 100%);
+  animation: pw-shimmer 1.2s infinite;
 }
 
 @keyframes pw-shimmer {
@@ -3160,7 +3068,7 @@ html[data-pw-fe-active] .webapp-content {
 .pw-landing-below {
   position: relative;
   z-index: 12;
-  background: var(--bg);
+  background: transparent;
 }
 
 .pw-landing-whatsnew {
