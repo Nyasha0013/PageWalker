@@ -894,8 +894,47 @@ footer .copy {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+}
+
+.app-header-nav {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 1.75rem;
+  flex: 1 1 auto;
+}
+
+.app-header-nav__link {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.app-header-nav__link:hover,
+.app-header-nav__link.is-active {
+  color: var(--text);
+}
+
+.app-header-nav__link.is-active {
+  font-weight: 800;
+}
+
+html[data-pw-marketing] .app-header-nav {
+  display: flex;
+}
+
+html[data-pw-marketing] .app-header-inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+}
+
+html[data-pw-marketing] .app-header-start {
+  flex: none;
 }
 
 .pw-header-menu {
@@ -2857,263 +2896,245 @@ html[data-pw-marketing] .pw-header-get-app {
   }
 }
 
-/* ───── Full scroll experience (Three.js) ───── */
-html[data-pw-fe-active] {
-  overflow: hidden;
-  height: 100%;
+/* ───── Bento marketing homepage ───── */
+.pw-bento-home {
+  padding-bottom: 2rem;
 }
 
-html[data-pw-fe-active] body {
-  overflow: hidden;
-  height: 100%;
+.pw-bento {
+  display: grid;
+  gap: 1.15rem;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  grid-template-areas:
+    "hero quotes"
+    "features side";
+  padding: clamp(1rem, 3vw, 1.75rem) 0 2.5rem;
 }
 
-html[data-pw-fe-active] .web-app-main {
-  padding-top: 0;
-  height: 100vh;
-  min-height: 0;
-  overflow: hidden;
-}
-
-html[data-pw-fe-active] .webapp-content {
-  height: 100%;
-  overflow: hidden;
-}
-
-html[data-pw-fe-active] footer {
-  display: none;
-}
-
-html[data-pw-fe-active] .site-header {
-  position: sticky;
-  z-index: 30;
-  background: rgba(4, 2, 14, 0.72);
-}
-
-.pw-landing {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.pw-landing-track {
+.pw-bento-hero { grid-area: hero; }
+.pw-bento-quotes { grid-area: quotes; }
+.pw-bento-features { grid-area: features; }
+.pw-bento-side {
+  grid-area: side;
   display: flex;
-  width: 100%;
-  height: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  flex-direction: column;
+  gap: 1.15rem;
+  min-height: 0;
 }
 
-.pw-landing-track::-webkit-scrollbar {
-  display: none;
+.pw-bento-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: clamp(1.15rem, 2.5vw, 1.65rem);
 }
 
-.pw-landing-page {
-  flex: 0 0 100%;
-  width: 100%;
-  height: 100%;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+.pw-bento-card__head {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: clamp(4.5rem, 11vh, 6.5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(3rem, 8vh, 4rem);
-  box-sizing: border-box;
-  position: relative;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
 }
 
-.pw-landing-page--hero {
-  pointer-events: none;
-}
-
-.pw-landing-page__inner {
-  width: min(100%, 44rem);
-  opacity: 0;
-  transform: translate3d(28px, 0, 0);
-  transition: opacity 0.55s ease, transform 0.55s ease;
-}
-
-.pw-landing-page.is-visible .pw-landing-page__inner,
-.pw-landing-page.is-near .pw-landing-page__inner {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
-
-.pw-landing-page:nth-child(even) .pw-landing-page__inner {
-  transform: translate3d(-28px, 0, 0);
-}
-
-.pw-landing-page__inner--hero {
-  opacity: 1;
-  transform: none;
-}
-
-.pw-landing-page__inner--cta {
-  width: min(100%, 52rem);
-  display: grid;
-  gap: 1.5rem;
-}
-
-.pw-landing-cta {
+.pw-bento-card__head h2 {
   margin: 0;
-  border-radius: var(--radius-lg);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.2vw, 1.55rem);
+  font-weight: 600;
+  color: var(--text);
 }
 
-.pw-landing-dots {
-  position: fixed;
-  left: 50%;
-  bottom: 1.35rem;
-  transform: translateX(-50%);
+.pw-bento-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 42%);
+  gap: 1rem 1.25rem;
+  align-items: center;
+  min-height: 280px;
+}
+
+.pw-bento-hero__title {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.85rem, 4vw, 2.75rem);
+  line-height: 1.12;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pw-bento-hero__tagline {
+  margin: 0 0 0.75rem;
+  color: var(--primary);
+  font-style: italic;
+  letter-spacing: 0.06em;
+  font-size: 0.98rem;
+}
+
+.pw-bento-hero__lede {
+  margin: 0 0 1.25rem;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  max-width: 38rem;
+}
+
+.pw-bento-hero__actions {
   display: flex;
-  gap: 0.55rem;
-  z-index: 25;
-  pointer-events: all;
+  flex-wrap: wrap;
+  gap: 0.65rem;
 }
 
-.pw-landing-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: transparent;
+.pw-bento-hero__art {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pw-bento-hero__svg {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+}
+
+.pw-bento-quotes__intro {
+  margin: -0.35rem 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.pw-bento-discussion-list {
+  list-style: none;
+  margin: 0;
   padding: 0;
-  cursor: pointer;
-  transition: background 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  display: grid;
+  gap: 0.85rem;
 }
 
-.pw-landing-dot.is-active {
-  background: #ff6b1a;
-  border-color: #ff6b1a;
-  transform: scale(1.15);
+.pw-bento-discussion {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius);
+  background: rgba(255, 107, 26, 0.06);
+  border: 1px solid rgba(255, 107, 26, 0.14);
 }
 
-#pw-fe-canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
+.pw-bento-discussion__avatar {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.pw-bento-discussion__quote {
+  margin: 0 0 0.2rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.pw-bento-discussion__meta {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.pw-bento-feature-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.pw-bento-feature-row .pw-landing-feature {
+  margin: 0;
   height: 100%;
-  z-index: 1;
-  transition: opacity 0.6s ease;
 }
 
-.pw-fe-letter-stage {
-  position: fixed;
-  inset: 0;
-  z-index: 11;
-  pointer-events: none;
-  perspective: 900px;
-  transform-style: preserve-3d;
+.pw-bento-whatsnew {
+  flex: 1 1 auto;
 }
 
-.pw-fe-letter {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  display: block;
-  font-family: Georgia, serif;
-  font-size: clamp(2.3rem, 8vw, 6.2rem);
-  font-weight: 500;
-  line-height: 1;
-  color: #f8f2ff;
-  text-shadow:
-    0 0 18px rgba(255, 107, 26, 0.48),
-    0 0 54px rgba(120, 90, 255, 0.32);
-  will-change: transform, opacity;
-  transform-origin: center;
+.pw-bento-whatsnew .pw-whatsnew-teasers {
+  margin-top: 0.5rem;
 }
 
-.pw-fe-ui {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+.pw-bento-cta {
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding-top: clamp(5.5rem, 14vh, 8rem);
-  z-index: 10;
-  pointer-events: none;
-  text-align: center;
-  transition: opacity 0.45s ease;
+  justify-content: center;
+  gap: 0.65rem;
+  background: linear-gradient(160deg, rgba(255, 107, 26, 0.14), rgba(14, 10, 32, 0.92));
 }
 
-.pw-fe-logo {
-  opacity: 0;
-  transform: translateY(16px);
-  transition: opacity 1.8s ease, transform 1.8s ease;
-  text-align: center;
-  font-family: Georgia, serif;
+.pw-bento-cta__icon {
+  font-size: 1.75rem;
+  line-height: 1;
 }
 
-.pw-fe-logo h1 {
-  font-size: clamp(2rem, 5.5vw, 3.8rem);
-  color: #fff;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  text-shadow: 0 0 55px rgba(255, 107, 26, 0.5);
+.pw-bento-cta h2 {
   margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2vw, 1.35rem);
+  line-height: 1.25;
 }
 
-.pw-fe-logo h1 span {
-  color: #ff6b1a;
+.pw-bento-cta__lede {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
-.pw-fe-logo-line {
-  width: 0;
-  height: 1.5px;
-  background: linear-gradient(to right, transparent, #ff6b1a, transparent);
-  margin: 0.8rem auto;
-  transition: width 1.8s ease 0.4s;
+.pw-bento-cta__btn {
+  margin-top: 0.35rem;
+  width: 100%;
+  max-width: 14rem;
 }
 
-.pw-fe-logo p {
-  font-size: clamp(0.75rem, 1.8vw, 0.95rem);
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 0.15em;
-  font-style: italic;
-}
-
-@media (max-width: 780px) {
-  .pw-fe-ui {
-    padding-top: clamp(5rem, 16vh, 7rem);
-    padding-inline: 1.25rem;
+@media (max-width: 980px) {
+  .pw-bento {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "hero"
+      "quotes"
+      "features"
+      "side";
   }
 
-  .pw-fe-logo h1 {
-    font-size: clamp(1.75rem, 9vw, 2.9rem);
-    letter-spacing: 0.055em;
+  .pw-bento-hero {
+    grid-template-columns: 1fr;
   }
 
-  .pw-fe-letter {
-    font-size: clamp(2rem, 12vw, 3.6rem);
+  .pw-bento-hero__art {
+    order: -1;
+    max-height: 200px;
+    overflow: hidden;
   }
 
-  .pw-landing-page {
-    padding-bottom: 4.5rem;
+  .pw-bento-feature-row {
+    grid-template-columns: 1fr;
   }
 
-  .pw-landing-dots {
-    bottom: 4.75rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pw-fe-letter-stage,
-  #pw-fe-canvas {
-    display: none !important;
+  html[data-pw-marketing] .app-header-nav {
+    display: none;
   }
 
-  .pw-landing-page__inner {
-    opacity: 1;
-    transform: none;
+  html[data-pw-marketing] .app-header-inner {
+    display: flex;
+    justify-content: space-between;
   }
 }
 
@@ -3131,7 +3152,7 @@ html[data-pw-fe-active] .site-header {
 
 .pw-whatsnew-teasers li {
   padding: 1rem 1.15rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--card);
 }

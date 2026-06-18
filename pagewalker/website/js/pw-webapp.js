@@ -915,45 +915,86 @@ function renderAppDownloadGate(route) {
   `;
 }
 
+function bentoQuoteRow(avatarLabel, quote, caption) {
+  return `<li class="pw-bento-discussion">
+    <span class="pw-bento-discussion__avatar" aria-hidden="true">${escapeHtml(avatarLabel)}</span>
+    <div class="pw-bento-discussion__body">
+      <p class="pw-bento-discussion__quote">${escapeHtml(quote)}</p>
+      <p class="pw-bento-discussion__meta">${escapeHtml(caption)}</p>
+    </div>
+  </li>`;
+}
+
+function renderHomeHeroArt() {
+  return `<svg class="pw-bento-hero__svg" viewBox="0 0 420 320" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <ellipse cx="210" cy="292" rx="150" ry="18" fill="rgba(255,107,26,0.12)"/>
+    <path d="M72 250c18-72 58-108 138-108s120 36 138 108" fill="rgba(255,107,26,0.08)" stroke="rgba(255,107,26,0.22)" stroke-width="2"/>
+    <rect x="118" y="188" width="184" height="72" rx="28" fill="rgba(20,14,40,0.9)" stroke="rgba(255,107,26,0.35)" stroke-width="2"/>
+    <rect x="286" y="206" width="52" height="58" rx="10" fill="rgba(255,107,26,0.15)" stroke="rgba(255,107,26,0.4)"/>
+    <rect x="294" y="214" width="18" height="42" rx="3" fill="#3d1b82"/>
+    <rect x="314" y="220" width="16" height="36" rx="3" fill="#142f55"/>
+    <circle cx="332" cy="248" r="10" fill="#26104f" stroke="rgba(255,107,26,0.45)"/>
+    <path d="M168 118c0-34 24-58 54-58s54 24 54 58v26H168v-26z" fill="#f0c9a8"/>
+    <circle cx="222" cy="88" r="34" fill="#2a1a12"/>
+    <path d="M188 82c8-18 26-28 44-28 24 0 42 16 42 38" stroke="#2a1a12" stroke-width="10" stroke-linecap="round"/>
+    <path d="M150 156c-8 42 6 88 34 118 20 22 48 34 78 34" stroke="#ff6b1a" stroke-width="34" stroke-linecap="round"/>
+    <path d="M164 170c12 30 34 52 62 62" stroke="#d64612" stroke-width="26" stroke-linecap="round"/>
+    <rect x="196" y="178" width="58" height="72" rx="8" fill="#1f5b35" stroke="rgba(255,255,255,0.15)"/>
+    <path d="M318 170c18 24 28 54 28 86" stroke="#a97518" stroke-width="22" stroke-linecap="round"/>
+    <path d="M132 176c-16 20-24 46-24 74" stroke="#a97518" stroke-width="20" stroke-linecap="round"/>
+    <ellipse cx="96" cy="214" rx="22" ry="30" fill="rgba(31,91,53,0.55)"/>
+    <ellipse cx="96" cy="206" rx="18" ry="22" fill="rgba(67,160,71,0.35)"/>
+  </svg>`;
+}
+
 function renderHome(_supabase, _session) {
   return `
-    <div class="pw-landing" id="pw-landing">
-      <canvas id="pw-fe-canvas" aria-hidden="true"></canvas>
-      <div id="pw-fe-ui" class="pw-fe-ui">
-        <div id="pw-fe-logo" class="pw-fe-logo">
-          <h1>Page<span>Walker</span></h1>
-          <div id="pw-fe-logo-line" class="pw-fe-logo-line"></div>
-          <p>${t("marketing.feTagline", "Discover your next world")}</p>
-        </div>
-      </div>
-      <div class="pw-landing-track" id="pw-landing-track" tabindex="0" aria-label="PageWalker homepage">
-        <section class="pw-landing-page pw-landing-page--hero" data-page="0" aria-label="Intro">
-          <div class="pw-landing-page__inner pw-landing-page__inner--hero"></div>
-        </section>
-        <section class="pw-landing-page" data-page="1" aria-label="The app">
-          <div class="pw-landing-page__inner app-panel pw-editorial pw-landing-promise">
+    <div class="pw-bento-home">
+      <div class="pw-bento wrap">
+        <article class="pw-bento-card pw-bento-hero">
+          <div class="pw-bento-hero__copy">
             <p class="pw-kicker">${t("marketing.promiseKicker", "The app")}</p>
-            <h2>${t("marketing.promiseHeading", "A reading home worth opening every day")}</h2>
-            <p>${t(
+            <h1 class="pw-bento-hero__title">${t("marketing.promiseHeading", "A reading home worth opening every day")}</h1>
+            <p class="pw-bento-hero__tagline">${t("marketing.feTagline", "Discover your next world")}</p>
+            <p class="pw-bento-hero__lede">${t(
               "marketing.promiseBody",
               "Track what you read, discover what's next, roast or rave in reviews, and argue about endings in book clubs — all in one place on your phone.",
             )}</p>
-          </div>
-        </section>
-        <section class="pw-landing-page" data-page="2" aria-label="Features">
-          <div class="pw-landing-page__inner features pw-landing-features">
-            <h2>${t("home.featuresHeading", "Your reading universe")}</h2>
-            <div class="grid">
-              ${marketingFeatureCard("📚", t("home.feature1Title", "Discover & stack"), t("home.feature1Desc", "Hunt your next obsession, curate your TBR, and flex your finished pile like the main character you are."))}
-              ${marketingFeatureCard("⏱", t("home.feature2Title", "Track the vibe"), t("home.feature2Desc", "Sessions, streaks, and yearly wraps so your reading era gets the spotlight."))}
-              ${marketingFeatureCard("💬", t("home.feature3Title", "Gossip & clubs"), t("home.feature3Desc", "Hot takes, profiles, and book-club rooms for when you need to process that ending together."))}
+            <div class="pw-bento-hero__actions cta-actions">
+              <a class="btn" href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("home.ctaPlay", "Get it on Google Play")}</a>
+              <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
             </div>
           </div>
+          <div class="pw-bento-hero__art">${renderHomeHeroArt()}</div>
+        </article>
+
+        <aside class="pw-bento-card pw-bento-quotes" aria-labelledby="pw-bento-quotes-heading">
+          <div class="pw-bento-card__head">
+            <h2 id="pw-bento-quotes-heading">${t("home.quotesHeading", "Little reading joys")}</h2>
+          </div>
+          <p class="pw-bento-quotes__intro">${t("home.quotesIntro", "Tiny reminders for when you need one more chapter.")}</p>
+          <ul class="pw-bento-discussion-list">
+            ${bentoQuoteRow("PW", t("home.quote1", "Stack the TBR. Slay the slump. Repeat."), t("home.quote1Cap", "— The Pagewalker mood"))}
+            ${bentoQuoteRow("📖", t("home.quote2", "Your plot-twist era starts on page one."), t("home.quote2Cap", "— For night-owl readers"))}
+            ${bentoQuoteRow("✨", t("home.quote3", "Stars, shelves, and a little bit of chaos."), t("home.quote3Cap", "— Book club optional, drama guaranteed"))}
+          </ul>
+        </aside>
+
+        <section class="pw-bento-card pw-bento-features" aria-labelledby="pw-bento-features-heading">
+          <div class="pw-bento-card__head">
+            <h2 id="pw-bento-features-heading">${t("home.featuresHeading", "Your reading universe")}</h2>
+          </div>
+          <div class="pw-bento-feature-row">
+            ${marketingFeatureCard("📚", t("home.feature1Title", "Discover & stack"), t("home.feature1Desc", "Hunt your next obsession, curate your TBR, and flex your finished pile like the main character you are."))}
+            ${marketingFeatureCard("⏱", t("home.feature2Title", "Track the vibe"), t("home.feature2Desc", "Sessions, streaks, and yearly wraps so your reading era gets the spotlight."))}
+            ${marketingFeatureCard("💬", t("home.feature3Title", "Gossip & clubs"), t("home.feature3Desc", "Hot takes, profiles, and book-club rooms for when you need to process that ending together."))}
+          </div>
         </section>
-        <section class="pw-landing-page" data-page="3" aria-label="What's new">
-          <div class="pw-landing-page__inner app-panel pw-landing-whatsnew">
+
+        <div class="pw-bento-side">
+          <section class="pw-bento-card pw-bento-whatsnew pw-landing-whatsnew" aria-labelledby="pw-bento-whatsnew-heading">
             <p class="pw-kicker">${t("home.whatsNew", "What's new")}</p>
-            <h2>${t("marketing.whatsNewHeading", "Fresh in the app")}</h2>
+            <h2 id="pw-bento-whatsnew-heading">${t("marketing.whatsNewHeading", "Fresh in the app")}</h2>
             <ul class="pw-whatsnew-teasers">
               <li>
                 <strong>${t("updates.i2.title", "English & Hungarian")}</strong>
@@ -966,51 +1007,19 @@ function renderHome(_supabase, _session) {
             </ul>
             <p class="pw-whatsnew-foot">${t("marketing.whatsNewFoot", "Update the app to try the latest — details on our updates page.")}</p>
             <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
-          </div>
-        </section>
-        <section class="pw-landing-page" data-page="4" aria-label="Download">
-          <div class="pw-landing-page__inner pw-landing-page__inner--cta">
-            <section class="features pw-landing-quotes">
-              <h2>${t("home.quotesHeading", "Little reading joys")}</h2>
-              <p class="pw-landing-quotes__intro">${t("home.quotesIntro", "Tiny reminders for when you need one more chapter.")}</p>
-              <div class="grid">
-                <figure class="quote-card">
-                  <blockquote>${t("home.quote1", "Stack the TBR. Slay the slump. Repeat.")}</blockquote>
-                  <figcaption>${t("home.quote1Cap", "— The Pagewalker mood")}</figcaption>
-                </figure>
-                <figure class="quote-card">
-                  <blockquote>${t("home.quote2", "Your plot-twist era starts on page one.")}</blockquote>
-                  <figcaption>${t("home.quote2Cap", "— For night-owl readers")}</figcaption>
-                </figure>
-                <figure class="quote-card">
-                  <blockquote>${t("home.quote3", "Stars, shelves, and a little bit of chaos.")}</blockquote>
-                  <figcaption>${t("home.quote3Cap", "— Book club optional, drama guaranteed")}</figcaption>
-                </figure>
-              </div>
-            </section>
-            <section class="cta-band pw-landing-cta" id="pw-download">
-              <div class="cta-inner">
-                <h2>${t("marketing.ctaHeading", "Your next chapter starts in the app")}</h2>
-                <p class="cta-lede">${t(
-                  "marketing.ctaLede",
-                  "Download PageWalker free on Google Play. Subscriptions and premium features live in the app.",
-                )}</p>
-                <div class="cta-actions">
-                  <a class="btn" href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("home.ctaPlay", "Get it on Google Play")}</a>
-                  <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
-                </div>
-              </div>
-            </section>
-          </div>
-        </section>
+          </section>
+
+          <section class="pw-bento-card pw-bento-cta" id="pw-download" aria-labelledby="pw-bento-cta-heading">
+            <span class="pw-bento-cta__icon" aria-hidden="true">💬</span>
+            <h2 id="pw-bento-cta-heading">${t("marketing.ctaHeading", "Your next chapter starts in the app")}</h2>
+            <p class="pw-bento-cta__lede">${t(
+              "marketing.ctaLede",
+              "Download PageWalker free on Google Play. Subscriptions and premium features live in the app.",
+            )}</p>
+            <a class="btn pw-bento-cta__btn" href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("marketing.getApp", "Get the app")}</a>
+          </section>
+        </div>
       </div>
-      <nav class="pw-landing-dots" id="pw-landing-dots" aria-label="Page sections">
-        <button type="button" class="pw-landing-dot is-active" data-page="0" aria-label="Intro" aria-current="true"></button>
-        <button type="button" class="pw-landing-dot" data-page="1" aria-label="The app"></button>
-        <button type="button" class="pw-landing-dot" data-page="2" aria-label="Features"></button>
-        <button type="button" class="pw-landing-dot" data-page="3" aria-label="What's new"></button>
-        <button type="button" class="pw-landing-dot" data-page="4" aria-label="Download"></button>
-      </nav>
     </div>
     <div class="pw-sticky-download" aria-hidden="false">
       <a class="btn pw-sticky-download__btn" href="${PLAY_STORE_URL}" rel="noopener noreferrer">${t("marketing.getApp", "Get the app")}</a>
@@ -2949,11 +2958,7 @@ async function renderRoute(supabase, session) {
   root.classList.remove("pw-route-enter");
   root.innerHTML = renderRouteSkeleton(route);
   root.innerHTML = await renderCurrentRoute(supabase, session, route);
-  if (route === "/") {
-    if (window.initFullExperience) window.initFullExperience();
-  } else if (window.destroyFullExperience) {
-    window.destroyFullExperience();
-  }
+  if (window.destroyFullExperience) window.destroyFullExperience();
   requestAnimationFrame(() => {
     root.classList.add("pw-route-enter");
   });

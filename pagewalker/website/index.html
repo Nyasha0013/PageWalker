@@ -20,7 +20,6 @@
     <title data-i18n-title="home.title">Pagewalker — Reading, together</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -30,6 +29,11 @@
         <div class="app-header-start">
           <a class="logo" href="/" data-link-route="/">Pagewalker</a>
         </div>
+        <nav class="app-header-nav" aria-label="Site">
+          <a class="app-header-nav__link is-active" href="/" data-link-route="/" data-i18n="appNav.home">Home</a>
+          <a class="app-header-nav__link" href="/updates" data-i18n="nav.updates">Updates</a>
+          <a class="app-header-nav__link" href="/about" data-i18n="nav.about">About</a>
+        </nav>
         <div class="app-header-right">
           <a
             class="btn pw-header-get-app"
@@ -193,7 +197,6 @@
     <script src="/js/pw-space-bg.js"></script>
     <script src="/js/pw-theme.js"></script>
     <script src="/js/public-config.js"></script>
-    <script src="/js/pw-full-experience.js"></script>
     <script type="module" src="/js/pw-webapp.js"></script>
   </body>
 </html>
