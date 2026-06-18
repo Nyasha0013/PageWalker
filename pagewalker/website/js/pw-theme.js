@@ -1,16 +1,77 @@
 (function () {
   "use strict";
-
+  var STORAGE_KEY = "pw-theme";
+  var VALID = ["light", "dark", "system"];
+  // Must match `styles.css` --primary (#ff6b1a) and Flutter `AppColors.webLogoOrange`.
   var BRAND_ORANGE = { r: 255, g: 107, b: 26 };
+  // Light header mark: `styles.css` --text (#0a0a0a) and Flutter `AppColors.webLogoInk`.
+  var LOGO_INK = { r: 10, g: 10, b: 10 };
   var root = document.documentElement;
+  var mql = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
   var logoPromise = null;
-  var logoCache = null;
+  var logoCache = { dark: null, light: null };
 
-  root.setAttribute("data-theme", "dark");
-  var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", "#04020e");
+  function getMode() {
+    try {
+      var v = localStorage.getItem(STORAGE_KEY);
+      return VALID.indexOf(v) !== -1 ? v : "system";
+    } catch (_) {
+      return "system";
+    }
+  }
 
-  function buildLogoVariant() {
+  function resolve(mode) {
+    if (mode === "dark") return "dark";
+    if (mode === "light") return "light";
+    return mql && mql.matches ? "dark" : "light";
+  }
+
+  function apply(mode) {
+    var resolved = resolve(mode);
+    root.setAttribute("data-theme", resolved);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute("content", resolved === "dark" ? "#0a0a0a" : "#ff6b1a");
+    }
+    var toggles = document.querySelectorAll(".pw-theme-toggle");
+    for (var i = 0; i < toggles.length; i++) {
+      toggles[i].setAttribute("data-mode", mode);
+      toggles[i].setAttribute("aria-label", labelFor(mode));
+      var labelNode = toggles[i].querySelector(".pw-theme-toggle-label");
+      if (labelNode) labelNode.textContent = modeLabel(mode);
+    }
+    applyLogoTheme(resolved);
+  }
+
+  function labelFor(mode) {
+    if (window.pwT) return window.pwT("toolbar.themeAria." + mode);
+    if (mode === "light") return "Light theme — click to switch to dark";
+    if (mode === "dark") return "Dark theme — click to switch to system";
+    return "System theme — click to switch to light";
+  }
+
+  function modeLabel(mode) {
+    if (window.pwT) return window.pwT("toolbar.themeMode." + mode);
+    if (mode === "light") return "Light mode";
+    if (mode === "dark") return "Dark mode";
+    return "System mode";
+  }
+
+  function setMode(mode) {
+    if (VALID.indexOf(mode) === -1) mode = "system";
+    try {
+      localStorage.setItem(STORAGE_KEY, mode);
+    } catch (_) {}
+    apply(mode);
+  }
+
+  function cycle() {
+    var cur = getMode();
+    var next = cur === "light" ? "dark" : cur === "dark" ? "system" : "light";
+    setMode(next);
+  }
+
+  function buildLogoVariants() {
     if (logoPromise) return logoPromise;
     logoPromise = new Promise(function (resolvePromise) {
       var img = new Image();
@@ -25,7 +86,11 @@
           var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
           var p = data.data;
           for (var i = 0; i < p.length; i += 4) {
-            if (p[i] < 26 && p[i + 1] < 26 && p[i + 2] < 26) {
+            var r = p[i];
+            var g = p[i + 1];
+            var b = p[i + 2];
+            // Chroma key: treat near-black as transparent.
+            if (r < 26 && g < 26 && b < 26) {
               p[i + 3] = 0;
             } else {
               p[i] = BRAND_ORANGE.r;
@@ -35,7 +100,21 @@
             }
           }
           ctx.putImageData(data, 0, 0);
-          logoCache = cropCanvasToOpaque(canvas).toDataURL("image/png");
+          var croppedDark = cropCanvasToOpaque(canvas);
+          logoCache.dark = croppedDark.toDataURL("image/png");
+
+          var dataLight = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          var pl = dataLight.data;
+          for (var j = 0; j < pl.length; j += 4) {
+            if (pl[j + 3] === 0) continue;
+            // Light mode: black mark on light header (dark mode keeps brand orange above).
+            pl[j] = LOGO_INK.r;
+            pl[j + 1] = LOGO_INK.g;
+            pl[j + 2] = LOGO_INK.b;
+          }
+          ctx.putImageData(dataLight, 0, 0);
+          var croppedLight = cropCanvasToOpaque(canvas);
+          logoCache.light = croppedLight.toDataURL("image/png");
           resolvePromise(true);
         } catch (_) {
           resolvePromise(false);
@@ -88,11 +167,12 @@
     return out;
   }
 
-  function applyLogo() {
-    if (!logoCache) return;
+  function applyLogoTheme(resolvedTheme) {
+    if (!logoCache.dark || !logoCache.light) return;
     var logos = document.querySelectorAll(".pw-logo-image");
+    var src = resolvedTheme === "dark" ? logoCache.dark : logoCache.light;
     for (var i = 0; i < logos.length; i++) {
-      logos[i].src = logoCache;
+      logos[i].src = src;
       logos[i].hidden = false;
     }
   }
@@ -103,8 +183,11 @@
     var isWebAppShell = root.getAttribute("data-pw-page") === "web-app";
     for (var i = 0; i < nodes.length; i++) {
       var node = nodes[i];
+      // Keep logo/icon behavior consistent: always return to home.
       node.setAttribute("href", "/");
-      if (isWebAppShell) node.setAttribute("data-link-route", "/");
+      if (isWebAppShell) {
+        node.setAttribute("data-link-route", "/");
+      }
       if (node.querySelector(".pw-logo-image")) continue;
       node.classList.add("logo-has-image");
       var label = node.textContent.trim() || "Pagewalker";
@@ -119,8 +202,44 @@
       node.appendChild(img);
       node.appendChild(text);
     }
-    buildLogoVariant().then(applyLogo);
+    buildLogoVariants().then(function () {
+      applyLogoTheme(root.getAttribute("data-theme") === "dark" ? "dark" : "light");
+    });
   }
 
-  document.addEventListener("DOMContentLoaded", setupLogos);
+  apply(getMode());
+
+  if (mql) {
+    var listener = function () {
+      if (getMode() === "system") apply("system");
+    };
+    if (mql.addEventListener) mql.addEventListener("change", listener);
+    else if (mql.addListener) mql.addListener(listener);
+  }
+
+  window.pwTheme = {
+    get: getMode,
+    set: setMode,
+    cycle: cycle,
+    apply: apply,
+  };
+
+  document.addEventListener("DOMContentLoaded", function () {
+    setupLogos();
+    var toggles = document.querySelectorAll(".pw-theme-toggle");
+    for (var i = 0; i < toggles.length; i++) {
+      if (!toggles[i].querySelector(".pw-theme-toggle-label")) {
+        var text = document.createElement("span");
+        text.className = "pw-theme-toggle-label";
+        text.textContent = modeLabel(getMode());
+        toggles[i].appendChild(text);
+      }
+      toggles[i].addEventListener("click", cycle);
+    }
+    apply(getMode());
+  });
+
+  document.addEventListener("pw:i18n-ready", function () {
+    apply(getMode());
+  });
 })();
