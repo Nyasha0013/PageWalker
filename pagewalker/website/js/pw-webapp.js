@@ -2,6 +2,7 @@ import { getSupabase } from "./pw-supabase.js";
 import { initUserMenu } from "./pw-user-menu.js";
 import { closeAuthNudge, guardAuthAction } from "./pw-auth-nudge.js";
 import { initAppDrawer } from "./pw-drawer.js";
+import { initHomeHeroParallax } from "./pw-hero.js";
 
 const APP_ROUTES = new Set([
   "/",
@@ -1023,16 +1024,33 @@ async function renderHomeDashboard(supabase, session) {
   `;
 }
 
+async function fetchReadersThisWeekCount(supabase) {
+  try {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const { count, error } = await supabase
+      .from("user_books")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "reading")
+      .gte("updated_at", weekAgo.toISOString());
+    if (error || count == null) return null;
+    return count;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function renderHomeGuest(session) {
-  const [trendingBooks, latestReviews] = await Promise.all([
+  const supabase = await getSupabase();
+  const [trendingBooks, latestReviews, readersThisWeek] = await Promise.all([
     runSafeQuery(async () => {
       const json = await fetchJson("/api/books?type=trending");
       return extractBooksFromApiResponse(json).slice(0, 12);
     }, "Trending unavailable."),
     runSafeQuery(async () => {
-      const supabase = await getSupabase();
       return fetchReviewsWithAuthorRows(supabase, 4);
     }, "Reviews unavailable."),
+    runSafeQuery(() => fetchReadersThisWeekCount(supabase), ""),
   ]);
   const trendRows = trendingBooks.filter((x) => !x.__error);
   const reviewRows = latestReviews.filter((x) => !x.__error);
@@ -1040,45 +1058,56 @@ async function renderHomeGuest(session) {
   const joinLabel = session?.user
     ? t("home.joinSignedIn", "Open your library")
     : t("home.joinCta", "Join Pagewalker");
-  const statValue = trendRows.length
-    ? `${String(trendRows.length).padStart(2, "0")}+`
-    : t("home.statFallbackValue", "Live");
+  const readerCount =
+    typeof readersThisWeek === "number" && !Number.isNaN(readersThisWeek) ? readersThisWeek : null;
+  const statValue =
+    readerCount != null && readerCount > 0
+      ? readerCount.toLocaleString()
+      : t("home.statFallbackValue", "—");
+  const statSub =
+    readerCount != null && readerCount > 0
+      ? t("home.statReadersWeek", "people reading this week")
+      : t("home.statSub", "Trending picks refreshed on Discover");
   return `
     <div class="pw-home">
-      <section class="pw-home-hero" aria-labelledby="pw-home-title">
+      <section class="pw-home-hero" data-pw-hero aria-labelledby="pw-home-title">
         <div class="pw-hero-scene" aria-hidden="true">
-          <div class="pw-hero-scene__stars"></div>
-          <div class="pw-hero-scene__glow"></div>
-          <svg class="pw-hero-scene__cloud pw-hero-scene__cloud--a" viewBox="0 0 240 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M40 78c0-22 18-40 40-40 8 0 15 2 21 6 7-18 26-30 47-30 29 0 52 23 52 52 0 3 0 6-.5 9H40v3Z" fill="rgba(239,230,211,0.55)"/>
-          </svg>
-          <svg class="pw-hero-scene__cloud pw-hero-scene__cloud--b" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M28 62c0-18 15-32 33-32 7 0 13 2 18 5 6-14 22-24 40-24 24 0 43 19 43 43 0 2 0 5-.4 7H28v1Z" fill="rgba(245,240,230,0.42)"/>
-          </svg>
-          <svg class="pw-hero-scene__figure" viewBox="0 0 64 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="32" cy="18" rx="10" ry="10" fill="#16140F"/>
-            <path d="M18 92c2-24 8-38 14-46 4-5 8-8 14-8s10 3 14 8c6 8 12 22 14 46H18Z" fill="#16140F"/>
-          </svg>
+          <picture class="pw-hero-scene__picture">
+            <source media="(max-width: 860px)" srcset="/assets/hero-book-cloud-mobile.png" />
+            <img
+              class="pw-hero-scene__media"
+              src="/assets/hero-book-cloud.png"
+              alt=""
+              width="1920"
+              height="1080"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </picture>
         </div>
         <div class="pw-hero-overlay" aria-hidden="true"></div>
-        <aside class="pw-hero-stat" aria-label="${t("home.statLabel", "Community pulse")}">
-          <p class="pw-hero-stat__label">${t("home.statLabel", "Community pulse")}</p>
-          <p class="pw-hero-stat__value">${escapeHtml(statValue)}</p>
-          <p class="pw-hero-stat__sub">${t("home.statSub", "Trending picks refreshed on Discover")}</p>
-        </aside>
-        <div class="pw-home-hero__content">
-          <div class="pw-store-row">
-            <a class="pw-store-pill" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer">
-              <span aria-hidden="true">▶</span>
-              ${t("home.storeAndroid", "Get Android app")}
-            </a>
+        <div class="pw-hero-foreground wrap" data-pw-hero-foreground>
+          <div class="pw-home-hero__content">
+            <div class="pw-hero-scrim">
+              <div class="pw-store-row">
+                <a class="pw-store-pill" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer">
+                  <span aria-hidden="true">▶</span>
+                  ${t("home.storeAndroid", "Get Android app")}
+                </a>
+              </div>
+              <h1 id="pw-home-title">${t("home.heroHeadline", "Walk your shelves.")}</h1>
+              <p class="pw-hero-lede">${t(
+                "home.heroLede",
+                "Pagewalker is your reading home on web and app - discover your next book, track your progress, and share honest reviews with people who love stories as much as you do.",
+              )}</p>
+              <a class="btn" href="${joinHref}">${escapeHtml(joinLabel)}</a>
+            </div>
           </div>
-          <h1 id="pw-home-title">${t("home.heroHeadline", "Walk your shelves.")}</h1>
-          <p class="pw-hero-lede">${t(
-            "home.heroLede",
-            "Pagewalker is your reading home on web and app - discover your next book, track your progress, and share honest reviews with people who love stories as much as you do.",
-          )}</p>
-          <a class="btn" href="${joinHref}">${escapeHtml(joinLabel)}</a>
+          <aside class="pw-hero-stat" aria-label="${t("home.statLabel", "Community pulse")}">
+            <p class="pw-hero-stat__label">${t("home.statLabel", "Community pulse")}</p>
+            <p class="pw-hero-stat__value">${escapeHtml(statValue)}</p>
+            <p class="pw-hero-stat__sub">${escapeHtml(statSub)}</p>
+          </aside>
         </div>
       </section>
 
@@ -3153,6 +3182,7 @@ async function renderRoute(supabase, session) {
     bindBookPageActions(supabase, session, rerender);
   }
   bindBookModalActions();
+  if (route === "/") initHomeHeroParallax();
 }
 
 function initLinks(render) {

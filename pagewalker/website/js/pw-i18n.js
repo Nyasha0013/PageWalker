@@ -316,6 +316,7 @@
       "home.statLabel": "Community pulse",
       "home.statFallbackValue": "Live",
       "home.statSub": "Trending picks refreshed on Discover",
+      "home.statReadersWeek": "people reading this week",
       "home.pillarsLabel": "What you can do",
       "home.pillarFind": "Find",
       "home.pillarFindDesc": "Search, moods, and explainable picks.",
