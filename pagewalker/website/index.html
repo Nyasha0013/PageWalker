@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#ff6b1a" />
+    <meta name="theme-color" content="#16140f" />
     <meta name="description" data-i18n-meta="appShell.metaDescription" content="Pagewalker web app: library, discover, social, clubs, and reader tools." />
     <meta property="og:title" content="Pagewalker" />
     <meta property="og:description" data-i18n-meta="appShell.metaDescription" content="Pagewalker web app: library, discover, social, clubs, and reader tools." />
@@ -215,6 +215,29 @@
         <p class="copy" data-i18n="common.copy">© 2026 Pagewalker. All rights reserved.</p>
       </div>
     </footer>
+
+    <nav class="pw-bottom-nav" aria-label="Primary navigation">
+      <a href="/" data-link-route="/" data-bottom-nav="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.5Z"/></svg>
+        <span data-i18n="appNav.home">Home</span>
+      </a>
+      <a href="/library" data-link-route="/library" data-bottom-nav="library">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span data-i18n="appNav.library">Library</span>
+      </a>
+      <a href="/discover" data-link-route="/discover" data-bottom-nav="discover">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span data-i18n="appNav.discover">Discover</span>
+      </a>
+      <a href="/discover#trending" data-link-route="/discover" data-discover-jump="trending" data-bottom-nav="trending">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 17l6-6 4 4 8-10"/><path d="M14 5h7v7"/></svg>
+        <span data-i18n="home.navTrending">Trending</span>
+      </a>
+      <button type="button" id="pw-bottom-search" data-bottom-nav="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span data-i18n="home.navSearch">Search</span>
+      </button>
+    </nav>
 
     <script src="/js/pw-i18n.js"></script>
     <script src="/js/pw-theme.js"></script>

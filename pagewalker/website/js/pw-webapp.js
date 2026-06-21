@@ -123,20 +123,30 @@ function setActiveRoute(route) {
     }
   }
   _lastNavRouteForDiscover = route;
-  const discoverJumpLinks = document.querySelectorAll("a.pw-drawer__sublink, a.pw-discover-tablink");
+  const discoverJumpLinks = document.querySelectorAll("a.pw-drawer__sublink, a.pw-discover-tablink, a[data-bottom-nav]");
   const v = getDiscoverView();
   for (let i = 0; i < discoverJumpLinks.length; i += 1) {
-    const jump = discoverJumpLinks[i].getAttribute("data-discover-jump") || "";
-    const active = route === "/discover" && Boolean(jump) && jump === v;
-    discoverJumpLinks[i].toggleAttribute("data-active", active);
+    const el = discoverJumpLinks[i];
+    const jump = el.getAttribute("data-discover-jump") || "";
+    const navRoute = el.getAttribute("data-link-route") || "";
+    const bottomNav = el.getAttribute("data-bottom-nav") || "";
+    let active = false;
+    if (bottomNav === "home") active = route === "/";
+    else if (bottomNav === "library") active = route === "/library";
+    else if (bottomNav === "discover") active = route === "/discover" && v === "hub";
+    else if (bottomNav === "trending") active = route === "/discover" && v === "trending";
+    else if (jump) active = route === "/discover" && jump === v;
+    else active = navRoute === route;
+    el.toggleAttribute("data-active", active);
   }
   const otherNav = document.querySelectorAll(
-    "[data-link-route]:not(a.pw-drawer__item):not(a.pw-drawer__sublink):not(a.pw-discover-tablink):not(a.pw-discover-hub-card)",
+    "[data-link-route]:not(a.pw-drawer__item):not(a.pw-drawer__sublink):not(a.pw-discover-tablink):not(a.pw-discover-hub-card):not(a[data-bottom-nav])",
   );
   for (let i = 0; i < otherNav.length; i += 1) {
     const path = otherNav[i].getAttribute("data-link-route");
     otherNav[i].toggleAttribute("data-active", path === route);
   }
+  document.body.classList.toggle("pw-has-bottom-nav", true);
 }
 
 /** Hub vs one section: /discover vs /discover#… */
@@ -856,11 +866,168 @@ async function fetchReviewsForBook(supabase, bookId, limit = 40) {
   return data.map((r) => ({ ...r, profiles: byId[r.user_id] || null }));
 }
 
-async function renderHome(_supabase, _session) {
-  const [trendingBooks, latestReviews] = await Promise.all([
+async function renderHome(supabase, session) {
+  if (session?.user) {
+    return renderHomeDashboard(supabase, session);
+  }
+  return renderHomeGuest(session);
+}
+
+function renderBookCoverTile(book) {
+  const cover = fixCoverUrl(book.coverUrl || book.cover_url);
+  const title = escapeHtml(book.title || "Untitled");
+  const author = escapeHtml(book.author || "");
+  const routeBook = {
+    id: book.id || book.book_id || "",
+    title: book.title || "Untitled",
+    author: book.author || "",
+    coverUrl: cover,
+  };
+  const href = escapeHtml(buildBookShareUrl(routeBook));
+  return `
+    <a class="pw-cover-tile" href="${href}" data-link-route="/book">
+      ${cover ? `<img src="${escapeHtml(cover)}" alt="${title} cover" loading="lazy" />` : `<span class="pw-cover-tile__fallback">PW</span>`}
+      <span class="pw-cover-tile__meta"><strong>${title}</strong>${author ? `<span>${author}</span>` : ""}</span>
+    </a>
+  `;
+}
+
+async function renderHomeDashboard(supabase, session) {
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const monthStartIso = monthStart.toISOString();
+
+  const [profileRow, userBooks, trendingBooks, feedReviews] = await Promise.all([
+    runSafeQuery(async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name, full_name, username")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? [data] : [];
+    }, ""),
+    runSafeQuery(async () => {
+      const { data, error } = await supabase
+        .from("user_books")
+        .select("id, status, title, author, book_id, updated_at, books(id,title,author,cover_url)")
+        .eq("user_id", session.user.id)
+        .order("updated_at", { ascending: false })
+        .limit(80);
+      if (error) throw error;
+      return data || [];
+    }, t("appShell.missingUserBooks", "Could not load library.")),
     runSafeQuery(async () => {
       const json = await fetchJson("/api/books?type=trending");
       return extractBooksFromApiResponse(json).slice(0, 6);
+    }, ""),
+    runSafeQuery(async () => fetchReviewsWithAuthorRows(supabase, 5), ""),
+  ]);
+
+  const profile = profileRow[0] && !profileRow[0].__error ? profileRow[0] : {};
+  const displayName =
+    profile.display_name ||
+    profile.full_name ||
+    profile.username ||
+    String(session.user.email || "reader").split("@")[0] ||
+    "reader";
+  const books = userBooks.filter((r) => !r.__error).map((r) => {
+    const b = r.books || {};
+    return {
+      id: r.book_id || b.id || "",
+      book_id: r.book_id,
+      title: r.title || b.title || "Untitled",
+      author: r.author || b.author || "",
+      cover_url: b.cover_url || null,
+      status: r.status,
+      updated_at: r.updated_at,
+    };
+  });
+  const readingNow = books.filter((b) => b.status === "reading").slice(0, 6);
+  const readThisMonth = books.filter(
+    (b) => b.status === "read" && b.updated_at && String(b.updated_at) >= monthStartIso,
+  ).length;
+  const trendRows = trendingBooks.filter((x) => !x.__error).slice(0, 6);
+  const feedRows = feedReviews.filter((x) => !x.__error);
+
+  return `
+    <div class="pw-dashboard">
+      <header class="pw-dashboard-head wrap">
+        <div>
+          <h1>${t("home.dashboardHi", "Hi {name}").replace("{name}", escapeHtml(displayName))}</h1>
+          <p class="muted">${t("home.dashboardWelcome", "Welcome to your reading dashboard.")}</p>
+        </div>
+        <a class="pw-dashboard-edit btn btn-outline" href="/profile" data-link-route="/profile">${t("home.dashboardEdit", "Edit")}</a>
+      </header>
+
+      <section class="pw-dash-card wrap">
+        <h2 class="pw-dash-card__title">${t("home.currentlyReading", "Currently Reading")}</h2>
+        ${
+          readingNow.length
+            ? `<div class="pw-home-scroll">${readingNow.map((b) => renderBookCoverTile(b)).join("")}</div>`
+            : `<p class="pw-dash-empty">${t(
+                "home.currentlyReadingEmpty",
+                "You are not reading anything right now — pick your next book?",
+              )} <a href="/discover" data-link-route="/discover">${t("home.pickBook", "Browse Discover")}</a></p>`
+        }
+        <div class="pw-dash-nested">
+          <div class="pw-section-head">
+            <h3>${t("home.trendingMonth", "Books trending this month")}</h3>
+            <a href="/discover#trending" data-link-route="/discover" data-discover-jump="trending">${t("home.viewAll", "View all")}</a>
+          </div>
+          <div class="pw-home-scroll">
+            ${trendRows.length ? trendRows.map((book) => renderBookCoverTile(book)).join("") : `<p class="muted">${t("home.trendingEmpty", "Trending picks will appear here soon.")}</p>`}
+          </div>
+        </div>
+      </section>
+
+      <section class="pw-dash-card wrap">
+        <div class="pw-section-head">
+          <h2 class="pw-dash-card__title">${t("home.statsMonth", "Stats — This Month")}</h2>
+          <a href="/profile" data-link-route="/profile">${t("home.viewAll", "View all")}</a>
+        </div>
+        ${
+          readThisMonth
+            ? `<p class="pw-dash-stat"><span class="pw-dash-stat__num">${readThisMonth}</span> ${t("home.booksReadMonth", "books finished this month")}</p>`
+            : `<p class="pw-dash-empty">${t("home.statsMonthEmpty", "You have not finished any books yet this month.")}</p>`
+        }
+      </section>
+
+      <section class="pw-dash-card wrap">
+        <div class="pw-section-head">
+          <h2 class="pw-dash-card__title">${t("home.feed", "Feed")}</h2>
+          <a href="/social" data-link-route="/social">${t("home.viewAll", "View all")}</a>
+        </div>
+        ${
+          feedRows.length
+            ? `<div class="pw-review-feed">${feedRows
+                .map(
+                  (review) => `
+            <article class="pw-review-row">
+              <p><strong>${escapeHtml(review.book_title || review.title || "Book")}</strong> · ${toStars(review.rating ?? review.star_rating)}</p>
+              <p>${escapeHtml(truncateText(review.review_text || "", 120))}</p>
+              <p class="muted">by ${escapeHtml(review.profiles?.display_name || review.profiles?.username || "Reader")}</p>
+            </article>`,
+                )
+                .join("")}</div>`
+            : `<p class="pw-dash-empty">${t("home.feedEmpty", "No recent activity.")} <a href="/social" data-link-route="/social">${t("home.feedCta", "Open Social")}</a></p>`
+        }
+      </section>
+
+      <section class="pw-dash-card wrap">
+        <h2 class="pw-dash-card__title">${t("home.readingGoals", "Reading Goals")}</h2>
+        <p class="pw-dash-empty">${t("home.goalsEmpty", "You have not set any reading goals yet.")} <a href="/profile" data-link-route="/profile">${t("home.goalsCta", "Set a goal in Profile")}</a></p>
+      </section>
+    </div>
+  `;
+}
+
+async function renderHomeGuest(session) {
+  const [trendingBooks, latestReviews] = await Promise.all([
+    runSafeQuery(async () => {
+      const json = await fetchJson("/api/books?type=trending");
+      return extractBooksFromApiResponse(json).slice(0, 12);
     }, "Trending unavailable."),
     runSafeQuery(async () => {
       const supabase = await getSupabase();
@@ -869,66 +1036,131 @@ async function renderHome(_supabase, _session) {
   ]);
   const trendRows = trendingBooks.filter((x) => !x.__error);
   const reviewRows = latestReviews.filter((x) => !x.__error);
+  const joinHref = session?.user ? "/library" : "/sign-up";
+  const joinLabel = session?.user
+    ? t("home.joinSignedIn", "Open your library")
+    : t("home.joinCta", "Join Pagewalker");
+  const statValue = trendRows.length
+    ? `${String(trendRows.length).padStart(2, "0")}+`
+    : t("home.statFallbackValue", "Live");
   return `
-    <section class="hero">
-      <div class="hero-inner">
-        <h1>
-          <span>${t("home.heroLine1", "Walk your shelves.")}</span><br />
-          <span class="accent">${t("home.heroLine2", "Share the story.")}</span>
-        </h1>
-        <p class="lede">${t("home.heroLede", "Your cozy corner for TBR piles, reading streaks, spicy reviews, and book-club chaos — all the bookish energy, none of the pirated pages.")}</p>
-        <div class="hero-actions">
-          <a class="badge-play" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer" aria-label="${t("home.playAlt", "Get it on Google Play")}">
-            <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="${t("home.playAlt", "Get it on Google Play")}" width="646" height="250" />
-          </a>
+    <div class="pw-home">
+      <section class="pw-home-hero" aria-labelledby="pw-home-title">
+        <div class="pw-hero-scene" aria-hidden="true">
+          <div class="pw-hero-scene__stars"></div>
+          <div class="pw-hero-scene__glow"></div>
+          <svg class="pw-hero-scene__cloud pw-hero-scene__cloud--a" viewBox="0 0 240 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M40 78c0-22 18-40 40-40 8 0 15 2 21 6 7-18 26-30 47-30 29 0 52 23 52 52 0 3 0 6-.5 9H40v3Z" fill="rgba(239,230,211,0.55)"/>
+          </svg>
+          <svg class="pw-hero-scene__cloud pw-hero-scene__cloud--b" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M28 62c0-18 15-32 33-32 7 0 13 2 18 5 6-14 22-24 40-24 24 0 43 19 43 43 0 2 0 5-.4 7H28v1Z" fill="rgba(245,240,230,0.42)"/>
+          </svg>
+          <svg class="pw-hero-scene__figure" viewBox="0 0 64 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="32" cy="18" rx="10" ry="10" fill="#16140F"/>
+            <path d="M18 92c2-24 8-38 14-46 4-5 8-8 14-8s10 3 14 8c6 8 12 22 14 46H18Z" fill="#16140F"/>
+          </svg>
         </div>
-        <p class="hero-tagline">${t("home.heroTagline", "Free on Google Play · same login here & in the app")}</p>
-      </div>
-    </section>
-    <section class="app-panel pw-editorial">
-      <p class="pw-kicker">The Pagewalker edit</p>
-      <h2>A reading home inspired by your best ideas</h2>
-      <p>Discover books in a poster-first view, keep a diary of your reading life, and share reviews with your community in one place.</p>
-    </section>
-    <section class="app-panel">
-      <div class="pw-section-head">
-        <h3>Hot this week</h3>
-        <a href="/discover" data-link-route="/discover">See more</a>
-      </div>
-      <div class="pw-poster-grid">
-        ${trendRows.map((book) => renderBookPosterCard(book)).join("")}
-      </div>
-    </section>
-    <section class="app-panel">
-      <div class="pw-section-head">
-        <h3>Reader buzz</h3>
-        <a href="/social" data-link-route="/social">Go to Social</a>
-      </div>
-      <p class="muted pw-section-note">${t(
-        "home.readerBuzzExplainer",
-        "Recent reviews from other readers. Open Social for the full feed. Trending books and search are on Discover.",
-      )}</p>
-      <div class="pw-review-feed">
-        ${reviewRows.length ? reviewRows.map((review) => `
+        <div class="pw-hero-overlay" aria-hidden="true"></div>
+        <aside class="pw-hero-stat" aria-label="${t("home.statLabel", "Community pulse")}">
+          <p class="pw-hero-stat__label">${t("home.statLabel", "Community pulse")}</p>
+          <p class="pw-hero-stat__value">${escapeHtml(statValue)}</p>
+          <p class="pw-hero-stat__sub">${t("home.statSub", "Trending picks refreshed on Discover")}</p>
+        </aside>
+        <div class="pw-home-hero__content">
+          <div class="pw-store-row">
+            <a class="pw-store-pill" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer">
+              <span aria-hidden="true">▶</span>
+              ${t("home.storeAndroid", "Get Android app")}
+            </a>
+          </div>
+          <h1 id="pw-home-title">${t("home.heroHeadline", "Walk your shelves.")}</h1>
+          <p class="pw-hero-lede">${t(
+            "home.heroLede",
+            "Pagewalker is your reading home on web and app - discover your next book, track your progress, and share honest reviews with people who love stories as much as you do.",
+          )}</p>
+          <a class="btn" href="${joinHref}">${escapeHtml(joinLabel)}</a>
+        </div>
+      </section>
+
+      <section class="pw-home-pillars wrap" aria-label="${t("home.pillarsLabel", "What you can do")}">
+        <a class="pw-pillar" href="/discover" data-link-route="/discover">
+          <span class="pw-pillar__icon" aria-hidden="true">🔎</span>
+          <h2 class="pw-pillar__title">${t("home.pillarFind", "Find")}</h2>
+          <p class="pw-pillar__desc">${t("home.pillarFindDesc", "Search, moods, and explainable picks.")}</p>
+        </a>
+        <a class="pw-pillar" href="/library" data-link-route="/library">
+          <span class="pw-pillar__icon" aria-hidden="true">📚</span>
+          <h2 class="pw-pillar__title">${t("home.pillarTrack", "Track")}</h2>
+          <p class="pw-pillar__desc">${t("home.pillarTrackDesc", "TBR, reading, read, and DNF shelves.")}</p>
+        </a>
+        <a class="pw-pillar" href="/social" data-link-route="/social" data-tone="moss">
+          <span class="pw-pillar__icon" aria-hidden="true">💬</span>
+          <h2 class="pw-pillar__title">${t("home.pillarConnect", "Connect")}</h2>
+          <p class="pw-pillar__desc">${t("home.pillarConnectDesc", "Reviews, follows, and club rooms.")}</p>
+        </a>
+        <a class="pw-pillar" href="/discover#trending" data-link-route="/discover" data-discover-jump="trending">
+          <span class="pw-pillar__icon" aria-hidden="true">✨</span>
+          <h2 class="pw-pillar__title">${t("home.pillarDiscover", "Discover")}</h2>
+          <p class="pw-pillar__desc">${t("home.pillarDiscoverDesc", "Trending titles and curated lists.")}</p>
+        </a>
+      </section>
+
+      <section class="pw-home-section wrap pw-marginalia-rail">
+        <span class="pw-marginalia-rail__tick" style="top:0.2rem">01</span>
+        <div class="pw-section-head">
+          <h2>${t("home.trendingHeading", "Trending on Pagewalker")}</h2>
+          <a href="/discover#trending" data-link-route="/discover" data-discover-jump="trending">${t("home.viewAll", "View all")}</a>
+        </div>
+        <p class="muted pw-section-note">${t(
+          "home.trendingNote",
+          "Books readers are adding and finishing lately — open Discover for the full list.",
+        )}</p>
+        <div class="pw-home-scroll">
+          ${trendRows.length
+            ? trendRows.map((book) => renderBookPosterCard(book)).join("")
+            : `<p class="muted">${t("home.trendingEmpty", "Trending picks will appear here soon.")}</p>`}
+        </div>
+      </section>
+
+      <section class="pw-home-section wrap pw-marginalia-rail">
+        <span class="pw-marginalia-rail__tick" style="top:0.2rem">02</span>
+        <div class="pw-section-head">
+          <h2>${t("home.buzzHeading", "Reader buzz")}</h2>
+          <a href="/social" data-link-route="/social">${t("home.goSocial", "Go to Social")}</a>
+        </div>
+        <p class="muted pw-section-note">${t(
+          "home.readerBuzzExplainer",
+          "Recent reviews from other readers. Open Social for the full feed. Trending books and search are on Discover.",
+        )}</p>
+        <div class="pw-review-feed">
+          ${reviewRows.length
+            ? reviewRows
+                .map(
+                  (review) => `
           <article class="pw-review-row">
             <p><strong>${escapeHtml(review.book_title || review.title || "Book")}</strong> · ${toStars(review.rating ?? review.star_rating)}</p>
             <p>${escapeHtml(truncateText(review.review_text || "", 130))}</p>
             <p class="muted">by ${escapeHtml(review.profiles?.display_name || review.profiles?.username || "Reader")}</p>
           </article>
-        `).join("") : `<p class="muted">Reviews will appear here as readers post.</p>`}
-      </div>
-    </section>
-    <section class="cta-band">
-      <div class="cta-inner">
-        <h2>${t("home.ctaHeading", "Start your next chapter")}</h2>
-        <p class="cta-lede">${t("home.ctaLede", "Get the app on Google Play, read release notes, or reach out for support.")}</p>
-        <div class="cta-actions">
-          <a class="btn" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer">${t("home.ctaPlay", "Get it on Google Play")}</a>
-          <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
-          <a class="btn btn-outline" href="/about">${t("nav.about", "About")}</a>
+        `,
+                )
+                .join("")
+            : `<p class="muted">${t("home.reviewsEmpty", "Reviews will appear here as readers post.")}</p>`}
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section class="cta-band">
+        <div class="cta-inner">
+          <h2>${t("home.ctaHeading", "Start your next chapter")}</h2>
+          <p class="cta-lede">${t("home.ctaLede", "Get the app on Google Play, read release notes, or reach out for support.")}</p>
+          <div class="cta-actions">
+            <a class="btn" href="https://play.google.com/store/apps/details?id=com.pagewalker.app" rel="noopener noreferrer">${t("home.ctaPlay", "Get it on Google Play")}</a>
+            <a class="btn btn-outline" href="/updates">${t("home.ctaUpdates", "Read updates")}</a>
+            <a class="btn btn-outline" href="/about">${t("nav.about", "About")}</a>
+          </div>
+        </div>
+      </section>
+    </div>
   `;
 }
 
@@ -2083,10 +2315,15 @@ function renderProtectedRouteGate(route) {
 function renderRouteSkeleton(route) {
   if (route === "/") {
     return `
-      <section class="app-panel pw-shimmer-block" style="height: 180px;"></section>
-      <section class="pw-poster-grid">
-        ${Array.from({ length: 6 }).map(() => `<article class="pw-poster-card"><div class="pw-poster-media pw-shimmer-block"></div><div class="pw-poster-copy"><div class="pw-shimmer-line"></div><div class="pw-shimmer-line short"></div></div></article>`).join("")}
-      </section>
+      <div class="pw-home">
+        <section class="pw-home-hero pw-shimmer-block" style="min-height: 20rem;border-radius:0"></section>
+        <section class="pw-home-pillars wrap">
+          ${Array.from({ length: 4 }).map(() => `<div class="pw-pillar pw-shimmer-block" style="min-height:5rem"></div>`).join("")}
+        </section>
+        <section class="pw-home-scroll">
+          ${Array.from({ length: 6 }).map(() => `<article class="pw-poster-card"><div class="pw-poster-media pw-shimmer-block"></div></article>`).join("")}
+        </section>
+      </div>
     `;
   }
   return `
@@ -2943,6 +3180,16 @@ function initLinks(render) {
   window.addEventListener("popstate", render);
 }
 
+function initBottomNav(render) {
+  const searchBtn = document.getElementById("pw-bottom-search");
+  searchBtn?.addEventListener("click", () => {
+    if (window.location.pathname !== "/discover" || window.location.hash !== "#search") {
+      window.history.pushState({}, "", "/discover#search");
+    }
+    render();
+  });
+}
+
 async function boot() {
   ensureAppPath();
   let supabase;
@@ -2989,6 +3236,7 @@ async function boot() {
   window.pwUserMenuRefresh = () => userMenu.refresh(session);
 
   initLinks(render);
+  initBottomNav(render);
   await userMenu.refresh(session);
   await render();
 

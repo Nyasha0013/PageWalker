@@ -1,0 +1,34 @@
+---
+description: Ask clarifying questions before starting a non-trivial build
+alwaysApply: true
+---
+
+# Clarify before building
+
+Before starting any non-trivial feature, redesign, or multi-file change, ask clarifying questions about scope, constraints, and desired outcome — unless the request already has enough detail to proceed unambiguously.
+
+Skip this for trivial fixes or one-line changes.
+
+## When to ask
+
+- New feature or behavior with unclear edge cases
+- Redesigns touching UX, architecture, or multiple layers
+- Multi-file refactors where trade-offs aren't stated
+- Requests that could be interpreted several ways
+
+## What to clarify
+
+- **Scope**: What's in vs out for this change?
+- **Constraints**: Performance, compatibility, deadlines, existing patterns to follow?
+- **Outcome**: What does "done" look like — behavior, UI, API, tests?
+
+## When to skip
+
+- Bug fixes with a clear repro and obvious fix
+- One-line or single-file edits with explicit intent
+- Follow-ups that narrow scope from an earlier answer in the same thread
+- Requests that already specify files, behavior, and acceptance criteria
+
+## How to ask
+
+Use `AskQuestion` when choices are discrete; otherwise ask briefly in chat. Don't block on questions when reasonable defaults exist — state assumptions and proceed only if the user prefers confirmation first.
