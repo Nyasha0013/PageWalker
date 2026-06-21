@@ -4,8 +4,8 @@
   "description": "Book discovery, reading tracking, and reader friends.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#ff6b1a",
+  "background_color": "#16140f",
+  "theme_color": "#16140f",
   "icons": [
     {
       "src": "/favicon.svg",
