@@ -1059,15 +1059,18 @@ async function renderHomeGuest(session) {
     ? t("home.joinSignedIn", "Open your library")
     : t("home.joinCta", "Join Pagewalker");
   const readerCount =
-    typeof readersThisWeek === "number" && !Number.isNaN(readersThisWeek) ? readersThisWeek : null;
-  const statValue =
-    readerCount != null && readerCount > 0
-      ? readerCount.toLocaleString()
-      : t("home.statFallbackValue", "—");
-  const statSub =
-    readerCount != null && readerCount > 0
-      ? t("home.statReadersWeek", "people reading this week")
-      : t("home.statSub", "Trending picks refreshed on Discover");
+    typeof readersThisWeek === "number" && !Number.isNaN(readersThisWeek) && readersThisWeek > 0
+      ? readersThisWeek
+      : null;
+  const statCardHtml =
+    readerCount != null
+      ? `
+          <aside class="pw-hero-stat" aria-label="${t("home.statLabel", "Community pulse")}">
+            <p class="pw-hero-stat__label">${t("home.statLabel", "Community pulse")}</p>
+            <p class="pw-hero-stat__value">${escapeHtml(readerCount.toLocaleString())}</p>
+            <p class="pw-hero-stat__sub">${t("home.statReadersWeek", "people reading this week")}</p>
+          </aside>`
+      : "";
   return `
     <div class="pw-home">
       <section class="pw-home-hero" data-pw-hero aria-labelledby="pw-home-title">
@@ -1103,11 +1106,7 @@ async function renderHomeGuest(session) {
               <a class="btn" href="${joinHref}">${escapeHtml(joinLabel)}</a>
             </div>
           </div>
-          <aside class="pw-hero-stat" aria-label="${t("home.statLabel", "Community pulse")}">
-            <p class="pw-hero-stat__label">${t("home.statLabel", "Community pulse")}</p>
-            <p class="pw-hero-stat__value">${escapeHtml(statValue)}</p>
-            <p class="pw-hero-stat__sub">${escapeHtml(statSub)}</p>
-          </aside>
+          ${statCardHtml}
         </div>
       </section>
 
