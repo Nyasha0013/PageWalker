@@ -47,6 +47,7 @@
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
   --font-wordmark: "Dancing Script", "Brush Script MT", cursive;
   --bottom-nav-h: 4.25rem;
+  --site-header-h: 5.75rem;
 }
 
 html[data-theme="dark"] {
@@ -2856,6 +2857,68 @@ body.pw-has-bottom-nav {
   padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px));
 }
 
+body.pw-home-immersive {
+  background: var(--ink);
+}
+
+body.pw-home-immersive .site-header {
+  background: linear-gradient(
+    180deg,
+    rgba(22, 20, 15, 0.78) 0%,
+    rgba(22, 20, 15, 0.42) 72%,
+    rgba(22, 20, 15, 0) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom-color: rgba(239, 230, 211, 0.1);
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    backdrop-filter 0.25s ease;
+}
+
+body.pw-home-immersive.pw-home-hero-scrolled .site-header {
+  background: var(--header-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom-color: var(--header-border);
+}
+
+body.pw-home-immersive:not(.pw-home-hero-scrolled) .pw-header-menu {
+  background: rgba(239, 230, 211, 0.12);
+  border-color: rgba(239, 230, 211, 0.28);
+  color: rgba(239, 230, 211, 0.92);
+}
+
+body.pw-home-immersive:not(.pw-home-hero-scrolled) .pw-header-menu:hover {
+  background: rgba(239, 230, 211, 0.2);
+  border-color: rgba(176, 141, 79, 0.45);
+  color: var(--parchment);
+}
+
+body.pw-home-immersive:not(.pw-home-hero-scrolled) .pw-user-avatar {
+  background: rgba(239, 230, 211, 0.12);
+  border-color: rgba(239, 230, 211, 0.28);
+  color: rgba(239, 230, 211, 0.92);
+}
+
+body.pw-home-immersive:not(.pw-home-hero-scrolled) .pw-bottom-nav {
+  background: rgba(22, 20, 15, 0.46);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top-color: rgba(176, 141, 79, 0.28);
+}
+
+body.pw-home-immersive:not(.pw-home-hero-scrolled) .pw-bottom-nav a,
+body.pw-home-immersive:not(.pw-home-hero-scrolled) .pw-bottom-nav button {
+  color: rgba(239, 230, 211, 0.82);
+}
+
+body.pw-home-immersive:not(.pw-home-hero-scrolled) .pw-bottom-nav a[data-active="true"],
+body.pw-home-immersive:not(.pw-home-hero-scrolled) .pw-bottom-nav button[data-active="true"] {
+  color: var(--ember-light);
+}
+
 .pw-home {
   display: flex;
   flex-direction: column;
@@ -2873,6 +2936,24 @@ body.pw-has-bottom-nav {
   min-height: clamp(28rem, 78vh, 42rem);
   overflow: hidden;
   color: var(--parchment);
+}
+
+body.pw-home-immersive .pw-home-hero {
+  margin-top: calc(-1 * var(--site-header-h));
+  min-height: calc(100dvh + var(--site-header-h));
+  min-height: calc(100svh + var(--site-header-h));
+}
+
+body.pw-home-immersive .pw-home-hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  height: clamp(4rem, 12vh, 7rem);
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, var(--bg) 100%);
 }
 
 .pw-hero-scene {
@@ -2917,6 +2998,12 @@ body.pw-has-bottom-nav {
   gap: clamp(1rem, 3vw, 2rem);
   padding: clamp(5.5rem, 14vw, 7rem) clamp(1rem, 4vw, 2rem) clamp(2.5rem, 6vw, 3.5rem);
   will-change: transform;
+}
+
+body.pw-home-immersive .pw-hero-foreground {
+  min-height: calc(100dvh + var(--site-header-h) - clamp(2.5rem, 6vw, 3.5rem));
+  min-height: calc(100svh + var(--site-header-h) - clamp(2.5rem, 6vw, 3.5rem));
+  padding-top: calc(var(--site-header-h) + env(safe-area-inset-top, 0px) + clamp(1rem, 4vw, 2rem));
 }
 
 .pw-hero-scrim {
@@ -3035,6 +3122,8 @@ body.pw-has-bottom-nav {
 }
 
 .pw-home-pillars {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.85rem;
@@ -3088,6 +3177,8 @@ body.pw-has-bottom-nav {
 }
 
 .pw-home-section {
+  position: relative;
+  z-index: 2;
   padding: 0 clamp(1rem, 4vw, 2rem) clamp(1.75rem, 4vw, 2.5rem);
   background: var(--bg);
 }
@@ -3231,9 +3322,20 @@ body.pw-has-bottom-nav {
     padding-top: clamp(4.5rem, 12vw, 5.5rem);
   }
 
+  body.pw-home-immersive .pw-hero-foreground {
+    padding-top: calc(var(--site-header-h) + env(safe-area-inset-top, 0px) + 0.75rem);
+    padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + 1.25rem);
+    min-height: calc(100dvh + var(--site-header-h) - var(--bottom-nav-h));
+    min-height: calc(100svh + var(--site-header-h) - var(--bottom-nav-h));
+  }
+
   .pw-hero-scene__media {
     animation: none !important;
-    object-position: 38% 40%;
+    object-position: 36% 44%;
+  }
+
+  body.pw-home-immersive .pw-hero-scene__media {
+    object-position: 34% 46%;
   }
 
   .pw-hero-scene,

@@ -3118,9 +3118,15 @@ async function renderRoute(supabase, session) {
     bookPageReviewPanelOpen = false;
   }
   if (!session?.user && PROTECTED_ROUTES.has(route)) {
+    document.body.classList.remove("pw-home-immersive", "pw-home-hero-scrolled");
     root.innerHTML = renderProtectedRouteGate(route);
     bindLockedGateActions();
     return;
+  }
+  const isGuestHome = route === "/" && !session?.user;
+  document.body.classList.toggle("pw-home-immersive", isGuestHome);
+  if (!isGuestHome) {
+    document.body.classList.remove("pw-home-hero-scrolled");
   }
   root.classList.remove("pw-route-enter");
   root.innerHTML = renderRouteSkeleton(route);
