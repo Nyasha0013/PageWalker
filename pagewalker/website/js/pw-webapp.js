@@ -151,6 +151,13 @@ function setActiveRoute(route) {
 }
 
 /** Hub vs one section: /discover vs /discover#… */
+/** Per-tab backdrop photo for the Discover scene. */
+function discoverSceneSrc(view) {
+  if (view === "trending") return "/assets/trending-beach.png";
+  if (view === "search") return "/assets/search-beach.png";
+  return "/assets/discover-sky.png";
+}
+
 function applyDiscoverPanelFromHash() {
   const root = document.getElementById("pw-discover-root");
   if (!root) return;
@@ -158,7 +165,7 @@ function applyDiscoverPanelFromHash() {
   root.setAttribute("data-pw-active", view);
   const media = document.getElementById("pw-discover-scene-media");
   if (media) {
-    const nextSrc = view === "trending" ? "/assets/trending-beach.png" : "/assets/discover-sky.png";
+    const nextSrc = discoverSceneSrc(view);
     if (!media.getAttribute("src").endsWith(nextSrc)) media.setAttribute("src", nextSrc);
   }
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1264,7 +1271,7 @@ async function renderDiscover(supabase, session) {
           <img
             id="pw-discover-scene-media"
             class="pw-hero-scene__media"
-            src="${discoverView === "trending" ? "/assets/trending-beach.png" : "/assets/discover-sky.png"}"
+            src="${discoverSceneSrc(discoverView)}"
             alt=""
             width="573"
             height="1024"
