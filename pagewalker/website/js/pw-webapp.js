@@ -154,7 +154,13 @@ function setActiveRoute(route) {
 function applyDiscoverPanelFromHash() {
   const root = document.getElementById("pw-discover-root");
   if (!root) return;
-  root.setAttribute("data-pw-active", getDiscoverView());
+  const view = getDiscoverView();
+  root.setAttribute("data-pw-active", view);
+  const media = document.getElementById("pw-discover-scene-media");
+  if (media) {
+    const nextSrc = view === "trending" ? "/assets/trending-beach.png" : "/assets/discover-sky.png";
+    if (!media.getAttribute("src").endsWith(nextSrc)) media.setAttribute("src", nextSrc);
+  }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1256,8 +1262,9 @@ async function renderDiscover(supabase, session) {
       <div class="pw-discover-scene" aria-hidden="true">
         <picture class="pw-hero-scene__picture">
           <img
+            id="pw-discover-scene-media"
             class="pw-hero-scene__media"
-            src="/assets/discover-sky.png"
+            src="${discoverView === "trending" ? "/assets/trending-beach.png" : "/assets/discover-sky.png"}"
             alt=""
             width="573"
             height="1024"
