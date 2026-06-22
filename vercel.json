@@ -3,6 +3,7 @@
   "outputDirectory": "pagewalker/website",
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/explore", "destination": "/" },
     { "source": "/discover", "destination": "/" },
     { "source": "/library", "destination": "/" },
     { "source": "/social", "destination": "/" },

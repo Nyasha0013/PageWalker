@@ -42,7 +42,7 @@
 
         <nav class="site-nav-top" aria-label="Primary">
           <a class="site-nav-top__link" href="/" data-link-route="/" data-i18n="appNav.home">Home</a>
-          <a class="site-nav-top__link" href="/discover" data-link-route="/discover" data-i18n="appNav.discover">Discover</a>
+          <a class="site-nav-top__link" href="/explore" data-link-route="/explore" data-i18n="appNav.explore">Explore</a>
           <a class="site-nav-top__link" href="/library" data-link-route="/library" data-i18n="appNav.library">Library</a>
           <a class="site-nav-top__link" href="/social" data-link-route="/social" data-i18n="appNav.social">Social</a>
           <a class="site-nav-top__link" href="/clubs" data-link-route="/clubs" data-i18n="appNav.clubs">Clubs</a>
@@ -122,18 +122,18 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span data-i18n="appNav.library">Library</span>
       </a>
-      <a href="/discover" data-link-route="/discover" data-bottom-nav="discover">
+      <a href="/explore" data-link-route="/explore" data-bottom-nav="explore">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <span data-i18n="appNav.discover">Discover</span>
+        <span data-i18n="appNav.explore">Explore</span>
       </a>
-      <a href="/discover#trending" data-link-route="/discover" data-discover-jump="trending" data-bottom-nav="trending">
+      <a href="/explore#trending" data-link-route="/explore" data-discover-jump="trending" data-bottom-nav="trending">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 17l6-6 4 4 8-10"/><path d="M14 5h7v7"/></svg>
         <span data-i18n="home.navTrending">Trending</span>
       </a>
-      <button type="button" id="pw-bottom-search" data-bottom-nav="search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <span data-i18n="home.navSearch">Search</span>
-      </button>
+      <a href="/social" data-link-route="/social" data-bottom-nav="social">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+        <span data-i18n="appNav.social">Social</span>
+      </a>
     </nav>
 
     <script defer src="/js/pw-i18n.js"></script>

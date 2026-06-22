@@ -7,6 +7,7 @@ import { initScrollReveal } from "./pw-scroll-reveal.js";
 const APP_ROUTES = new Set([
   "/",
   "/book",
+  "/explore",
   "/discover",
   "/library",
   "/social",
@@ -15,6 +16,9 @@ const APP_ROUTES = new Set([
   "/reader",
   "/profile",
 ]);
+/** Canonical browse route (Discover + Search merged). /discover redirects here. */
+const EXPLORE_PATH = "/explore";
+const LEGACY_DISCOVER_PATH = "/discover";
 /* /discover is public so guests can browse; library actions use auth nudge. */
 const PROTECTED_ROUTES = new Set([
   "/library",
@@ -89,19 +93,32 @@ function hideBanners() {
 }
 
 function ensureAppPath() {
+  if (window.location.pathname === LEGACY_DISCOVER_PATH) {
+    const hash = String(window.location.hash || "").replace(/^#hub$/, "");
+    window.history.replaceState({}, "", EXPLORE_PATH + window.location.search + hash);
+  }
   const current = window.location.pathname;
   if (APP_ROUTES.has(current)) return;
   window.history.replaceState({}, "", "/");
 }
 
-const DISCOVER_TAB_IDS = ["trending", "genre", "classics", "search"];
+function isExploreRoute(path = window.location.pathname) {
+  return path === EXPLORE_PATH || path === LEGACY_DISCOVER_PATH;
+}
 
-/** No hash (or invalid) → hub landing; else one of the four sections. */
-function getDiscoverView() {
+const EXPLORE_TAB_IDS = ["trending", "genre", "classics", "search"];
+
+/** No hash → Search (default Explore view). */
+function getExploreView() {
   const raw = String(window.location.hash || "").replace(/^#/, "");
-  if (!raw) return "hub";
-  if (DISCOVER_TAB_IDS.includes(raw)) return raw;
-  return "hub";
+  if (!raw || raw === "hub") return "search";
+  if (EXPLORE_TAB_IDS.includes(raw)) return raw;
+  return "search";
+}
+
+/** @deprecated use getExploreView */
+function getDiscoverView() {
+  return getExploreView();
 }
 
 let _lastNavRouteForDiscover = null;
@@ -114,11 +131,11 @@ function setActiveRoute(route) {
   }
   const discoverGroup = document.getElementById("pw-drawer-discover");
   if (discoverGroup) {
-    discoverGroup.toggleAttribute("data-nav-active", route === "/discover");
+    discoverGroup.toggleAttribute("data-nav-active", isExploreRoute(route));
     if (discoverGroup instanceof HTMLDetailsElement) {
-      if (route === "/discover" && _lastNavRouteForDiscover !== "/discover") {
+      if (isExploreRoute(route) && _lastNavRouteForDiscover !== EXPLORE_PATH) {
         discoverGroup.open = true;
-      } else if (route !== "/discover") {
+      } else if (!isExploreRoute(route)) {
         discoverGroup.open = false;
       }
     }
@@ -134,9 +151,10 @@ function setActiveRoute(route) {
     let active = false;
     if (bottomNav === "home") active = route === "/";
     else if (bottomNav === "library") active = route === "/library";
-    else if (bottomNav === "discover") active = route === "/discover" && v === "hub";
-    else if (bottomNav === "trending") active = route === "/discover" && v === "trending";
-    else if (jump) active = route === "/discover" && jump === v;
+    else if (bottomNav === "explore") active = isExploreRoute(route) && v === "search";
+    else if (bottomNav === "trending") active = isExploreRoute(route) && v === "trending";
+    else if (bottomNav === "social") active = route === "/social";
+    else if (jump) active = isExploreRoute(route) && jump === v;
     else active = navRoute === route;
     el.toggleAttribute("data-active", active);
   }
@@ -168,7 +186,7 @@ const FIXED_BACKDROP_SCENES = {
 /** Body-level photo backdrops per route (guest home keeps its inline hero). */
 const ROUTE_IMMERSIVE = {
   "/": { when: "signed-in", scene: "home" },
-  "/discover": { when: "always", dynamic: true },
+  "/explore": { when: "always", dynamic: true },
   "/library": { when: "always", scene: "libraryWalk" },
   "/social": { when: "signed-in", scene: "discoverSky" },
   "/clubs": { when: "signed-in", scene: "libraryWalk" },
@@ -218,7 +236,7 @@ function applyImmersiveBodyClasses(route, session) {
     document.body.classList.add("pw-home-immersive", "pw-home-dashboard-immersive");
     return;
   }
-  if (route === "/discover") {
+  if (route === EXPLORE_PATH) {
     document.body.classList.add("pw-discover-immersive");
     return;
   }
@@ -272,7 +290,7 @@ function updateImmersiveBackdropMedia(src, mobileSrc) {
 }
 
 function syncDiscoverSceneView() {
-  if (window.location.pathname !== "/discover") {
+  if (!isExploreRoute()) {
     delete document.body.dataset.discoverView;
     return;
   }
@@ -318,7 +336,7 @@ function syncImmersiveBackdrop(route, session) {
     return;
   }
 
-  if (route === "/discover") {
+  if (route === EXPLORE_PATH) {
     const view = getDiscoverView();
     const src = discoverSceneSrc(view);
     const mobileSrc = discoverSceneMobileSrc(view);
@@ -1190,12 +1208,12 @@ async function renderHomeDashboard(supabase, session) {
             : `<p class="pw-dash-empty">${t(
                 "home.currentlyReadingEmpty",
                 "You are not reading anything right now — pick your next book?",
-              )} <a href="/discover" data-link-route="/discover">${t("home.pickBook", "Browse Discover")}</a></p>`
+              )} <a href="/explore" data-link-route="/explore">${t("home.pickBook", "Browse Discover")}</a></p>`
         }
         <div class="pw-dash-nested">
           <div class="pw-section-head">
             <h3>${t("home.trendingMonth", "Books trending this month")}</h3>
-            <a href="/discover#trending" data-link-route="/discover" data-discover-jump="trending">${t("home.viewAll", "View all")}</a>
+            <a href="/explore#trending" data-link-route="/explore" data-discover-jump="trending">${t("home.viewAll", "View all")}</a>
           </div>
           <div class="pw-home-scroll">
             ${trendRows.length ? trendRows.map((book) => renderBookCoverTile(book)).join("") : `<p class="muted">${t("home.trendingEmpty", "Trending picks will appear here soon.")}</p>`}
@@ -1338,7 +1356,7 @@ async function renderHomeGuest(session) {
       </section>
 
       <section class="pw-home-pillars wrap" data-reveal aria-label="${t("home.pillarsLabel", "What you can do")}">
-        <a class="pw-pillar" href="/discover" data-link-route="/discover">
+        <a class="pw-pillar" href="/explore" data-link-route="/explore">
           <span class="pw-pillar__icon" aria-hidden="true">🔎</span>
           <h2 class="pw-pillar__title">${t("home.pillarFind", "Find")}</h2>
           <p class="pw-pillar__desc">${t("home.pillarFindDesc", "Search, moods, and explainable picks.")}</p>
@@ -1353,7 +1371,7 @@ async function renderHomeGuest(session) {
           <h2 class="pw-pillar__title">${t("home.pillarConnect", "Connect")}</h2>
           <p class="pw-pillar__desc">${t("home.pillarConnectDesc", "Reviews, follows, and club rooms.")}</p>
         </a>
-        <a class="pw-pillar" href="/discover#trending" data-link-route="/discover" data-discover-jump="trending">
+        <a class="pw-pillar" href="/explore#trending" data-link-route="/explore" data-discover-jump="trending">
           <span class="pw-pillar__icon" aria-hidden="true">✨</span>
           <h2 class="pw-pillar__title">${t("home.pillarDiscover", "Discover")}</h2>
           <p class="pw-pillar__desc">${t("home.pillarDiscoverDesc", "Trending titles and curated lists.")}</p>
@@ -1364,7 +1382,7 @@ async function renderHomeGuest(session) {
         <span class="pw-marginalia-rail__tick" style="top:0.2rem">01</span>
         <div class="pw-section-head">
           <h2>${t("home.trendingHeading", "Trending on Pagewalker")}</h2>
-          <a href="/discover#trending" data-link-route="/discover" data-discover-jump="trending">${t("home.viewAll", "View all")}</a>
+          <a href="/explore#trending" data-link-route="/explore" data-discover-jump="trending">${t("home.viewAll", "View all")}</a>
         </div>
         <p class="muted pw-section-note">${t(
           "home.trendingNote",
@@ -1481,77 +1499,35 @@ async function renderDiscover(supabase, session) {
   return `
     <div class="pw-discover-route">
     <section class="app-panel pw-discover-page" id="pw-discover-root" data-pw-active="${discoverView}">
-      <h2 class="pw-discover-title">${t("route.discover.heading", "Discover")}</h2>
-      <nav class="pw-discover-tabstrip" aria-label="${t("route.discover.tabstripLabel", "Discover areas")}">
+      <h2 class="pw-discover-title">${t("route.explore.heading", "Explore")}</h2>
+      <p class="pw-discover-page__lede muted">${t("route.explore.lede", "Search, mood picks, trending books, genres, and free classics — one place to find your next read.")}</p>
+      <nav class="pw-discover-tabstrip" aria-label="${t("route.explore.tabstripLabel", "Explore sections")}">
         <a
           class="btn btn-outline pw-discover-tablink"
-          data-link-route="/discover"
-          href="/discover"
-          data-discover-jump="hub"
-        >${t("route.discover.overview", "Overview")}</a>
-        <a
-          class="btn btn-outline pw-discover-tablink"
-          data-link-route="/discover"
-          href="/discover#search"
+          data-link-route="/explore"
+          href="/explore"
           data-discover-jump="search"
-        >${t("drawer.discover.search", "Search & mood")}</a>
+        >${t("route.explore.tabSearch", "Search & mood")}</a>
         <a
           class="btn btn-outline pw-discover-tablink"
-          data-link-route="/discover"
-          href="/discover#trending"
+          data-link-route="/explore"
+          href="/explore#trending"
           data-discover-jump="trending"
         >${t("drawer.discover.trending", "Trending")}</a>
         <a
           class="btn btn-outline pw-discover-tablink"
-          data-link-route="/discover"
-          href="/discover#genre"
+          data-link-route="/explore"
+          href="/explore#genre"
           data-discover-jump="genre"
         >${t("drawer.discover.genre", "Genre exploration")}</a>
         <a
           class="btn btn-outline pw-discover-tablink"
-          data-link-route="/discover"
-          href="/discover#classics"
+          data-link-route="/explore"
+          href="/explore#classics"
           data-discover-jump="classics"
         >${t("drawer.discover.classics", "Classics")}</a>
       </nav>
-      <div class="pw-discover-hub" data-pw-discover-panel="hub" aria-label="${t("route.discover.hubLabel", "Discover overview")}">
-        <p class="pw-discover-page__lede muted">${t("route.discover.hubSubtitle", "Search, explore moods, trending books, genres & classics")}</p>
-        <div class="pw-discover-hub__grid">
-          <a
-            class="app-panel pw-discover-hub-card"
-            data-link-route="/discover"
-            href="/discover#search"
-          >
-            <h3 class="pw-discover-hub-card__title">${t("drawer.discover.search", "Search & mood")}</h3>
-            <p class="pw-discover-hub-card__desc muted">${t("route.discover.hubCardSearch", "Search the catalog and find reads by mood.")}</p>
-          </a>
-          <a
-            class="app-panel pw-discover-hub-card"
-            data-link-route="/discover"
-            href="/discover#trending"
-          >
-            <h3 class="pw-discover-hub-card__title">🔥 ${t("drawer.discover.trending", "Trending")}</h3>
-            <p class="pw-discover-hub-card__desc muted">${t("route.discover.hubCardTrending", "See what’s hot right now.")}</p>
-          </a>
-          <a
-            class="app-panel pw-discover-hub-card"
-            data-link-route="/discover"
-            href="/discover#genre"
-          >
-            <h3 class="pw-discover-hub-card__title">${t("drawer.discover.genre", "Genre exploration")}</h3>
-            <p class="pw-discover-hub-card__desc muted">${t("route.discover.hubCardGenre", "Browse books by genre.")}</p>
-          </a>
-          <a
-            class="app-panel pw-discover-hub-card"
-            data-link-route="/discover"
-            href="/discover#classics"
-          >
-            <h3 class="pw-discover-hub-card__title">📖 ${t("drawer.discover.classics", "Classics")}</h3>
-            <p class="pw-discover-hub-card__desc muted">${t("route.discover.hubCardClassics", "Explore free classic literature.")}</p>
-          </a>
-        </div>
-      </div>
-      <div class="pw-discover-panels" role="region" aria-label="${t("route.discover.sectionsLabel", "Discover content")}">
+      <div class="pw-discover-panels" role="region" aria-label="${t("route.explore.sectionsLabel", "Explore content")}">
         <section
           class="app-panel pw-discover-panel"
           data-pw-discover-panel="trending"
@@ -2734,7 +2710,7 @@ async function renderBookRoute(supabase, session) {
                 ? "Book data is temporarily unavailable. Please try again in a moment."
                 : "We could not load this book right now. Try opening it again from Discover."
           }</p>
-          <p><a href="/discover" data-link-route="/discover">Go to Discover</a></p>
+          <p><a href="/explore" data-link-route="/explore">${t("home.goExplore", "Go to Explore")}</a></p>
         </section>
       `;
     }
@@ -2746,7 +2722,7 @@ async function renderBookRoute(supabase, session) {
       <section class="app-panel">
         <h2>Book details</h2>
         <p class="muted">This link is missing data. Open a book from Discover or Library first.</p>
-        <p><a href="/discover" data-link-route="/discover">Go to Discover</a></p>
+        <p><a href="/explore" data-link-route="/explore">${t("home.goExplore", "Go to Explore")}</a></p>
       </section>
     `;
   }
@@ -2762,7 +2738,7 @@ async function renderBookRoute(supabase, session) {
 
 function renderProtectedRouteGate(route) {
   const routeNameMap = {
-    "/discover": t("appNav.discover", "Discover"),
+    "/explore": t("appNav.explore", "Explore"),
     "/library": t("appNav.library", "Library"),
     "/social": t("appNav.social", "Social"),
     "/clubs": t("appNav.clubs", "Clubs"),
@@ -2834,10 +2810,11 @@ function bindDiscoverActions(supabase, session, rerender) {
     event.preventDefault();
     discoverQuery = String(input?.value || "").trim();
     discoverPaging.searchPage = 1;
-    if (window.location.pathname === "/discover") {
-      window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}#search`);
+    if (isExploreRoute()) {
+      const hash = discoverQuery.trim() ? "#search" : window.location.hash || "";
+      window.history.replaceState({}, "", `${EXPLORE_PATH}${window.location.search}${hash}`);
       applyDiscoverPanelFromHash();
-      setActiveRoute("/discover");
+      setActiveRoute(EXPLORE_PATH);
     }
     rerender();
   });
@@ -2886,10 +2863,10 @@ function bindDiscoverActions(supabase, session, rerender) {
           ? `<div class="app-grid app-grid-3">${rows.map((r) => `<article class="app-panel"><h4>${escapeHtml(r.title || "Book")}</h4><p>${escapeHtml(r.author || "")}</p><p>${escapeHtml(r.reason || "")}</p></article>`).join("")}</div>`
           : `<p class="muted">${t("route.discover.noMoodResults", "No recommendations yet. Try another mood.")}</p>`;
       }
-      if (window.location.pathname === "/discover") {
-        window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}#search`);
+      if (isExploreRoute()) {
+        window.history.replaceState({}, "", `${EXPLORE_PATH}${window.location.search}#search`);
         applyDiscoverPanelFromHash();
-        setActiveRoute("/discover");
+        setActiveRoute(EXPLORE_PATH);
       }
     } catch (_) {
       if (resultsRoot) {
@@ -2929,7 +2906,7 @@ function bindDiscoverActions(supabase, session, rerender) {
   if (!window.pwDiscoverHashBound) {
     window.pwDiscoverHashBound = true;
     window.addEventListener("hashchange", () => {
-      if (window.location.pathname !== "/discover") return;
+      if (!isExploreRoute()) return;
       applyDiscoverPanelFromHash();
       const pathForNav = window.location.pathname === "/club" ? "/clubs" : window.location.pathname;
       setActiveRoute(pathForNav);
@@ -3541,7 +3518,7 @@ function bindClubsActions(supabase, session, rerender) {
 async function renderCurrentRoute(supabase, session, route) {
   if (route === "/") return renderHome(supabase, session);
   if (route === "/book") return renderBookRoute(supabase, session);
-  if (route === "/discover") return renderDiscover(supabase, session);
+  if (route === EXPLORE_PATH) return renderDiscover(supabase, session);
   if (route === "/library") return renderLibrary(supabase, session);
   if (route === "/social") return renderSocial(supabase, session);
   if (route === "/clubs") return renderClubs(supabase, session);
@@ -3554,12 +3531,16 @@ async function renderCurrentRoute(supabase, session, route) {
 let _routeRenderGen = 0;
 
 async function renderRoute(supabase, session, expectedPath) {
-  const route =
+  if (window.location.pathname === LEGACY_DISCOVER_PATH) {
+    ensureAppPath();
+  }
+  let route =
     expectedPath && APP_ROUTES.has(expectedPath)
       ? expectedPath
       : APP_ROUTES.has(window.location.pathname)
         ? window.location.pathname
         : "/";
+  if (route === LEGACY_DISCOVER_PATH) route = EXPLORE_PATH;
   const renderGen = ++_routeRenderGen;
   const pathForNav = window.location.pathname === "/club" ? "/clubs" : route;
   setActiveRoute(pathForNav);
@@ -3598,14 +3579,14 @@ async function renderRoute(supabase, session, expectedPath) {
       const sc = document.getElementById("pw-club-chat-scroll");
       if (sc) sc.scrollTop = sc.scrollHeight;
     }
-    if (route === "/discover") {
+    if (route === EXPLORE_PATH) {
       requestAnimationFrame(() => {
         applyDiscoverPanelFromHash();
       });
     }
   });
   const rerender = () => renderRoute(supabase, session);
-  if (route === "/discover") bindDiscoverActions(supabase, session, rerender);
+  if (route === EXPLORE_PATH) bindDiscoverActions(supabase, session, rerender);
   if (route === "/library") bindLibraryActions(supabase, session, rerender);
   if (route === "/social") bindSocialActions(supabase, session, rerender);
   if (route === "/reader") bindReaderActions(supabase, session, rerender);
@@ -3691,10 +3672,12 @@ function initLinks(render) {
     const currentFull = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     const isSameRoute = currentFull === nextPathWithHash;
     if (isSameRoute) return;
-    if (pathOnly === "/discover" && window.location.pathname === "/discover") {
-      window.history.pushState({}, "", nextPathWithHash);
+    if ((pathOnly === EXPLORE_PATH || pathOnly === LEGACY_DISCOVER_PATH) && isExploreRoute()) {
+      const u = new URL(nextPathWithHash, window.location.origin);
+      const target = EXPLORE_PATH + u.search + u.hash.replace(/^#hub$/, "");
+      window.history.pushState({}, "", target);
       applyDiscoverPanelFromHash();
-      setActiveRoute("/discover");
+      setActiveRoute(EXPLORE_PATH);
       return;
     }
     diveToRoute(() => {
@@ -3705,19 +3688,8 @@ function initLinks(render) {
   window.addEventListener("popstate", render);
 }
 
-function initBottomNav(render) {
-  const searchBtn = document.getElementById("pw-bottom-search");
-  searchBtn?.addEventListener("click", () => {
-    if (window.location.pathname === "/discover" && window.location.hash === "#search") return;
-    if (window.location.pathname === "/discover") {
-      window.history.pushState({}, "", "/discover#search");
-      applyDiscoverPanelFromHash();
-      setActiveRoute("/discover");
-      return;
-    }
-    window.history.pushState({}, "", "/discover#search");
-    render();
-  });
+function initBottomNav(_render) {
+  /* Search merged into Explore — no separate bottom-nav control. */
 }
 
 async function boot() {

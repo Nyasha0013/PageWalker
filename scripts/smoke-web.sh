@@ -17,6 +17,7 @@ check_status() {
 
 echo "Running smoke checks against: $BASE_URL"
 check_status "$BASE_URL/" "200"
+check_status "$BASE_URL/explore" "200"
 check_status "$BASE_URL/discover" "200"
 check_status "$BASE_URL/profile" "200"
 check_status "$BASE_URL/api/config" "200"
