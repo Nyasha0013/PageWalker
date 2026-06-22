@@ -4,19 +4,30 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "*/30 * * * *"
+  deployment_status:
   push:
     branches:
       - main
     paths:
       - ".github/workflows/production-smoke.yml"
       - "scripts/smoke-web.sh"
-      - "api/**"
-      - "pagewalker/website/js/**"
+      - "scripts/smoke-web-extended.sh"
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: true
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'deployment_status' &&
+        github.event.deployment_status.state == 'success' &&
+        github.event.deployment.environment == 'Production')
     env:
       BASE_URL: ${{ secrets.SMOKE_BASE_URL || 'https://pagewalker.org' }}
     steps:
@@ -25,6 +36,10 @@ jobs:
 
       - name: Ensure smoke script executable
         run: chmod +x scripts/smoke-web.sh scripts/smoke-web-extended.sh
+
+      - name: Wait for production to settle
+        if: github.event_name == 'deployment_status'
+        run: sleep 20
 
       - name: Run production smoke checks
         run: ./scripts/smoke-web.sh "$BASE_URL"
