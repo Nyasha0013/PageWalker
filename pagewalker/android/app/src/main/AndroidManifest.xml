@@ -44,7 +44,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <receiver
-            android:name="com.pagewalker.app.PagewalkerWidgetProvider"
+            android:name=".PagewalkerWidgetProvider"
             android:exported="true"
             android:label="Pagewalker">
             <intent-filter>

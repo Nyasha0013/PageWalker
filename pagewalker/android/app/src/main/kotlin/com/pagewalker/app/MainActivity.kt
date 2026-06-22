@@ -1,4 +1,4 @@
-package com.example.pagewalker
+package com.pagewalker.app
 
 import io.flutter.embedding.android.FlutterActivity
 

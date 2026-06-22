@@ -14,7 +14,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.pagewalker"
+    namespace = "com.pagewalker.app"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 

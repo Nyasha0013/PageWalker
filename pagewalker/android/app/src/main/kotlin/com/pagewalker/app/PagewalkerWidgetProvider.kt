@@ -4,7 +4,7 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.widget.RemoteViews
-import com.example.pagewalker.R
+import com.pagewalker.app.R
 import es.antonborri.home_widget.HomeWidgetProvider
 
 class PagewalkerWidgetProvider : HomeWidgetProvider() {
