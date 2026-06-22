@@ -396,6 +396,57 @@ function applyDiscoverPanelFromHash() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+function markRouteRevealBlocks(root) {
+  if (!root || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const blockSelectors = [
+    ".pw-dashboard-head",
+    ".pw-dash-card",
+    ".pw-discover-title",
+    ".pw-discover-page__lede",
+    ".pw-discover-tabstrip",
+    ".pw-library-page",
+    ".pw-profile-hero",
+    ".pw-profile-tabs",
+    ".pw-profile-panel > section",
+    ".pw-profile-panel > form",
+    ".pw-social-composer",
+    ".pw-social-feed__heading",
+    ".pw-club-browse__title",
+    ".pw-club-lede",
+    "section.app-panel article.app-panel",
+  ];
+
+  for (let s = 0; s < blockSelectors.length; s += 1) {
+    const nodes = root.querySelectorAll(blockSelectors[s]);
+    for (let i = 0; i < nodes.length; i += 1) {
+      const el = nodes[i];
+      if (!el.hasAttribute("data-reveal")) el.setAttribute("data-reveal", "");
+    }
+  }
+
+  const lonePanel = root.querySelector(":scope > section.app-panel");
+  if (lonePanel && !lonePanel.hasAttribute("data-reveal")) {
+    lonePanel.setAttribute("data-reveal", "");
+  }
+
+  const staggerSelectors = [
+    ".pw-poster-grid",
+    ".pw-home-scroll",
+    ".app-grid.app-grid-3",
+    ".pw-review-feed",
+    ".pw-club-browse-grid",
+    ".pw-home-pillars",
+  ];
+  for (let s = 0; s < staggerSelectors.length; s += 1) {
+    const nodes = root.querySelectorAll(staggerSelectors[s]);
+    for (let i = 0; i < nodes.length; i += 1) {
+      const el = nodes[i];
+      if (!el.hasAttribute("data-reveal-stagger")) el.setAttribute("data-reveal-stagger", "");
+    }
+  }
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")
@@ -3651,7 +3702,8 @@ async function renderRoute(supabase, session, expectedPath, opts = {}) {
   }
   bindBookModalActions();
   if (route === "/") initHomeHeroParallax();
-  if (root.querySelector("[data-reveal]")) initScrollReveal(root);
+  markRouteRevealBlocks(root);
+  if (root.querySelector("[data-reveal], [data-reveal-stagger]")) initScrollReveal(root);
 }
 
 /** Briefly fades/scales the current route content forward before it's
@@ -3660,17 +3712,18 @@ async function renderRoute(supabase, session, expectedPath, opts = {}) {
 function diveToRoute(run) {
   const root = document.getElementById("pw-route-content");
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const mobile = window.matchMedia("(max-width: 860px)").matches;
-  if (!root || reduced || mobile) {
+  if (!root || reduced) {
     run();
     return;
   }
+  const mobile = window.matchMedia("(max-width: 860px)").matches;
   root.classList.remove("pw-route-enter");
-  root.classList.add("pw-route-exit");
+  root.classList.add(mobile ? "pw-route-exit-lite" : "pw-route-exit");
+  const ms = mobile ? 110 : 150;
   window.setTimeout(() => {
-    root.classList.remove("pw-route-exit");
+    root.classList.remove("pw-route-exit", "pw-route-exit-lite");
     run();
-  }, 150);
+  }, ms);
 }
 
 function initLinks(render) {
