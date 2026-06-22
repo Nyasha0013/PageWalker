@@ -6,7 +6,6 @@ enum PagewalkerPlusFeature {
   readingWrap,
   readingBingo,
   spinWheel,
-  homeWidget,
   unlimitedClubs,
   yearlyWrapped,
 }
@@ -65,12 +64,6 @@ class PagewalkerPlusCatalog {
       icon: Icons.casino_rounded,
     ),
     PlusFeatureInfo(
-      id: PagewalkerPlusFeature.homeWidget,
-      title: 'Home screen widget',
-      subtitle: 'Current read and progress on your phone — like Duolingo',
-      icon: Icons.widgets_rounded,
-    ),
-    PlusFeatureInfo(
       id: PagewalkerPlusFeature.unlimitedClubs,
       title: 'Unlimited book clubs',
       subtitle: 'Create and join as many clubs as you want',
@@ -90,5 +83,6 @@ class PagewalkerPlusCatalog {
     'Reviews, social feed, and achievements',
     'Join 1 book club',
     'Reading timer and basic stats',
+    'Home screen widget — current read on your Android home screen',
   ];
 }

@@ -1,6 +1,5 @@
 import 'package:home_widget/home_widget.dart';
 
-import '../plus/pagewalker_plus_service.dart';
 import '../../data/models/book.dart';
 
 class WidgetService {
@@ -18,12 +17,6 @@ class WidgetService {
     int currentPage = 0,
     int totalPages = 0,
   }) async {
-    final isPlus = await PagewalkerPlusService.instance.isPlusActive();
-    if (!isPlus) {
-      await clearCurrentRead();
-      return;
-    }
-
     final progress = totalPages > 0
         ? ((currentPage / totalPages) * 100).round().clamp(0, 100)
         : 0;

@@ -64,7 +64,7 @@ class PlusPaywallSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Unlock the fun stuff — AI picks, wraps, bingo, widgets, and unlimited clubs.',
+                'Unlock the fun stuff — AI mood picks, wraps, bingo, personality, and unlimited clubs.',
                 style: AppText.body(
                   14,
                   color: isDark

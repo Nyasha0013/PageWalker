@@ -1049,8 +1049,8 @@ class _PlusSettingsCard extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             isPlus
-                ? 'You have Plus — mood reads, bingo, wraps, widgets, and unlimited clubs are unlocked.'
-                : 'Upgrade for mood reads, reading personality, bingo, home widget, wraps, spin the wheel, and unlimited clubs.',
+                ? 'You have Plus — mood reads, bingo, wraps, personality, and unlimited clubs are unlocked.'
+                : 'Upgrade for mood reads, reading personality, bingo, wraps, spin the wheel, and unlimited clubs.',
             style: AppText.body(13, color: tc.textMuted),
           ),
           const SizedBox(height: 12),
@@ -1059,19 +1059,6 @@ class _PlusSettingsCard extends ConsumerWidget {
             width: double.infinity,
             onPressed: () => showPlusPaywall(context),
           ),
-          if (isPlus) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Home screen widget',
-              style: AppText.bodySemiBold(14, color: tc.primary),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Long-press your Android home screen → Widgets → Pagewalker. '
-              'Shows your current read and progress (updates when you open Library).',
-              style: AppText.body(12, color: tc.textMuted),
-            ),
-          ],
         ],
       ),
     );
