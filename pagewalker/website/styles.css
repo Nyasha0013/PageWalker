@@ -3084,6 +3084,93 @@ body.pw-discover-immersive a.pw-discover-hub-card:hover {
   border-color: var(--border-strong);
 }
 
+/* ── Library: same fixed-backdrop treatment, walk-at-dusk photo ───────── */
+body.pw-library-immersive {
+  background: var(--ink);
+}
+
+.pw-library-route {
+  position: relative;
+}
+
+.pw-library-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.pw-library-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+body.pw-library-immersive .pw-library-scene,
+body.pw-library-immersive .pw-library-overlay {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  height: 100svh;
+  z-index: 0;
+}
+
+body.pw-library-immersive .pw-library-scene {
+  inset: -28px;
+  width: calc(100% + 56px);
+  height: calc(100dvh + 56px);
+  height: calc(100svh + 56px);
+}
+
+/* photo is already very dark, so a lighter scrim keeps the glow visible */
+body.pw-library-immersive .pw-library-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(22, 20, 15, 0.34) 0%,
+    rgba(22, 20, 15, 0.16) 32%,
+    rgba(22, 20, 15, 0.44) 64%,
+    rgba(22, 20, 15, 0.82) 100%
+  );
+}
+
+body.pw-library-immersive .pw-library-page {
+  position: relative;
+  z-index: 2;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+body.pw-library-immersive .pw-library-page > h2 {
+  text-shadow: 0 2px 18px rgba(22, 20, 15, 0.7);
+}
+
+body.pw-library-immersive .pw-library-page > .muted {
+  color: rgba(239, 230, 211, 0.9);
+  text-shadow: 0 1px 12px rgba(22, 20, 15, 0.8);
+}
+
+/* the sticky filter bar becomes a glass strip over the photo */
+body.pw-library-immersive .pw-sticky-bar {
+  background: rgba(22, 20, 15, 0.55);
+  border: 1px solid rgba(239, 230, 211, 0.12);
+  border-radius: 999px;
+  padding: 0.4rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* shelf cards turn to glass so the photo reads through the gaps */
+body.pw-library-immersive .pw-poster-card {
+  background: rgba(22, 20, 15, 0.52);
+  border-color: rgba(239, 230, 211, 0.14);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
 .pw-hero-scene__picture,
 .pw-hero-scene__media {
   display: block;

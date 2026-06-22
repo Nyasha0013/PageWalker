@@ -1493,7 +1493,21 @@ async function renderLibrary(supabase, session) {
   const hasMoreLibrary = cleanRows.length >= libraryPage * LIBRARY_PAGE_SIZE;
 
   return `
-    <section class="app-panel">
+    <div class="pw-library-route">
+      <div class="pw-library-scene" aria-hidden="true">
+        <picture class="pw-hero-scene__picture">
+          <img
+            class="pw-hero-scene__media"
+            src="/assets/library-walk.png"
+            alt=""
+            width="576"
+            height="1024"
+            decoding="async"
+          />
+        </picture>
+      </div>
+      <div class="pw-library-overlay" aria-hidden="true"></div>
+    <section class="app-panel pw-library-page">
       <h2>${t("route.library.title", "Library")}</h2>
       <p class="muted">${t("route.library.explainer", "This is your reading shelf. Add books from Discover, then move them across TBR, Reading, Read, and DNF.")}</p>
       <div class="cta-actions pw-sticky-bar">
@@ -1519,6 +1533,7 @@ async function renderLibrary(supabase, session) {
       ${hasMoreLibrary ? `<div class="cta-actions"><button class="btn btn-outline" data-library-more>Load more</button></div>` : ""}
       ${rows.some((r) => r.__error) ? `<p class="muted">${escapeHtml(rows.find((r) => r.__error)?.text || "")}</p>` : ""}
     </section>
+    </div>
   `;
 }
 
@@ -3137,6 +3152,7 @@ async function renderRoute(supabase, session) {
       "pw-home-immersive",
       "pw-home-hero-scrolled",
       "pw-discover-immersive",
+      "pw-library-immersive",
     );
     root.innerHTML = renderProtectedRouteGate(route);
     bindLockedGateActions();
@@ -3145,6 +3161,7 @@ async function renderRoute(supabase, session) {
   const isGuestHome = route === "/" && !session?.user;
   document.body.classList.toggle("pw-home-immersive", isGuestHome);
   document.body.classList.toggle("pw-discover-immersive", route === "/discover");
+  document.body.classList.toggle("pw-library-immersive", route === "/library");
   if (!isGuestHome) {
     document.body.classList.remove("pw-home-hero-scrolled");
   }
