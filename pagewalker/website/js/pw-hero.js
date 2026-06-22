@@ -50,11 +50,16 @@ export function initHomeHeroParallax() {
       return;
     }
 
+    // When the scene is a fixed full-page backdrop, it must stay pinned —
+    // scroll-shifting a fixed layer would reveal a gap at the edges. So we
+    // only ever apply the subtle cursor drift to it, never the scroll shift.
+    const immersive = document.body.classList.contains("pw-home-immersive");
+
     const rect = hero.getBoundingClientRect();
     const heroH = hero.offsetHeight || 1;
     const scrolled = Math.min(heroH, Math.max(0, -rect.top));
     const cap = heroH * capRatio;
-    const bgShift = Math.min(cap, scrolled * capRatio);
+    const bgShift = immersive ? 0 : Math.min(cap, scrolled * capRatio);
     const fgShift = Math.min(cap * 0.45, scrolled * 0.045);
 
     // small extra offset from cursor position, on top of the scroll drift —

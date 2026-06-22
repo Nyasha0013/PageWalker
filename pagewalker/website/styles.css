@@ -2903,18 +2903,7 @@ body.pw-home-immersive .pw-home-hero {
   margin-top: calc(-1 * var(--site-header-h));
   min-height: calc(100dvh + var(--site-header-h));
   min-height: calc(100svh + var(--site-header-h));
-}
-
-body.pw-home-immersive .pw-home-hero::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
-  height: clamp(4rem, 12vh, 7rem);
-  pointer-events: none;
-  background: linear-gradient(180deg, transparent 0%, var(--bg) 100%);
+  overflow: visible;
 }
 
 .pw-hero-scene {
@@ -2923,6 +2912,75 @@ body.pw-home-immersive .pw-home-hero::after {
   z-index: 0;
   overflow: hidden;
   will-change: transform;
+}
+
+/* Immersive home: the scene + overlay become a fixed backdrop that the
+   whole page scrolls over, instead of being clipped inside the hero band. */
+body.pw-home-immersive .pw-hero-scene,
+body.pw-home-immersive .pw-hero-overlay {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  height: 100svh;
+  z-index: 0;
+}
+
+/* slight bleed so the subtle cursor drift never exposes a viewport edge */
+body.pw-home-immersive .pw-hero-scene {
+  inset: -28px;
+  width: calc(100% + 56px);
+  height: calc(100dvh + 56px);
+  height: calc(100svh + 56px);
+}
+
+/* The fixed overlay doubles as the legibility scrim for everything that
+   scrolls over the photo — light over the hero, deepening toward Ink so
+   cards lower down stay readable. */
+body.pw-home-immersive .pw-hero-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(22, 20, 15, 0.32) 0%,
+    rgba(22, 20, 15, 0.12) 30%,
+    rgba(22, 20, 15, 0.4) 60%,
+    rgba(22, 20, 15, 0.82) 100%
+  );
+}
+
+/* Content scrolls over the fixed photo: drop the solid section fills and
+   let the scrim show through, with glass cards for readability. */
+body.pw-home-immersive .pw-home-pillars,
+body.pw-home-immersive .pw-home-section {
+  background: transparent;
+}
+
+body.pw-home-immersive .pw-home-pillars {
+  position: relative;
+  z-index: 2;
+}
+
+body.pw-home-immersive .pw-pillar {
+  background: rgba(22, 20, 15, 0.5);
+  border-color: rgba(239, 230, 211, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+body.pw-home-immersive .pw-pillar[data-tone="moss"] {
+  background: linear-gradient(160deg, rgba(22, 20, 15, 0.5), rgba(75, 106, 82, 0.32));
+  border-color: rgba(75, 106, 82, 0.4);
+}
+
+body.pw-home-immersive .pw-review-row {
+  background: rgba(22, 20, 15, 0.5);
+  border-color: rgba(239, 230, 211, 0.14);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* The final band sits over the deepest part of the scrim, so it can stay
+   fully transparent and let the photo fade into Ink behind the footer. */
+body.pw-home-immersive .cta-band {
+  background: transparent;
 }
 
 .pw-hero-scene__picture,
