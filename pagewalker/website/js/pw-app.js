@@ -81,6 +81,7 @@ async function initSignIn() {
       return;
     }
     showBanner(ok, "success", tr("app.signedIn"));
+    window.location.href = "/";
   });
 }
 

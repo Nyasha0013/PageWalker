@@ -175,11 +175,23 @@ module.exports = async (req, res) => {
     if (type === "classics") {
       res.setHeader("Cache-Control", "s-maxage=1800, stale-while-revalidate=86400");
       const page = Math.max(1, toInt(req.query?.page, 1));
-      const classicsRes = await fetch(
-        `https://gutendex.com/books?languages=en&copyright=false&page=${page}`,
-      );
-      const classics = await classicsRes.json();
-      return res.status(200).json(classics);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      try {
+        const classicsRes = await fetch(
+          `https://gutendex.com/books/?languages=en&copyright=false&page=${page}`,
+          { signal: controller.signal, headers: { Accept: "application/json" } },
+        );
+        if (!classicsRes.ok) {
+          return res.status(200).json({ results: [], next: null, count: 0 });
+        }
+        const classics = await classicsRes.json();
+        return res.status(200).json(classics);
+      } catch (_) {
+        return res.status(200).json({ results: [], next: null, count: 0 });
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
 
     if (type === "detail") {

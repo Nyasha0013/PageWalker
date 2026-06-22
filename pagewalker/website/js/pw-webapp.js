@@ -1153,7 +1153,7 @@ async function renderHomeDashboard(supabase, session) {
         .select("id, status, title, author, book_id, updated_at, books(id,title,author,cover_url)")
         .eq("user_id", session.user.id)
         .order("updated_at", { ascending: false })
-        .limit(80);
+        .limit(36);
       if (error) throw error;
       return data || [];
     }, t("appShell.missingUserBooks", "Could not load library.")),
@@ -1466,19 +1466,36 @@ async function renderDiscover(supabase, session) {
     return { books, hasMore };
   };
 
-  const [trendingBooks, genreBooks, searchBooks, freeClassics] = await Promise.all([
-    runSafeQuery(() => loadGooglePages("/api/books?type=trending", discoverPaging.trendingPage), t("route.discover.trendingFallback", "Trending data is not available yet.")),
-    runSafeQuery(() => {
-      const g = encodeURIComponent(discoverGenre);
-      return loadGooglePages(`/api/books?type=genre&genre=${g}`, discoverPaging.genrePage);
-    }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
-    runSafeQuery(async () => {
-      if (!safeQuery) return { books: [], hasMore: false };
-      const q = encodeURIComponent(safeQuery);
-      return loadGooglePages(`/api/books?type=search&q=${q}`, discoverPaging.searchPage);
-    }, t("route.discover.trendingFallback", "Trending data is not available yet.")),
-    runSafeQuery(() => loadClassicsPages(discoverPaging.classicsPage), t("route.discover.trendingFallback", "Trending data is not available yet.")),
-  ]);
+  const emptyBookPage = { books: [], hasMore: false };
+
+  const trendingBooks =
+    discoverView === "trending"
+      ? await runSafeQuery(
+          () => loadGooglePages("/api/books?type=trending", discoverPaging.trendingPage),
+          t("route.discover.trendingFallback", "Trending data is not available yet."),
+        )
+      : emptyBookPage;
+  const genreBooks =
+    discoverView === "genre"
+      ? await runSafeQuery(() => {
+          const g = encodeURIComponent(discoverGenre);
+          return loadGooglePages(`/api/books?type=genre&genre=${g}`, discoverPaging.genrePage);
+        }, t("route.discover.trendingFallback", "Trending data is not available yet."))
+      : emptyBookPage;
+  const searchBooks =
+    discoverView === "search" && safeQuery
+      ? await runSafeQuery(async () => {
+          const q = encodeURIComponent(safeQuery);
+          return loadGooglePages(`/api/books?type=search&q=${q}`, discoverPaging.searchPage);
+        }, t("route.discover.trendingFallback", "Trending data is not available yet."))
+      : emptyBookPage;
+  const freeClassics =
+    discoverView === "classics"
+      ? await runSafeQuery(
+          () => loadClassicsPages(discoverPaging.classicsPage),
+          t("route.discover.trendingFallback", "Trending data is not available yet."),
+        )
+      : emptyBookPage;
   const trendingRows = (trendingBooks?.books || []).filter((b) => !b.__error);
   const genreRows = (genreBooks?.books || []).filter((b) => !b.__error);
   const searchRows = (searchBooks?.books || []).filter((b) => !b.__error);
@@ -2474,7 +2491,7 @@ async function renderProfile(supabase, session) {
         .select("title, author, status, book_id, created_at, books(id, cover_url)")
         .eq("user_id", session.user.id)
         .order("updated_at", { ascending: false })
-        .limit(120);
+        .limit(48);
       if (error) throw error;
       return data || [];
     }, t("route.profile.booksUnavailable", "Books unavailable.")),
@@ -3530,7 +3547,7 @@ async function renderCurrentRoute(supabase, session, route) {
 
 let _routeRenderGen = 0;
 
-async function renderRoute(supabase, session, expectedPath) {
+async function renderRoute(supabase, session, expectedPath, opts = {}) {
   if (window.location.pathname === LEGACY_DISCOVER_PATH) {
     ensureAppPath();
   }
@@ -3569,7 +3586,10 @@ async function renderRoute(supabase, session, expectedPath) {
   }
 
   root.classList.remove("pw-route-enter");
-  root.innerHTML = renderRouteSkeleton(route);
+  const softExplore = Boolean(opts.soft) && route === EXPLORE_PATH;
+  if (!softExplore) {
+    root.innerHTML = renderRouteSkeleton(route);
+  }
   const html = await renderCurrentRoute(supabase, session, route);
   if (renderGen !== _routeRenderGen) return;
   root.innerHTML = html;
@@ -3672,12 +3692,24 @@ function initLinks(render) {
     const currentFull = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     const isSameRoute = currentFull === nextPathWithHash;
     if (isSameRoute) return;
-    if ((pathOnly === EXPLORE_PATH || pathOnly === LEGACY_DISCOVER_PATH) && isExploreRoute()) {
+    if (pathOnly === EXPLORE_PATH || pathOnly === LEGACY_DISCOVER_PATH) {
       const u = new URL(nextPathWithHash, window.location.origin);
       const target = EXPLORE_PATH + u.search + u.hash.replace(/^#hub$/, "");
-      window.history.pushState({}, "", target);
-      applyDiscoverPanelFromHash();
-      setActiveRoute(EXPLORE_PATH);
+      const onlyTabChange =
+        isExploreRoute() &&
+        window.location.pathname.replace(LEGACY_DISCOVER_PATH, EXPLORE_PATH) === EXPLORE_PATH &&
+        u.pathname.replace(LEGACY_DISCOVER_PATH, EXPLORE_PATH) === EXPLORE_PATH;
+      if (onlyTabChange) {
+        window.history.pushState({}, "", target);
+        applyDiscoverPanelFromHash();
+        setActiveRoute(EXPLORE_PATH);
+        render(EXPLORE_PATH, { soft: true });
+        return;
+      }
+      diveToRoute(() => {
+        window.history.pushState({}, "", target);
+        render(EXPLORE_PATH);
+      });
       return;
     }
     diveToRoute(() => {
@@ -3685,7 +3717,10 @@ function initLinks(render) {
       render(pathOnly);
     });
   });
-  window.addEventListener("popstate", render);
+  window.addEventListener("popstate", () => {
+    if (isExploreRoute()) render(EXPLORE_PATH, { soft: true });
+    else render();
+  });
 }
 
 function initBottomNav(_render) {
@@ -3727,10 +3762,10 @@ async function boot() {
     setActiveRoute(pathForNav);
   };
 
-  const render = async (expectedPath) => {
+  const render = async (expectedPath, opts = {}) => {
     userMenu.close();
     closeAuthNudge();
-    await renderRoute(supabase, session, expectedPath);
+    await renderRoute(supabase, session, expectedPath, opts);
   };
   window.pwRerender = render;
   window.pwUserMenuRefresh = () => userMenu.refresh(session);

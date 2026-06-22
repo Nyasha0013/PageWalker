@@ -27,9 +27,25 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;600;700&family=Dancing+Script:wght@600;700&display=swap"
     />
     <link rel="stylesheet" href="/styles.css" />
-    <link rel="preload" as="image" href="/assets/hero-book-cloud.png" media="(min-width: 861px)" />
-    <link rel="preload" as="image" href="/assets/hero-book-cloud-portrait.png" media="(max-width: 860px) and (orientation: portrait)" />
-    <link rel="preload" as="image" href="/assets/hero-book-cloud-mobile.png" media="(max-width: 860px) and (orientation: landscape)" />
+    <script>
+      (function () {
+        var p = location.pathname;
+        if (p !== "/" && p !== "") return;
+        var imgs = [
+          ["/assets/hero-book-cloud.png", "(min-width: 861px)"],
+          ["/assets/hero-book-cloud-portrait.png", "(max-width: 860px) and (orientation: portrait)"],
+          ["/assets/hero-book-cloud-mobile.png", "(max-width: 860px) and (orientation: landscape)"],
+        ];
+        for (var i = 0; i < imgs.length; i++) {
+          var l = document.createElement("link");
+          l.rel = "preload";
+          l.as = "image";
+          l.href = imgs[i][0];
+          l.media = imgs[i][1];
+          document.head.appendChild(l);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="pw-immersive-backdrop" class="pw-immersive-backdrop" hidden aria-hidden="true"></div>
