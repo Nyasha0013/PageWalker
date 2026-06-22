@@ -3033,21 +3033,50 @@ body.pw-discover-immersive .pw-discover-overlay {
   );
 }
 
-/* Content floats above the fixed photo as glass panels. */
+/* The page container itself stays transparent so the photo shows through;
+   only the interactive cards/tabs become glass, like the home sections. */
 body.pw-discover-immersive .pw-discover-page {
   position: relative;
   z-index: 2;
-  background: rgba(22, 20, 15, 0.55);
-  border-color: rgba(239, 230, 211, 0.14);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
 }
 
-body.pw-discover-immersive a.pw-discover-hub-card {
+body.pw-discover-immersive .pw-discover-title {
+  text-shadow: 0 2px 18px rgba(22, 20, 15, 0.7);
+}
+
+body.pw-discover-immersive .pw-discover-page__lede,
+body.pw-discover-immersive .pw-discover-page > .muted {
+  color: rgba(239, 230, 211, 0.9);
+  text-shadow: 0 1px 12px rgba(22, 20, 15, 0.8);
+}
+
+body.pw-discover-immersive a.pw-discover-tablink {
   background: rgba(22, 20, 15, 0.5);
-  border-color: rgba(239, 230, 211, 0.16);
+  border-color: rgba(239, 230, 211, 0.18);
+  color: rgba(239, 230, 211, 0.92);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+body.pw-discover-immersive a.pw-discover-tablink[data-active] {
+  background: rgba(217, 89, 26, 0.28);
+  border-color: var(--border-strong);
+  box-shadow: inset 0 0 0 1px var(--primary);
+  color: var(--parchment);
+}
+
+/* Every inner panel/card becomes a glass plate so text stays readable
+   over the photo, while the gaps between them reveal the backdrop. */
+body.pw-discover-immersive .pw-discover-page .app-panel {
+  background: rgba(22, 20, 15, 0.5);
+  border-color: rgba(239, 230, 211, 0.14);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 body.pw-discover-immersive a.pw-discover-hub-card:hover {
