@@ -159,6 +159,83 @@ const DISCOVER_SCENE_BASE = {
   classics: "discover-sky",
 };
 
+const FIXED_BACKDROP_SCENES = {
+  home: { base: "hero-book-cloud", overlay: "home" },
+  discoverSky: { base: "discover-sky", overlay: "discover" },
+  libraryWalk: { base: "library-walk", overlay: "library" },
+};
+
+/** Body-level photo backdrops per route (guest home keeps its inline hero). */
+const ROUTE_IMMERSIVE = {
+  "/": { when: "signed-in", scene: "home" },
+  "/discover": { when: "always", dynamic: true },
+  "/library": { when: "always", scene: "libraryWalk" },
+  "/social": { when: "signed-in", scene: "discoverSky" },
+  "/clubs": { when: "signed-in", scene: "libraryWalk" },
+  "/club": { when: "signed-in", scene: "libraryWalk" },
+  "/reader": { when: "signed-in", scene: "libraryWalk" },
+  "/profile": { when: "signed-in", scene: "home" },
+};
+
+function sceneAssets(sceneKey) {
+  const scene = FIXED_BACKDROP_SCENES[sceneKey];
+  if (!scene) return null;
+  return {
+    src: `/assets/${scene.base}.png`,
+    mobileSrc: `/assets/${scene.base}-mobile.png`,
+    overlay: scene.overlay,
+  };
+}
+
+function routeUsesImmersiveBackdrop(route, session) {
+  const cfg = ROUTE_IMMERSIVE[route];
+  if (!cfg) return false;
+  if (cfg.when === "always") return true;
+  return Boolean(session?.user);
+}
+
+function applyImmersiveBodyClasses(route, session) {
+  const signedIn = Boolean(session?.user);
+  const isGuestHome = route === "/" && !signedIn;
+  const immersive = routeUsesImmersiveBackdrop(route, session);
+  const cfg = ROUTE_IMMERSIVE[route];
+
+  document.body.classList.remove(
+    "pw-home-immersive",
+    "pw-home-dashboard-immersive",
+    "pw-discover-immersive",
+    "pw-library-immersive",
+    "pw-app-immersive",
+  );
+
+  if (isGuestHome) {
+    document.body.classList.add("pw-home-immersive");
+    return;
+  }
+  if (!immersive) return;
+
+  if (route === "/" && signedIn) {
+    document.body.classList.add("pw-home-immersive", "pw-home-dashboard-immersive");
+    return;
+  }
+  if (route === "/discover") {
+    document.body.classList.add("pw-discover-immersive");
+    return;
+  }
+  if (route === "/library") {
+    document.body.classList.add("pw-library-immersive");
+    return;
+  }
+
+  document.body.classList.add("pw-app-immersive");
+  const overlay = cfg?.scene ? FIXED_BACKDROP_SCENES[cfg.scene]?.overlay : null;
+  if (overlay === "discover") document.body.classList.add("pw-discover-immersive");
+  else if (overlay === "library") document.body.classList.add("pw-library-immersive");
+  else if (overlay === "home") {
+    document.body.classList.add("pw-home-immersive", "pw-home-dashboard-immersive");
+  }
+}
+
 function discoverSceneSrc(view) {
   const base = DISCOVER_SCENE_BASE[view] || DISCOVER_SCENE_BASE.hub;
   return `/assets/${base}.png`;
@@ -202,24 +279,39 @@ function syncDiscoverSceneView() {
   document.body.dataset.discoverView = getDiscoverView();
 }
 
-function syncImmersiveBackdrop(route) {
+function syncImmersiveBackdrop(route, session) {
   const el = document.getElementById("pw-immersive-backdrop");
   if (!el) return;
 
+  if (route === "/" && !session?.user) {
+    el.hidden = true;
+    el.innerHTML = "";
+    el.removeAttribute("data-mode");
+    delete el.dataset.discoverView;
+    return;
+  }
+
+  if (!routeUsesImmersiveBackdrop(route, session)) {
+    el.hidden = true;
+    el.innerHTML = "";
+    el.removeAttribute("data-mode");
+    delete el.dataset.discoverView;
+    return;
+  }
+
   if (route === "/library") {
-    const src = "/assets/library-walk.png";
-    const mobileSrc = "/assets/library-walk-mobile.png";
+    const assets = sceneAssets("libraryWalk");
     el.hidden = false;
     if (el.dataset.mode === "library" && el.querySelector("#pw-immersive-scene-media")) {
       delete el.dataset.discoverView;
-      updateImmersiveBackdropMedia(src, mobileSrc);
+      updateImmersiveBackdropMedia(assets.src, assets.mobileSrc);
       return;
     }
     el.dataset.mode = "library";
     delete el.dataset.discoverView;
     el.innerHTML = `
       <div class="pw-immersive-scene" aria-hidden="true">
-        ${immersiveBackdropPicture(src, mobileSrc, 576, 1024)}
+        ${immersiveBackdropPicture(assets.src, assets.mobileSrc, 576, 1024)}
       </div>
       <div class="pw-immersive-overlay pw-immersive-overlay--library" aria-hidden="true"></div>
     `;
@@ -246,10 +338,30 @@ function syncImmersiveBackdrop(route) {
     return;
   }
 
-  el.hidden = true;
-  el.innerHTML = "";
-  el.removeAttribute("data-mode");
+  const cfg = ROUTE_IMMERSIVE[route];
+  const assets = cfg?.scene ? sceneAssets(cfg.scene) : null;
+  if (!assets) {
+    el.hidden = true;
+    el.innerHTML = "";
+    el.removeAttribute("data-mode");
+    delete el.dataset.discoverView;
+    return;
+  }
+
+  const mode = cfg.scene;
+  el.hidden = false;
+  el.dataset.mode = mode;
   delete el.dataset.discoverView;
+  if (el.querySelector("#pw-immersive-scene-media")) {
+    updateImmersiveBackdropMedia(assets.src, assets.mobileSrc);
+    return;
+  }
+  el.innerHTML = `
+    <div class="pw-immersive-scene" aria-hidden="true">
+      ${immersiveBackdropPicture(assets.src, assets.mobileSrc, 576, 1024)}
+    </div>
+    <div class="pw-immersive-overlay pw-immersive-overlay--${assets.overlay}" aria-hidden="true"></div>
+  `;
 }
 
 function applyDiscoverPanelFromHash() {
@@ -3225,8 +3337,16 @@ async function renderCurrentRoute(supabase, session, route) {
   return "";
 }
 
-async function renderRoute(supabase, session) {
-  const route = APP_ROUTES.has(window.location.pathname) ? window.location.pathname : "/";
+let _routeRenderGen = 0;
+
+async function renderRoute(supabase, session, expectedPath) {
+  const route =
+    expectedPath && APP_ROUTES.has(expectedPath)
+      ? expectedPath
+      : APP_ROUTES.has(window.location.pathname)
+        ? window.location.pathname
+        : "/";
+  const renderGen = ++_routeRenderGen;
   const pathForNav = window.location.pathname === "/club" ? "/clubs" : route;
   setActiveRoute(pathForNav);
   const root = document.getElementById("pw-route-content");
@@ -3237,26 +3357,27 @@ async function renderRoute(supabase, session) {
     bookPageReviewPanelOpen = false;
   }
   if (!session?.user && PROTECTED_ROUTES.has(route)) {
-    document.body.classList.remove("pw-home-immersive", "pw-home-hero-scrolled");
-    document.body.classList.toggle("pw-discover-immersive", route === "/discover");
-    document.body.classList.toggle("pw-library-immersive", route === "/library");
+    applyImmersiveBodyClasses(route, session);
     syncDiscoverSceneView();
-    syncImmersiveBackdrop(route);
+    syncImmersiveBackdrop(route, session);
+    document.body.classList.remove("pw-home-hero-scrolled");
     root.innerHTML = renderProtectedRouteGate(route);
     bindLockedGateActions();
     return;
   }
-  const isGuestHome = route === "/" && !session?.user;
-  document.body.classList.toggle("pw-home-immersive", isGuestHome);
-  document.body.classList.toggle("pw-discover-immersive", route === "/discover");
-  document.body.classList.toggle("pw-library-immersive", route === "/library");
+
+  applyImmersiveBodyClasses(route, session);
   syncDiscoverSceneView();
-  syncImmersiveBackdrop(route);
-  if (!isGuestHome) {
+  syncImmersiveBackdrop(route, session);
+  if (route !== "/" || session?.user) {
     document.body.classList.remove("pw-home-hero-scrolled");
   }
+
   root.classList.remove("pw-route-enter");
-  root.innerHTML = await renderCurrentRoute(supabase, session, route);
+  root.innerHTML = renderRouteSkeleton(route);
+  const html = await renderCurrentRoute(supabase, session, route);
+  if (renderGen !== _routeRenderGen) return;
+  root.innerHTML = html;
   requestAnimationFrame(() => {
     root.classList.add("pw-route-enter");
     if (route === "/club") {
@@ -3363,7 +3484,7 @@ function initLinks(render) {
     }
     diveToRoute(() => {
       window.history.pushState({}, "", nextPathWithHash);
-      render();
+      render(pathOnly);
     });
   });
   window.addEventListener("popstate", render);
@@ -3419,10 +3540,10 @@ async function boot() {
     setActiveRoute(pathForNav);
   };
 
-  const render = async () => {
+  const render = async (expectedPath) => {
     userMenu.close();
     closeAuthNudge();
-    await renderRoute(supabase, session);
+    await renderRoute(supabase, session, expectedPath);
   };
   window.pwRerender = render;
   window.pwUserMenuRefresh = () => userMenu.refresh(session);

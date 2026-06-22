@@ -198,6 +198,20 @@ body > * {
   );
 }
 
+.pw-immersive-overlay--home {
+  background: linear-gradient(
+    180deg,
+    rgba(22, 20, 15, 0.48) 0%,
+    rgba(22, 20, 15, 0.2) 30%,
+    rgba(22, 20, 15, 0.46) 62%,
+    rgba(22, 20, 15, 0.88) 100%
+  );
+}
+
+body.pw-home-dashboard-immersive #pw-immersive-scene-media {
+  object-position: 42% 42%;
+}
+
 body.pw-discover-immersive[data-discover-view="trending"] #pw-immersive-scene-media {
   object-position: 36% 58%;
 }
@@ -219,7 +233,8 @@ body.pw-library-immersive .webapp-content.pw-route-enter {
 }
 
 body.pw-library-immersive .pw-route-gate,
-body.pw-discover-immersive .pw-route-gate {
+body.pw-discover-immersive .pw-route-gate,
+body.pw-app-immersive .pw-route-gate {
   position: relative;
   z-index: 2;
   background: var(--glass-immersive-bg);
@@ -227,6 +242,45 @@ body.pw-discover-immersive .pw-route-gate {
   box-shadow: var(--glass-edge);
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
+}
+
+body.pw-app-immersive {
+  background: var(--ink);
+}
+
+body.pw-app-immersive .webapp-content {
+  position: relative;
+  z-index: 2;
+}
+
+body.pw-app-immersive .webapp-content > .app-panel,
+body.pw-app-immersive .webapp-content > section.app-panel,
+body.pw-app-immersive .webapp-hero {
+  background: var(--glass-immersive-bg);
+  border-color: var(--glass-immersive-border);
+  box-shadow: var(--glass-edge);
+}
+
+body.pw-app-immersive .webapp-content > .app-panel h2,
+body.pw-app-immersive .webapp-content > section.app-panel h2,
+body.pw-app-immersive .webapp-hero h1 {
+  text-shadow: 0 2px 16px rgba(22, 20, 15, 0.72);
+}
+
+body.pw-home-dashboard-immersive .pw-dashboard {
+  position: relative;
+  z-index: 2;
+}
+
+body.pw-home-dashboard-immersive .pw-dash-card {
+  background: var(--glass-immersive-bg);
+  border-color: var(--glass-immersive-border);
+  box-shadow: var(--glass-edge);
+}
+
+body.pw-home-dashboard-immersive .pw-dashboard-head h1,
+body.pw-home-dashboard-immersive .pw-dashboard-head p {
+  text-shadow: 0 2px 16px rgba(22, 20, 15, 0.75);
 }
 
 @media (max-width: 860px) {
@@ -3651,7 +3705,11 @@ body.pw-home-immersive .pw-hero-foreground {
   body.pw-discover-immersive .pw-discover-page .app-panel,
   body.pw-library-immersive .pw-sticky-bar,
   body.pw-library-immersive .pw-route-gate,
-  body.pw-discover-immersive .pw-route-gate {
+  body.pw-discover-immersive .pw-route-gate,
+  body.pw-app-immersive .webapp-content > .app-panel,
+  body.pw-app-immersive .webapp-content > section.app-panel,
+  body.pw-app-immersive .webapp-hero,
+  body.pw-home-dashboard-immersive .pw-dash-card {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     background: var(--glass-immersive-bg-dense);

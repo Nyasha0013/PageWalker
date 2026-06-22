@@ -34,6 +34,7 @@ checklist before major releases and after infra/env changes.
 - [ ] Auth:
   - [ ] Sign in, sign up, sign out
   - [ ] Protected routes gated for guests
+  - [ ] QA checker account documented (`pagewalker/docs/QA_WEB_ACCOUNT.md`); creds in env only
 
 ## 3) Browser + Device Matrix
 
