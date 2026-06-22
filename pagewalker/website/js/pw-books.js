@@ -27,7 +27,12 @@ export function renderBookSourceBadge(book, t) {
     typeof t === "function"
       ? t(`route.discover.source.${source}`, bookSourceLabel(source))
       : bookSourceLabel(source);
-  return `<span class="pw-source-badge pw-source-badge--${source}" title="${label}">${label}</span>`;
+  const safe = String(label)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+  return `<span class="pw-source-badge pw-source-badge--${source}" title="${safe}">${safe}</span>`;
 }
 
 export function filterBooksBySource(books, filter) {

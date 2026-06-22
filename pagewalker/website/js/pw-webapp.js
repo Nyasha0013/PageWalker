@@ -74,7 +74,7 @@ let readerTimer = {
 let readerTicker = null;
 
 function t(key, fallback) {
-  if (window.pwT) return window.pwT(key);
+  if (window.pwT) return window.pwT(key, fallback);
   return fallback || key;
 }
 
@@ -828,7 +828,7 @@ function renderBookPosterCard(book, opts = {}) {
   };
   const modalBook = escapeHtml(JSON.stringify(routeBook));
   const shareLink = escapeHtml(buildBookShareUrl(routeBook));
-  const sourceBadge = renderBookSourceBadge(routeBook, t);
+  const sourceBadge = opts.showSource ? renderBookSourceBadge(routeBook, t) : "";
   return `
     <article class="pw-poster-card">
       <button class="pw-poster-media pw-poster-hit" data-book-modal='${modalBook}'>
@@ -1561,14 +1561,17 @@ function renderDiscoverSourceFilters() {
     ["openlibrary", t("route.discover.source.openlibrary", BOOK_SOURCE_LABELS.openlibrary)],
     ["gutenberg", t("route.discover.source.gutenberg", BOOK_SOURCE_LABELS.gutenberg)],
   ];
-  return `<div class="pw-source-filters" role="group" aria-label="${t("route.discover.sourceFilterLabel", "Book source")}">
-    ${filters
-      .map(
-        ([id, label]) =>
-          `<button type="button" class="btn btn-outline pw-source-filter${discoverSourceFilter === id ? " is-active" : ""}" data-discover-source="${id}">${escapeHtml(label)}</button>`,
-      )
-      .join("")}
-  </div>`;
+  return `<label class="pw-source-filter-field">
+    <span class="pw-source-filter-field__label">${t("route.discover.sourceFilterLabel", "Filter by source")}</span>
+    <select id="pw-discover-source" class="pw-select pw-source-select" aria-label="${escapeHtml(t("route.discover.sourceFilterLabel", "Filter by source"))}">
+      ${filters
+        .map(
+          ([id, label]) =>
+            `<option value="${escapeHtml(id)}"${discoverSourceFilter === id ? " selected" : ""}>${escapeHtml(label)}</option>`,
+        )
+        .join("")}
+    </select>
+  </label>`;
 }
 
 function renderDiscoverShell(session) {
@@ -1584,10 +1587,6 @@ function renderDiscoverShell(session) {
     <section class="app-panel pw-discover-page" id="pw-discover-root" data-pw-active="${discoverView}">
       <h2 class="pw-discover-title">${t("route.explore.heading", "Explore")}</h2>
       <p class="pw-discover-page__lede muted">${t("route.explore.lede", "Search, mood picks, trending books, genres, and free classics — one place to find your next read.")}</p>
-      <p class="pw-discover-sources-note muted">${t(
-        "route.discover.sourcesNote",
-        "Book metadata from Google Books, Open Library, and Project Gutenberg.",
-      )}</p>
       <nav class="pw-discover-tabstrip" aria-label="${t("route.explore.tabstripLabel", "Explore sections")}">
         <a class="btn btn-outline pw-discover-tablink" data-link-route="/explore" href="/explore" data-discover-jump="search">${t("route.explore.tabSearch", "Search & mood")}</a>
         <a class="btn btn-outline pw-discover-tablink" data-link-route="/explore" href="/explore#trending" data-discover-jump="trending">${t("drawer.discover.trending", "Trending")}</a>
@@ -1633,7 +1632,7 @@ function renderDiscoverShell(session) {
               <article class="app-panel pw-discover-tile">
                 <h3 class="pw-discover-tile__title">${t("route.discover.moodTitle", "What's your vibe?")}</h3>
                 <form id="pw-mood-form" class="pw-discover-tile__body form-stack">
-                  <label class="form-stack" style="gap:0.35rem">
+                  <label class="pw-mood-field">
                     <span class="pw-discover-sr-only">${t("route.discover.moodInputLabel", "Mood")}</span>
                     <select id="pw-mood-select" class="pw-select" aria-label="${escapeHtml(t("route.discover.moodTitle", "What's your vibe?"))}">
                       <option value="">${t("route.discover.moodSelectHint", "Choose a vibe…")}</option>
@@ -1658,7 +1657,11 @@ function renderDiscoverShell(session) {
           </div>
         </section>
       </div>
-      <p class="muted">${
+      <p class="pw-discover-attribution muted">${t(
+        "route.discover.sourcesNote",
+        "Covers and descriptions from Google Books, Open Library, and Project Gutenberg.",
+      )}</p>
+      <p class="muted pw-discover-session-note">${
         session?.user
           ? t("route.discover.noteAuthed", "You are signed in. Use discover + library together.")
           : t("route.discover.noteGuest", "Sign in to save books to your TBR and library.")
@@ -2939,26 +2942,18 @@ function bindDiscoverActions(supabase, session, rerender) {
       rerender();
     });
   }
-  const sourceButtons = document.querySelectorAll("[data-discover-source]");
-  for (let i = 0; i < sourceButtons.length; i += 1) {
-    sourceButtons[i].addEventListener("click", () => {
-      discoverSourceFilter = String(sourceButtons[i].getAttribute("data-discover-source") || "all");
-      for (let j = 0; j < sourceButtons.length; j += 1) {
-        sourceButtons[j].classList.toggle(
-          "is-active",
-          sourceButtons[j].getAttribute("data-discover-source") === discoverSourceFilter,
-        );
-      }
-      const view = getDiscoverView();
-      const cached = _discoverPanelBooks[view] || [];
-      const grid = document.querySelector(`[data-discover-grid="${view}"]`);
-      if (grid && cached.length) {
-        grid.innerHTML = renderDiscoverBooksHtml(cached);
-      } else {
-        hydrateDiscoverPanels(session);
-      }
-    });
-  }
+  const sourceSelect = document.getElementById("pw-discover-source");
+  sourceSelect?.addEventListener("change", () => {
+    discoverSourceFilter = String(sourceSelect.value || "all");
+    const view = getDiscoverView();
+    const cached = _discoverPanelBooks[view] || [];
+    const grid = document.querySelector(`[data-discover-grid="${view}"]`);
+    if (grid && cached.length) {
+      grid.innerHTML = renderDiscoverBooksHtml(cached);
+    } else {
+      hydrateDiscoverPanels(session);
+    }
+  });
   const moodSelect = document.getElementById("pw-mood-select");
   const moodInput = document.getElementById("pw-mood-input");
   const syncMoodCustom = () => {

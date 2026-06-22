@@ -550,6 +550,13 @@
       "route.discover.genreTitle": "Explore by genre",
       "route.discover.freeClassics": "Free classics",
       "route.discover.freeBadge": "Free",
+      "route.discover.sourcesNote": "Covers and descriptions from Google Books, Open Library, and Project Gutenberg.",
+      "route.discover.classicsSource": "Public-domain novels from Project Gutenberg.",
+      "route.discover.sourceFilterLabel": "Filter by source",
+      "route.discover.source.all": "All sources",
+      "route.discover.source.google": "Google Books",
+      "route.discover.source.openlibrary": "Open Library",
+      "route.discover.source.gutenberg": "Project Gutenberg",
       "route.library.title": "Library",
       "route.library.filterAll": "All",
       "route.library.status": "Status",
@@ -998,6 +1005,13 @@
       "route.discover.genreTitle": "Felfedezés műfaj szerint",
       "route.discover.freeClassics": "Ingyenes klasszikusok",
       "route.discover.freeBadge": "Ingyenes",
+      "route.discover.sourcesNote": "Borítók és leírások: Google Books, Open Library és Project Gutenberg.",
+      "route.discover.classicsSource": "Közkincs regények a Project Gutenbergből.",
+      "route.discover.sourceFilterLabel": "Szűrés forrás szerint",
+      "route.discover.source.all": "Minden forrás",
+      "route.discover.source.google": "Google Books",
+      "route.discover.source.openlibrary": "Open Library",
+      "route.discover.source.gutenberg": "Project Gutenberg",
       "route.library.title": "Könyvtár",
       "route.library.filterAll": "Összes",
       "route.library.status": "Állapot",
@@ -1229,12 +1243,12 @@
     return DEFAULT_LANG;
   }
 
-  function t(key) {
+  function t(key, fallback) {
     var lang = getLang();
     var table = DICT[lang] || DICT[DEFAULT_LANG];
     if (key in table) return table[key];
     if (key in DICT[DEFAULT_LANG]) return DICT[DEFAULT_LANG][key];
-    return key;
+    return fallback !== undefined ? fallback : key;
   }
 
   function apply() {
