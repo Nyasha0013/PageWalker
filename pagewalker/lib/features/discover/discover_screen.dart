@@ -1,10 +1,16 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../core/config/env.dart';
+import '../../core/plus/pagewalker_plus_features.dart';
+import '../../core/plus/pagewalker_plus_service.dart';
+import '../../core/plus/plus_gate.dart';
+import '../../core/plus/plus_paywall_sheet.dart';
+import '../../core/services/connectivity_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/utils/url_utils.dart';
@@ -43,14 +49,14 @@ const _googleCuratedCollections = <(String, String)>[
   ('Cozy Mystery', 'cozy mystery detective'),
 ];
 
-class DiscoverScreen extends StatefulWidget {
+class DiscoverScreen extends ConsumerStatefulWidget {
   const DiscoverScreen({super.key});
 
   @override
-  State<DiscoverScreen> createState() => _DiscoverScreenState();
+  ConsumerState<DiscoverScreen> createState() => _DiscoverScreenState();
 }
 
-class _DiscoverScreenState extends State<DiscoverScreen> {
+class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   final _moodController = TextEditingController();
   final _repository = BookRepository();
   final _catalogRepo = CatalogBookRepository();
@@ -184,6 +190,28 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   Future<void> _findNextRead() async {
     if (_moodController.text.trim().isEmpty) return;
+
+    final isPlus = ref.read(pagewalkerPlusProvider).value ?? false;
+    if (!isPlus) {
+      await showPlusPaywall(
+        context,
+        highlight: PagewalkerPlusFeature.moodReads,
+      );
+      return;
+    }
+
+    final online = ref.read(connectivityStatusProvider).value ?? true;
+    if (!online) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mood Reads needs an internet connection.'),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _loading = true;
       _moodBooks = [];
@@ -227,51 +255,54 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 style: AppText.display(26, context: context),
               ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.1, end: 0),
               const SizedBox(height: 12),
-              GlassCard(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: _moodController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        hintText: 'Tell Pagewalker how you want to feel...',
+              PlusGate(
+                feature: PagewalkerPlusFeature.moodReads,
+                child: GlassCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: _moodController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          hintText: 'Tell Pagewalker how you want to feel...',
+                        ),
+                        style: AppText.body(14),
                       ),
-                      style: AppText.body(14),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 38,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _moods.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (context, index) {
-                          final label = _moods[index];
-                          return TropeChip(
-                            label: label,
-                            selected: false,
-                            onTap: () {
-                              _moodController.text = label;
-                            },
-                          );
-                        },
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 38,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _moods.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final label = _moods[index];
+                            return TropeChip(
+                              label: label,
+                              selected: false,
+                              onTap: () {
+                                _moodController.text = label;
+                              },
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    GradientButton(
-                      label: 'Find my next read ✦',
-                      width: double.infinity,
-                      onPressed: _loading ? null : _findNextRead,
-                      isLoading: _loading,
-                    ),
-                  ],
-                ),
-              )
-                  .animate()
-                  .fadeIn(delay: 120.ms, duration: 500.ms)
-                  .slideY(begin: 0.1, end: 0),
+                      const SizedBox(height: 16),
+                      GradientButton(
+                        label: 'Find my next read ✦',
+                        width: double.infinity,
+                        onPressed: _loading ? null : _findNextRead,
+                        isLoading: _loading,
+                      ),
+                    ],
+                  ),
+                )
+                    .animate()
+                    .fadeIn(delay: 120.ms, duration: 500.ms)
+                    .slideY(begin: 0.1, end: 0),
+              ),
               const SizedBox(height: 24),
               Text(
                 'Popular on Project Gutenberg',

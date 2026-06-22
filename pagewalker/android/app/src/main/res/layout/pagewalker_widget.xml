@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <TextView
+        android:id="@+id/widget_brand"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pagewalker"
+        android:textColor="#FFFF6B1A"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:text="No current read"
+        android:textColor="#FFFFFFFF"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_author"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="Add a book to start"
+        android:textColor="#CCFFFFFF"
+        android:textSize="12sp" />
+
+    <ProgressBar
+        android:id="@+id/widget_progress_bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:layout_marginTop="10dp"
+        android:max="100"
+        android:progress="0"
+        android:progressTint="#FFFF6B1A"
+        android:progressBackgroundTint="#33FFFFFF" />
+
+    <TextView
+        android:id="@+id/widget_pages"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="Tap to open Pagewalker"
+        android:textColor="#99FFFFFF"
+        android:textSize="11sp" />
+</LinearLayout>

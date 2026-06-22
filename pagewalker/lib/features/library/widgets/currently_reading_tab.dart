@@ -7,6 +7,7 @@ import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/book_cover_widget.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/gradient_button.dart';
+import '../../../core/services/widget_service.dart';
 import '../../../data/models/book.dart';
 import '../../../data/models/user_book.dart';
 import '../../../data/repositories/user_book_repository.dart';
@@ -42,6 +43,15 @@ class _CurrentlyReadingTabState extends State<CurrentlyReadingTab> {
         _entries = rows;
         _loading = false;
       });
+      if (rows.isNotEmpty) {
+        final book = rows.first.$2;
+        await WidgetService.syncCurrentRead(
+          book: book,
+          totalPages: book.pageCount ?? 0,
+        );
+      } else {
+        await WidgetService.clearCurrentRead();
+      }
     }
   }
 

@@ -1,24 +1,34 @@
 import 'package:home_widget/home_widget.dart';
 
+import '../plus/pagewalker_plus_service.dart';
 import '../../data/models/book.dart';
 
 class WidgetService {
-  static const _appGroupId = 'com.example.pagewalker';
+  static const _appGroupId = 'com.pagewalker.app';
+  static const _androidProvider = 'PagewalkerWidgetProvider';
+  static const _qualifiedAndroidProvider =
+      'com.pagewalker.app.PagewalkerWidgetProvider';
 
   static Future<void> initialize() async {
     await HomeWidget.setAppGroupId(_appGroupId);
   }
 
-  static Future<void> updateCurrentRead({
+  static Future<void> syncCurrentRead({
     required Book book,
-    required int currentPage,
-    required int totalPages,
+    int currentPage = 0,
+    int totalPages = 0,
   }) async {
+    final isPlus = await PagewalkerPlusService.instance.isPlusActive();
+    if (!isPlus) {
+      await clearCurrentRead();
+      return;
+    }
+
     final progress = totalPages > 0
         ? ((currentPage / totalPages) * 100).round().clamp(0, 100)
         : 0;
     final pagesText = totalPages > 0
-        ? 'Page $currentPage of $totalPages · ${100 - progress}% left'
+        ? 'Page $currentPage of $totalPages · $progress% done'
         : 'Currently reading';
 
     await HomeWidget.saveWidgetData('widget_book_title', book.title);
@@ -26,7 +36,8 @@ class WidgetService {
     await HomeWidget.saveWidgetData('widget_progress', progress);
     await HomeWidget.saveWidgetData('widget_pages', pagesText);
     await HomeWidget.updateWidget(
-      androidName: 'PagewalkerWidget',
+      androidName: _androidProvider,
+      qualifiedAndroidName: _qualifiedAndroidProvider,
     );
   }
 
@@ -35,7 +46,9 @@ class WidgetService {
     await HomeWidget.saveWidgetData('widget_author', 'Add a book to start');
     await HomeWidget.saveWidgetData('widget_progress', 0);
     await HomeWidget.saveWidgetData('widget_pages', 'Tap to open Pagewalker');
-    await HomeWidget.updateWidget(androidName: 'PagewalkerWidget');
+    await HomeWidget.updateWidget(
+      androidName: _androidProvider,
+      qualifiedAndroidName: _qualifiedAndroidProvider,
+    );
   }
 }
-

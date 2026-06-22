@@ -12,6 +12,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_config.dart';
+import '../../core/plus/pagewalker_plus_features.dart';
+import '../../core/plus/plus_gate.dart';
 import '../../core/services/reading_personality_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
@@ -96,21 +98,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               const SizedBox(height: 16),
               const _AchievementsPreview().animate().fadeIn(delay: 110.ms),
               const SizedBox(height: 16),
-              _ReadingWrapSection(
-                periods: _periods,
-                periodIndex: _periodIndex,
-                onPeriodChanged: (i) {
-                  setState(() => _periodIndex = i);
-                },
-                repaintKey: _wrapKey,
-                onShare: _shareWrap,
-              ).animate().fadeIn(delay: 140.ms),
+              PlusGate(
+                feature: PagewalkerPlusFeature.readingWrap,
+                child: _ReadingWrapSection(
+                  periods: _periods,
+                  periodIndex: _periodIndex,
+                  onPeriodChanged: (i) {
+                    setState(() => _periodIndex = i);
+                  },
+                  repaintKey: _wrapKey,
+                  onShare: _shareWrap,
+                ).animate().fadeIn(delay: 140.ms),
+              ),
               const SizedBox(height: 16),
               _TierListSection().animate().fadeIn(delay: 200.ms),
               const SizedBox(height: 16),
-              _TropeDnaSection().animate().fadeIn(delay: 260.ms),
+              PlusGate(
+                feature: PagewalkerPlusFeature.readingPersonality,
+                child: _TropeDnaSection().animate().fadeIn(delay: 260.ms),
+              ),
               const SizedBox(height: 16),
-              _BingoSection().animate().fadeIn(delay: 300.ms),
+              PlusGate(
+                feature: PagewalkerPlusFeature.readingBingo,
+                child: _BingoSection().animate().fadeIn(delay: 300.ms),
+              ),
             ],
           ),
         ),

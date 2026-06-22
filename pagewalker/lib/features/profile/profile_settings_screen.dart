@@ -5,7 +5,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/config/env.dart';
+import '../../core/plus/pagewalker_plus_features.dart';
+import '../../core/plus/pagewalker_plus_service.dart';
+import '../../core/plus/plus_paywall_sheet.dart';
+import '../../core/plus/plus_gate.dart';
 import '../../core/config/supabase_config.dart';
 import '../../core/providers/theme_provider.dart';
 import '../../core/services/notification_service.dart';
@@ -185,6 +188,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                   SliverToBoxAdapter(
                     child: Column(
                       children: [
+                        _PlusSettingsCard(),
                         // SECTION 1 — APPEARANCE
                         GlassCard(
                           padding: const EdgeInsets.all(16),
@@ -1015,6 +1019,60 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PlusSettingsCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tc = context.pwColors;
+    final isPlus = ref.watch(pagewalkerPlusProvider).value ?? false;
+
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Pagewalker Plus',
+                style: AppText.bodySemiBold(15, color: tc.primary),
+              ),
+              const SizedBox(width: 8),
+              const PlusBadge(),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isPlus
+                ? 'You have Plus — mood reads, bingo, wraps, widgets, and unlimited clubs are unlocked.'
+                : 'Upgrade for mood reads, reading personality, bingo, home widget, wraps, spin the wheel, and unlimited clubs.',
+            style: AppText.body(13, color: tc.textMuted),
+          ),
+          const SizedBox(height: 12),
+          GradientButton(
+            label: isPlus ? 'Manage subscription' : 'See Plus benefits',
+            width: double.infinity,
+            onPressed: () => showPlusPaywall(context),
+          ),
+          if (isPlus) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Home screen widget',
+              style: AppText.bodySemiBold(14, color: tc.primary),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Long-press your Android home screen → Widgets → Pagewalker. '
+              'Shows your current read and progress (updates when you open Library).',
+              style: AppText.body(12, color: tc.textMuted),
+            ),
+          ],
+        ],
       ),
     );
   }

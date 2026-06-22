@@ -3,6 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/config/supabase_config.dart';
+import '../../core/plus/pagewalker_plus_features.dart';
+import '../../core/plus/pagewalker_plus_service.dart';
+import '../../core/plus/plus_paywall_sheet.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/widgets/themed_background.dart';
@@ -32,6 +35,22 @@ class _JoinClubScreenState extends State<JoinClubScreen> {
     if (user == null) return;
     final code = _code.text.trim();
     if (code.isEmpty) return;
+
+    final memberRows = await SupabaseConfig.client
+        .from('book_club_members')
+        .select('club_id')
+        .eq('user_id', user.id);
+    final clubCount = (memberRows as List).length;
+    final canJoin = await PagewalkerPlusService.instance
+        .canJoinAnotherClub(clubCount);
+    if (!canJoin) {
+      if (!mounted) return;
+      await showPlusPaywall(
+        context,
+        highlight: PagewalkerPlusFeature.unlimitedClubs,
+      );
+      return;
+    }
 
     setState(() => _joining = true);
     try {

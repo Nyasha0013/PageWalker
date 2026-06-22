@@ -6,11 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/config/supabase_config.dart';
+import '../../core/plus/pagewalker_plus_features.dart';
+import '../../core/plus/pagewalker_plus_service.dart';
+import '../../core/plus/plus_paywall_sheet.dart';
 import '../../core/utils/url_utils.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
@@ -49,9 +53,18 @@ class _YearlyWrappedScreenState extends State<YearlyWrappedScreen>
       duration: const Duration(seconds: 6),
     )..repeat(reverse: true);
     _confetti = ConfettiController(duration: const Duration(milliseconds: 800));
-
-    // Mark as seen as soon as the user opens it.
     _markSeen();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPlusAccess());
+  }
+
+  Future<void> _checkPlusAccess() async {
+    final isPlus = await PagewalkerPlusService.instance.isPlusActive();
+    if (isPlus || !mounted) return;
+    await showPlusPaywall(
+      context,
+      highlight: PagewalkerPlusFeature.yearlyWrapped,
+    );
+    if (mounted) context.pop();
   }
 
   Future<void> _markSeen() async {

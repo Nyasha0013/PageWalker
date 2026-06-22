@@ -4,6 +4,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/plus/pagewalker_plus_features.dart';
+import '../../core/plus/pagewalker_plus_service.dart';
+import '../../core/plus/plus_paywall_sheet.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/theme/pagewalker_theme_extension.dart';
@@ -49,6 +52,16 @@ class _LibraryScreenState extends State<LibraryScreen>
     return Scaffold(
       floatingActionButton: _SpinFab(
         onPressed: () async {
+          final isPlus =
+              await PagewalkerPlusService.instance.isPlusActive();
+          if (!isPlus) {
+            if (!context.mounted) return;
+            await showPlusPaywall(
+              context,
+              highlight: PagewalkerPlusFeature.spinWheel,
+            );
+            return;
+          }
           await showModalBottomSheet<void>(
             context: context,
             isScrollControlled: true,
