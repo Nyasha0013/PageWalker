@@ -3,6 +3,15 @@ import { initUserMenu } from "./pw-user-menu.js";
 import { closeAuthNudge, guardAuthAction } from "./pw-auth-nudge.js";
 import { initHomeHeroParallax } from "./pw-hero.js";
 import { initScrollReveal } from "./pw-scroll-reveal.js";
+import {
+  BOOK_SOURCE_LABELS,
+  fetchJsonCached,
+  filterBooksBySource,
+  inferBookSource,
+  posterGridSkeleton,
+  prefetchBookApi,
+  renderBookSourceBadge,
+} from "./pw-books.js";
 
 const APP_ROUTES = new Set([
   "/",
@@ -40,6 +49,8 @@ const STATUS_LABELS = {
 let discoverQuery = "";
 let discoverGenre = "romance";
 let discoverMood = "";
+let discoverSourceFilter = "all";
+const _discoverPanelBooks = { trending: [], genre: [], search: [], classics: [] };
 const DISCOVER_MOOD_PRESETS = ["Make me cry", "Dark & twisted", "Cozy", "Slow burn", "Magic", "Mystery"];
 let libraryFilter = "all";
 let discoverPaging = {
@@ -803,6 +814,7 @@ function renderBookPosterCard(book, opts = {}) {
   const rating = book.googleRating != null ? `${Number(book.googleRating).toFixed(1)} ★` : "";
   const footer = [year, genre, rating].filter(Boolean).join(" · ");
   const action = opts.actionHtml || "";
+  const source = inferBookSource(book);
   const routeBook = {
     id: book.id || "",
     title: book.title || "Untitled",
@@ -813,13 +825,16 @@ function renderBookPosterCard(book, opts = {}) {
     publisher: book.publisher || "",
     genres: Array.isArray(book.genres) ? book.genres : [],
     googleRating: book.googleRating ?? null,
+    source,
   };
   const modalBook = escapeHtml(JSON.stringify(routeBook));
   const shareLink = escapeHtml(buildBookShareUrl(routeBook));
+  const sourceBadge = renderBookSourceBadge(routeBook, t);
   return `
     <article class="pw-poster-card">
       <button class="pw-poster-media pw-poster-hit" data-book-modal='${modalBook}'>
-        ${cover ? `<img src="${escapeHtml(cover)}" alt="${title} cover" loading="lazy" />` : `<div class="pw-poster-fallback">PW</div>`}
+        ${cover ? `<img src="${escapeHtml(cover)}" alt="${title} cover" width="120" height="180" loading="lazy" decoding="async" />` : `<div class="pw-poster-fallback">PW</div>`}
+        ${sourceBadge}
       </button>
       <div class="pw-poster-copy">
         <h4>${title}</h4>
@@ -888,6 +903,7 @@ function buildBookPageHtml(source, pageOpts = {}) {
   const ratingText =
     source.googleRating != null ? `${Number(source.googleRating).toFixed(1)} / 5` : "No rating yet";
   const shareUrl = buildBookShareUrl(source);
+  const sourceBadge = renderBookSourceBadge(source, t);
   const bookForLibrary = {
     id: source.id || null,
     title: source.title || "Untitled",
@@ -921,6 +937,7 @@ function buildBookPageHtml(source, pageOpts = {}) {
         <div>
           <h2>${title}</h2>
           <p>${author}</p>
+          <p class="pw-book-source-line">${sourceBadge}</p>
           ${metaLine ? `<p class="muted">${metaLine}</p>` : ""}
           <p class="metric">Community rating: ${escapeHtml(ratingText)}</p>
           <div class="cta-actions">
@@ -1167,16 +1184,19 @@ function renderBookCoverTile(book) {
   const cover = fixCoverUrl(book.coverUrl || book.cover_url);
   const title = escapeHtml(book.title || "Untitled");
   const author = escapeHtml(book.author || "");
+  const source = inferBookSource(book);
   const routeBook = {
     id: book.id || book.book_id || "",
     title: book.title || "Untitled",
     author: book.author || "",
     coverUrl: cover,
+    source,
   };
   const href = escapeHtml(buildBookShareUrl(routeBook));
+  const sourceBadge = renderBookSourceBadge(routeBook, t);
   return `
     <a class="pw-cover-tile" href="${href}" data-link-route="/book">
-      ${cover ? `<img src="${escapeHtml(cover)}" alt="${title} cover" loading="lazy" />` : `<span class="pw-cover-tile__fallback">PW</span>`}
+      <span class="pw-cover-tile__media">${cover ? `<img src="${escapeHtml(cover)}" alt="${title} cover" width="100" height="150" loading="lazy" decoding="async" />` : `<span class="pw-cover-tile__fallback">PW</span>`}${sourceBadge}</span>
       <span class="pw-cover-tile__meta"><strong>${title}</strong>${author ? `<span>${author}</span>` : ""}</span>
     </a>
   `;
@@ -1209,7 +1229,7 @@ async function renderHomeDashboard(supabase, session) {
       return data || [];
     }, t("appShell.missingUserBooks", "Could not load library.")),
     runSafeQuery(async () => {
-      const json = await fetchJson("/api/books?type=trending");
+      const json = await fetchJsonCached("/api/books?type=trending&maxResults=12");
       return extractBooksFromApiResponse(json).slice(0, 6);
     }, ""),
     runSafeQuery(async () => fetchReviewsWithAuthorRows(supabase, 5), ""),
@@ -1333,7 +1353,7 @@ async function renderHomeGuest(session) {
   const supabase = await getSupabase();
   const [trendingBooks, latestReviews, readersThisWeek] = await Promise.all([
     runSafeQuery(async () => {
-      const json = await fetchJson("/api/books?type=trending");
+      const json = await fetchJsonCached("/api/books?type=trending&maxResults=12");
       return extractBooksFromApiResponse(json).slice(0, 12);
     }, "Trending unavailable."),
     runSafeQuery(async () => {
@@ -1488,77 +1508,78 @@ async function renderHomeGuest(session) {
   `;
 }
 
-async function renderDiscover(supabase, session) {
+async function loadGoogleBookPages(baseUrl, pages) {
+  const reqs = [];
+  for (let i = 0; i < pages; i += 1) {
+    const startIndex = i * DISCOVER_PAGE_SIZE;
+    reqs.push(
+      fetchJsonCached(
+        `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}startIndex=${startIndex}&maxResults=${DISCOVER_PAGE_SIZE}`,
+      ),
+    );
+  }
+  const responses = await Promise.all(reqs);
+  const books = dedupeBooksStable(responses.flatMap((x) => extractBooksFromApiResponse(x)));
+  const last = responses[responses.length - 1] || {};
+  const hasMore =
+    typeof last?.hasMore === "boolean"
+      ? last.hasMore
+      : Number(last?.totalItems || 0) > books.length;
+  return { books, hasMore };
+}
+
+async function loadClassicsBookPages(pages) {
+  const reqs = [];
+  for (let i = 1; i <= pages; i += 1) {
+    reqs.push(fetchJsonCached(`/api/books?type=classics&page=${i}`));
+  }
+  const responses = await Promise.all(reqs);
+  const books = dedupeBooksStable(responses.flatMap((x) => x.results || []).map(parseGutendexBook));
+  const hasMore = Boolean(responses[responses.length - 1]?.next);
+  return { books, hasMore };
+}
+
+function discoverBookActionsHtml(book) {
+  return `<div class="cta-actions">
+    <button type="button" class="btn btn-outline" data-require-auth data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button>
+    <button type="button" class="btn btn-outline" data-require-auth data-discover-add data-status="reading" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addReading", "Mark Reading")}</button>
+  </div>`;
+}
+
+function renderDiscoverBooksHtml(books, opts = {}) {
+  const rows = filterBooksBySource(books, discoverSourceFilter);
+  if (!rows.length) {
+    return `<p class="muted">${opts.emptyText || t("route.discover.searchEmpty", "No matches. Try different words.")}</p>`;
+  }
+  return rows
+    .map((book) =>
+      renderBookPosterCard(book, {
+        actionHtml: opts.actionHtml ? opts.actionHtml(book) : discoverBookActionsHtml(book),
+      }),
+    )
+    .join("");
+}
+
+function renderDiscoverSourceFilters() {
+  const filters = [
+    ["all", t("route.discover.source.all", "All sources")],
+    ["google", t("route.discover.source.google", BOOK_SOURCE_LABELS.google)],
+    ["openlibrary", t("route.discover.source.openlibrary", BOOK_SOURCE_LABELS.openlibrary)],
+    ["gutenberg", t("route.discover.source.gutenberg", BOOK_SOURCE_LABELS.gutenberg)],
+  ];
+  return `<div class="pw-source-filters" role="group" aria-label="${t("route.discover.sourceFilterLabel", "Book source")}">
+    ${filters
+      .map(
+        ([id, label]) =>
+          `<button type="button" class="btn btn-outline pw-source-filter${discoverSourceFilter === id ? " is-active" : ""}" data-discover-source="${id}">${escapeHtml(label)}</button>`,
+      )
+      .join("")}
+  </div>`;
+}
+
+function renderDiscoverShell(session) {
   const discoverView = getDiscoverView();
   const safeQuery = discoverQuery.trim();
-  const loadGooglePages = async (baseUrl, pages) => {
-    const reqs = [];
-    for (let i = 0; i < pages; i += 1) {
-      const startIndex = i * DISCOVER_PAGE_SIZE;
-      reqs.push(fetchJson(`${baseUrl}&startIndex=${startIndex}&maxResults=${DISCOVER_PAGE_SIZE}`));
-    }
-    const responses = await Promise.all(reqs);
-    const books = dedupeBooksStable(responses.flatMap((x) => extractBooksFromApiResponse(x)));
-    const last = responses[responses.length - 1] || {};
-    const hasMore =
-      typeof last?.hasMore === "boolean"
-        ? last.hasMore
-        : Number(last?.totalItems || 0) > books.length;
-    return { books, hasMore };
-  };
-  const loadClassicsPages = async (pages) => {
-    const reqs = [];
-    for (let i = 1; i <= pages; i += 1) {
-      reqs.push(fetchJson(`/api/books?type=classics&page=${i}`));
-    }
-    const responses = await Promise.all(reqs);
-    const books = dedupeBooksStable(responses.flatMap((x) => x.results || []).map(parseGutendexBook));
-    const hasMore = Boolean(responses[responses.length - 1]?.next);
-    return { books, hasMore };
-  };
-
-  const emptyBookPage = { books: [], hasMore: false };
-
-  const trendingBooks =
-    discoverView === "trending"
-      ? await runSafeQuery(
-          () => loadGooglePages("/api/books?type=trending", discoverPaging.trendingPage),
-          t("route.discover.trendingFallback", "Trending data is not available yet."),
-        )
-      : emptyBookPage;
-  const genreBooks =
-    discoverView === "genre"
-      ? await runSafeQuery(() => {
-          const g = encodeURIComponent(discoverGenre);
-          return loadGooglePages(`/api/books?type=genre&genre=${g}`, discoverPaging.genrePage);
-        }, t("route.discover.trendingFallback", "Trending data is not available yet."))
-      : emptyBookPage;
-  const searchBooks =
-    discoverView === "search" && safeQuery
-      ? await runSafeQuery(async () => {
-          const q = encodeURIComponent(safeQuery);
-          return loadGooglePages(`/api/books?type=search&q=${q}`, discoverPaging.searchPage);
-        }, t("route.discover.trendingFallback", "Trending data is not available yet."))
-      : emptyBookPage;
-  const freeClassics =
-    discoverView === "classics"
-      ? await runSafeQuery(
-          () => loadClassicsPages(discoverPaging.classicsPage),
-          t("route.discover.trendingFallback", "Trending data is not available yet."),
-        )
-      : emptyBookPage;
-  const trendingRows = (trendingBooks?.books || []).filter((b) => !b.__error);
-  const genreRows = (genreBooks?.books || []).filter((b) => !b.__error);
-  const searchRows = (searchBooks?.books || []).filter((b) => !b.__error);
-  const classicsRows = (freeClassics?.books || []).filter((b) => !b.__error);
-  const genreHasMore = Boolean(genreBooks?.hasMore);
-  const searchHasMore = Boolean(searchBooks?.hasMore);
-  const bookCardBlock = (book) => renderBookPosterCard(book, {
-    actionHtml: `<div class="cta-actions">
-                <button type="button" class="btn btn-outline" data-require-auth data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button>
-                <button type="button" class="btn btn-outline" data-require-auth data-discover-add data-status="reading" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addReading", "Mark Reading")}</button>
-              </div>`,
-  });
   const genres = ["romance", "mystery", "adventure", "horror", "fantasy", "history", "drama", "sci-fi"];
   const moodInPreset = Boolean(discoverMood && DISCOVER_MOOD_PRESETS.includes(discoverMood));
   const moodSelectValue = !discoverMood ? "" : moodInPreset ? discoverMood : "__custom";
@@ -1569,45 +1590,21 @@ async function renderDiscover(supabase, session) {
     <section class="app-panel pw-discover-page" id="pw-discover-root" data-pw-active="${discoverView}">
       <h2 class="pw-discover-title">${t("route.explore.heading", "Explore")}</h2>
       <p class="pw-discover-page__lede muted">${t("route.explore.lede", "Search, mood picks, trending books, genres, and free classics — one place to find your next read.")}</p>
+      <p class="pw-discover-sources-note muted">${t(
+        "route.discover.sourcesNote",
+        "Book metadata from Google Books, Open Library, and Project Gutenberg.",
+      )}</p>
       <nav class="pw-discover-tabstrip" aria-label="${t("route.explore.tabstripLabel", "Explore sections")}">
-        <a
-          class="btn btn-outline pw-discover-tablink"
-          data-link-route="/explore"
-          href="/explore"
-          data-discover-jump="search"
-        >${t("route.explore.tabSearch", "Search & mood")}</a>
-        <a
-          class="btn btn-outline pw-discover-tablink"
-          data-link-route="/explore"
-          href="/explore#trending"
-          data-discover-jump="trending"
-        >${t("drawer.discover.trending", "Trending")}</a>
-        <a
-          class="btn btn-outline pw-discover-tablink"
-          data-link-route="/explore"
-          href="/explore#genre"
-          data-discover-jump="genre"
-        >${t("drawer.discover.genre", "Genre exploration")}</a>
-        <a
-          class="btn btn-outline pw-discover-tablink"
-          data-link-route="/explore"
-          href="/explore#classics"
-          data-discover-jump="classics"
-        >${t("drawer.discover.classics", "Classics")}</a>
+        <a class="btn btn-outline pw-discover-tablink" data-link-route="/explore" href="/explore" data-discover-jump="search">${t("route.explore.tabSearch", "Search & mood")}</a>
+        <a class="btn btn-outline pw-discover-tablink" data-link-route="/explore" href="/explore#trending" data-discover-jump="trending">${t("drawer.discover.trending", "Trending")}</a>
+        <a class="btn btn-outline pw-discover-tablink" data-link-route="/explore" href="/explore#genre" data-discover-jump="genre">${t("drawer.discover.genre", "Genre exploration")}</a>
+        <a class="btn btn-outline pw-discover-tablink" data-link-route="/explore" href="/explore#classics" data-discover-jump="classics">${t("drawer.discover.classics", "Classics")}</a>
       </nav>
       <div class="pw-discover-panels" role="region" aria-label="${t("route.explore.sectionsLabel", "Explore content")}">
-        <section
-          class="app-panel pw-discover-panel"
-          data-pw-discover-panel="trending"
-          id="pw-discover-trending"
-        >
-        <h3>🔥 ${t("route.discover.trendingTitle", "Trending now")}</h3>
-        <div class="pw-poster-grid">
-          ${trendingRows.map((book) => renderBookPosterCard(book, {
-            actionHtml: `<div class="cta-actions"><button type="button" class="btn btn-outline" data-require-auth data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button></div>`,
-          })).join("")}
-        </div>
-        ${trendingBooks?.hasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="trending">Load more</button></div>` : ""}
+        <section class="app-panel pw-discover-panel" data-pw-discover-panel="trending" id="pw-discover-trending">
+          <h3>🔥 ${t("route.discover.trendingTitle", "Trending now")}</h3>
+          <div class="pw-poster-grid" data-discover-grid="trending">${posterGridSkeleton(8)}</div>
+          <div data-discover-more="trending"></div>
         </section>
         <section class="pw-discover-panel pw-discover-panel--stack" data-pw-discover-panel="genre" id="pw-discover-genre">
           <article class="app-panel">
@@ -1616,29 +1613,16 @@ async function renderDiscover(supabase, session) {
               ${genres.map((g) => `<button class="btn btn-outline" data-genre-chip="${escapeHtml(g)}">${escapeHtml(g)}</button>`).join("")}
             </div>
           </article>
-          <div class="pw-poster-grid">
-            ${genreRows.map((book) => bookCardBlock(book)).join("")}
-          </div>
-          ${genreHasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="genre">Load more</button></div>` : ""}
+          <div class="pw-poster-grid" data-discover-grid="genre">${posterGridSkeleton(8)}</div>
+          <div data-discover-more="genre"></div>
         </section>
-        <section
-          class="app-panel pw-discover-panel"
-          data-pw-discover-panel="classics"
-          id="pw-discover-classics"
-        >
-        <h3>📖 ${t("route.discover.freeClassics", "Free classics")}</h3>
-        <div class="pw-poster-grid">
-          ${classicsRows.map((book) => renderBookPosterCard(book, {
-            actionHtml: `<p class="metric">${t("route.discover.freeBadge", "Free")}</p>`,
-          })).join("")}
-        </div>
-        ${freeClassics?.hasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="classics">Load more</button></div>` : ""}
+        <section class="app-panel pw-discover-panel" data-pw-discover-panel="classics" id="pw-discover-classics">
+          <h3>📖 ${t("route.discover.freeClassics", "Free classics")}</h3>
+          <p class="muted">${t("route.discover.classicsSource", "Public-domain novels from Project Gutenberg.")}</p>
+          <div class="pw-poster-grid" data-discover-grid="classics">${posterGridSkeleton(8)}</div>
+          <div data-discover-more="classics"></div>
         </section>
-        <section
-          class="pw-discover-panel pw-discover-panel--search"
-          data-pw-discover-panel="search"
-          id="pw-discover-search"
-        >
+        <section class="pw-discover-panel pw-discover-panel--search" data-pw-discover-panel="search" id="pw-discover-search">
           <div class="pw-discover-tools">
             <div class="pw-discover-tiles">
               <article class="app-panel pw-discover-tile">
@@ -1648,6 +1632,7 @@ async function renderDiscover(supabase, session) {
                     <span class="pw-discover-sr-only">${t("route.discover.searchLabel", "Search books")}</span>
                     <input id="pw-discover-query" type="search" autocomplete="off" value="${escapeHtml(safeQuery)}" placeholder="${t("route.discover.searchPlaceholder", "Search by title")}" />
                   </label>
+                  ${renderDiscoverSourceFilters()}
                   <button type="submit" class="btn">${t("route.discover.searchAction", "Search")}</button>
                 </form>
               </article>
@@ -1664,35 +1649,18 @@ async function renderDiscover(supabase, session) {
                       ).join("")}
                       <option value="__custom" ${moodSelectValue === "__custom" ? " selected" : ""}>${t("route.discover.moodCustom", "Custom…")}</option>
                     </select>
-                    <input
-                      id="pw-mood-input"
-                      type="text"
-                      class="pw-mood-custom-input"
-                      value="${escapeHtml(moodCustomValue)}"
-                      placeholder="${t("route.discover.moodPlaceholder", "Describe your mood")}"
-                      ${moodSelectValue === "__custom" ? "" : " hidden"}
-                    />
+                    <input id="pw-mood-input" type="text" class="pw-mood-custom-input" value="${escapeHtml(moodCustomValue)}" placeholder="${t("route.discover.moodPlaceholder", "Describe your mood")}" ${moodSelectValue === "__custom" ? "" : " hidden"} />
                   </label>
                   <button type="submit" class="btn">${t("route.discover.moodAction", "Find my next read")}</button>
                 </form>
               </article>
             </div>
             <div id="pw-mood-results" class="pw-mood-results-below"></div>
-            ${
-              safeQuery
-                ? `
-            <div class="app-panel pw-discover-search-title-block">
+            <div class="app-panel pw-discover-search-title-block" id="pw-discover-search-results" ${safeQuery ? "" : "hidden"}>
               <h3 class="pw-discover-tile__title">${t("route.discover.searchResultsTitle", "Title search results")}</h3>
-              ${
-                searchRows.length
-                  ? `<div class="pw-poster-grid">${searchRows.map((book) => bookCardBlock(book)).join("")}</div>`
-                  : `<p class="muted">${t("route.discover.searchEmpty", "No matches. Try different words.")}</p>`
-              }
-              ${searchHasMore ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="search">Load more</button></div>` : ""}
+              <div class="pw-poster-grid" data-discover-grid="search">${posterGridSkeleton(8)}</div>
+              <div data-discover-more="search"></div>
             </div>
-            `
-                : ""
-            }
           </div>
         </section>
       </div>
@@ -1704,6 +1672,88 @@ async function renderDiscover(supabase, session) {
     </section>
     </div>
   `;
+}
+
+async function hydrateDiscoverPanels(session) {
+  const discoverView = getDiscoverView();
+  const safeQuery = discoverQuery.trim();
+  const fillGrid = (key, html) => {
+    const el = document.querySelector(`[data-discover-grid="${key}"]`);
+    if (el) el.innerHTML = html;
+  };
+  const fillMore = (key, hasMore) => {
+    const el = document.querySelector(`[data-discover-more="${key}"]`);
+    if (!el) return;
+    el.innerHTML = hasMore
+      ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="${key}">Load more</button></div>`
+      : "";
+  };
+
+  if (discoverView === "trending") {
+    const trending = await runSafeQuery(
+      () => loadGoogleBookPages("/api/books?type=trending", discoverPaging.trendingPage),
+      t("route.discover.trendingFallback", "Trending data is not available yet."),
+    );
+    const rows = (trending?.books || []).filter((b) => !b.__error);
+    _discoverPanelBooks.trending = rows;
+    fillGrid(
+      "trending",
+      renderDiscoverBooksHtml(rows, {
+        actionHtml: (book) =>
+          `<div class="cta-actions"><button type="button" class="btn btn-outline" data-require-auth data-discover-add data-status="tbr" data-book='${escapeHtml(JSON.stringify(book))}'>${t("route.discover.addTbr", "Add to TBR")}</button></div>`,
+      }),
+    );
+    fillMore("trending", Boolean(trending?.hasMore));
+    return;
+  }
+
+  if (discoverView === "genre") {
+    const g = encodeURIComponent(discoverGenre);
+    const genreBooks = await runSafeQuery(
+      () => loadGoogleBookPages(`/api/books?type=genre&genre=${g}`, discoverPaging.genrePage),
+      t("route.discover.trendingFallback", "Trending data is not available yet."),
+    );
+    const rows = (genreBooks?.books || []).filter((b) => !b.__error);
+    _discoverPanelBooks.genre = rows;
+    fillGrid("genre", renderDiscoverBooksHtml(rows));
+    fillMore("genre", Boolean(genreBooks?.hasMore));
+    return;
+  }
+
+  if (discoverView === "classics") {
+    const classics = await runSafeQuery(
+      () => loadClassicsBookPages(discoverPaging.classicsPage),
+      t("route.discover.trendingFallback", "Trending data is not available yet."),
+    );
+    const rows = (classics?.books || []).filter((b) => !b.__error);
+    _discoverPanelBooks.classics = rows;
+    fillGrid(
+      "classics",
+      renderDiscoverBooksHtml(rows, {
+        actionHtml: () => `<p class="metric">${t("route.discover.freeBadge", "Free")}</p>`,
+      }),
+    );
+    fillMore("classics", Boolean(classics?.hasMore));
+    return;
+  }
+
+  if (discoverView === "search" && safeQuery) {
+    const searchBlock = document.getElementById("pw-discover-search-results");
+    if (searchBlock) searchBlock.removeAttribute("hidden");
+    const q = encodeURIComponent(safeQuery);
+    const searchBooks = await runSafeQuery(
+      () => loadGoogleBookPages(`/api/books?type=search&q=${q}`, discoverPaging.searchPage),
+      t("route.discover.trendingFallback", "Trending data is not available yet."),
+    );
+    const rows = (searchBooks?.books || []).filter((b) => !b.__error);
+    _discoverPanelBooks.search = rows;
+    fillGrid("search", renderDiscoverBooksHtml(rows));
+    fillMore("search", Boolean(searchBooks?.hasMore));
+  }
+}
+
+function renderDiscover(session) {
+  return renderDiscoverShell(session);
 }
 
 async function renderLibrary(supabase, session) {
@@ -2750,7 +2800,7 @@ async function renderBookRoute(supabase, session) {
   const stableId = String(params.get("id") || "").trim();
   if (stableId) {
     try {
-      const fetched = await fetchJson(`/api/books?type=detail&id=${encodeURIComponent(stableId)}`);
+      const fetched = await fetchJsonCached(`/api/books?type=detail&id=${encodeURIComponent(stableId)}`);
       const bid = String(fetched?.id || stableId).trim();
       const raw = await runSafeQuery(
         () => fetchReviewsForBook(supabase, bid, 40),
@@ -2895,6 +2945,26 @@ function bindDiscoverActions(supabase, session, rerender) {
       rerender();
     });
   }
+  const sourceButtons = document.querySelectorAll("[data-discover-source]");
+  for (let i = 0; i < sourceButtons.length; i += 1) {
+    sourceButtons[i].addEventListener("click", () => {
+      discoverSourceFilter = String(sourceButtons[i].getAttribute("data-discover-source") || "all");
+      for (let j = 0; j < sourceButtons.length; j += 1) {
+        sourceButtons[j].classList.toggle(
+          "is-active",
+          sourceButtons[j].getAttribute("data-discover-source") === discoverSourceFilter,
+        );
+      }
+      const view = getDiscoverView();
+      const cached = _discoverPanelBooks[view] || [];
+      const grid = document.querySelector(`[data-discover-grid="${view}"]`);
+      if (grid && cached.length) {
+        grid.innerHTML = renderDiscoverBooksHtml(cached);
+      } else {
+        hydrateDiscoverPanels(session);
+      }
+    });
+  }
   const moodSelect = document.getElementById("pw-mood-select");
   const moodInput = document.getElementById("pw-mood-input");
   const syncMoodCustom = () => {
@@ -2951,6 +3021,26 @@ function bindDiscoverActions(supabase, session, rerender) {
         const raw = addButtons[i].getAttribute("data-book");
         const status = addButtons[i].getAttribute("data-status") || "tbr";
         if (!raw) return;
+        const parsed = JSON.parse(raw);
+        await upsertUserBookStatus(supabase, session.user.id, parsed, status);
+        showBanner("success", t("route.discover.saved", "Saved to your library."));
+      } catch (error) {
+        showBanner("error", error?.message || t("appShell.missingData", "Something went wrong."));
+      }
+    });
+  }
+  const discoverRoot = document.getElementById("pw-discover-root");
+  if (discoverRoot && !discoverRoot.dataset.addDelegateBound) {
+    discoverRoot.dataset.addDelegateBound = "1";
+    discoverRoot.addEventListener("click", async (event) => {
+      const btn = event.target instanceof Element ? event.target.closest("[data-discover-add]") : null;
+      if (!btn) return;
+      event.stopPropagation();
+      if (!guardAuthAction(btn, session)) return;
+      try {
+        const raw = btn.getAttribute("data-book");
+        const status = btn.getAttribute("data-status") || "tbr";
+        if (!raw || !session?.user) return;
         const parsed = JSON.parse(raw);
         await upsertUserBookStatus(supabase, session.user.id, parsed, status);
         showBanner("success", t("route.discover.saved", "Saved to your library."));
@@ -3586,7 +3676,7 @@ function bindClubsActions(supabase, session, rerender) {
 async function renderCurrentRoute(supabase, session, route) {
   if (route === "/") return renderHome(supabase, session);
   if (route === "/book") return renderBookRoute(supabase, session);
-  if (route === EXPLORE_PATH) return renderDiscover(supabase, session);
+  if (route === EXPLORE_PATH) return renderDiscover(session);
   if (route === "/library") return renderLibrary(supabase, session);
   if (route === "/social") return renderSocial(supabase, session);
   if (route === "/clubs") return renderClubs(supabase, session);
@@ -3614,6 +3704,20 @@ async function renderRoute(supabase, session, expectedPath, opts = {}) {
   setActiveRoute(pathForNav);
   const root = document.getElementById("pw-route-content");
   if (!root) return;
+
+  if (route === EXPLORE_PATH && opts.soft && document.getElementById("pw-discover-root")) {
+    hideBanners();
+    applyImmersiveBodyClasses(route, session);
+    syncDiscoverSceneView();
+    syncImmersiveBackdrop(route, session);
+    applyDiscoverPanelFromHash();
+    setActiveRoute(EXPLORE_PATH);
+    await hydrateDiscoverPanels(session);
+    const rerenderSoft = () => renderRoute(supabase, session);
+    bindDiscoverActions(supabase, session, rerenderSoft);
+    bindBookModalActions();
+    return;
+  }
 
   hideBanners();
   if (route !== "/book") {
@@ -3644,6 +3748,10 @@ async function renderRoute(supabase, session, expectedPath, opts = {}) {
   const html = await renderCurrentRoute(supabase, session, route);
   if (renderGen !== _routeRenderGen) return;
   root.innerHTML = html;
+  if (route === EXPLORE_PATH) {
+    await hydrateDiscoverPanels(session);
+  }
+  if (renderGen !== _routeRenderGen) return;
   requestAnimationFrame(() => {
     root.classList.add("pw-route-enter");
     if (route === "/club") {
@@ -3826,6 +3934,7 @@ async function boot() {
   initLinks(render);
   initBottomNav(render);
   await userMenu.refresh(session);
+  prefetchBookApi("/api/books?type=trending&maxResults=12");
   await render();
 
   supabase.auth.onAuthStateChange(async (_evt, newSession) => {

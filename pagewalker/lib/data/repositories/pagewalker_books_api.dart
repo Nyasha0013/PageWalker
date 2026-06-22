@@ -11,6 +11,12 @@ import '../models/catalog_book.dart';
 class PagewalkerBooksApi {
   static const _timeout = Duration(seconds: 15);
   static const _userAgent = 'Pagewalker/6.0 Flutter';
+  static const _cacheTtl = Duration(minutes: 5);
+
+  final Map<String, (List<CatalogBook> books, DateTime expires)> _searchCache = {};
+  final Map<String, (CatalogBook? book, DateTime expires)> _detailCache = {};
+
+  bool _cacheFresh(DateTime expires) => DateTime.now().isBefore(expires);
 
   Uri _uri(String path, [Map<String, String>? query]) {
     return Uri.parse('${Env.apiBaseUrl}$path').replace(queryParameters: query);
@@ -25,6 +31,10 @@ class PagewalkerBooksApi {
     required String query,
     int maxResults = 20,
   }) async {
+    final cacheKey = 'search::$query::$maxResults';
+    final hit = _searchCache[cacheKey];
+    if (hit != null && _cacheFresh(hit.$2)) return hit.$1;
+
     final response = await http
         .get(
           _uri('/api/books', {
@@ -43,13 +53,19 @@ class PagewalkerBooksApi {
     }
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final rows = data['books'] as List<dynamic>? ?? [];
-    return rows
+    final books = rows
         .map((row) => _mapApiBook(row as Map<String, dynamic>))
         .whereType<CatalogBook>()
         .toList();
+    _searchCache[cacheKey] = (books, DateTime.now().add(_cacheTtl));
+    return books;
   }
 
   Future<List<CatalogBook>> trending({int maxResults = 10}) async {
+    final cacheKey = 'trending::$maxResults';
+    final hit = _searchCache[cacheKey];
+    if (hit != null && _cacheFresh(hit.$2)) return hit.$1;
+
     final response = await http
         .get(
           _uri('/api/books', {
@@ -62,13 +78,18 @@ class PagewalkerBooksApi {
     if (response.statusCode != 200) return [];
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final rows = data['books'] as List<dynamic>? ?? [];
-    return rows
+    final books = rows
         .map((row) => _mapApiBook(row as Map<String, dynamic>))
         .whereType<CatalogBook>()
         .toList();
+    _searchCache[cacheKey] = (books, DateTime.now().add(_cacheTtl));
+    return books;
   }
 
   Future<CatalogBook?> detail(String id) async {
+    final hit = _detailCache[id];
+    if (hit != null && _cacheFresh(hit.$2)) return hit.$1;
+
     final response = await http
         .get(
           _uri('/api/books', {'type': 'detail', 'id': id}),
@@ -77,7 +98,9 @@ class PagewalkerBooksApi {
         .timeout(_timeout);
     if (response.statusCode != 200) return null;
     final data = jsonDecode(response.body) as Map<String, dynamic>;
-    return _mapApiBook(data);
+    final book = _mapApiBook(data);
+    _detailCache[id] = (book, DateTime.now().add(_cacheTtl));
+    return book;
   }
 
   CatalogBook? _mapApiBook(Map<String, dynamic> json) {

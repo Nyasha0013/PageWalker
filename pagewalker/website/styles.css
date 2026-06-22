@@ -2262,6 +2262,58 @@ html[data-theme="dark"] .pw-auth-nudge {
   contain-intrinsic-size: auto 320px;
 }
 
+.pw-source-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  z-index: 2;
+  max-width: calc(100% - 12px);
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgba(10, 10, 10, 0.78);
+  border: 1px solid rgba(255, 107, 26, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pw-source-badge--google {
+  border-color: rgba(66, 133, 244, 0.55);
+}
+
+.pw-source-badge--openlibrary {
+  border-color: rgba(120, 180, 255, 0.55);
+}
+
+.pw-source-badge--gutenberg {
+  border-color: rgba(255, 200, 120, 0.55);
+}
+
+.pw-source-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0.5rem;
+}
+
+.pw-source-filter.is-active {
+  border-color: var(--accent, #ff6b1a);
+  color: var(--accent, #ff6b1a);
+}
+
+.pw-discover-sources-note {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+}
+
+.pw-book-source-line {
+  margin: 0.25rem 0 0.5rem;
+}
+
 .pw-poster-card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -2279,6 +2331,7 @@ html[data-theme="dark"] .pw-auth-nudge {
 }
 
 .pw-poster-media {
+  position: relative;
   aspect-ratio: 3 / 4;
   background: var(--surface);
 }
@@ -4149,6 +4202,11 @@ body.pw-home-immersive .pw-hero-foreground {
 .pw-cover-tile:hover {
   text-decoration: none;
   color: inherit;
+}
+
+.pw-cover-tile__media {
+  position: relative;
+  display: block;
 }
 
 .pw-cover-tile img,
