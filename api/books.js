@@ -1,4 +1,5 @@
 const { withRequestContext, applyRateLimit, sendError, blockLikelyBots } = require("./_utils");
+const { novelGenreQuery, filterNovels, filterGutendexNovels } = require("./book-novel-filter");
 
 module.exports = async (req, res) => {
   const ctx = withRequestContext(req, res, "books");
@@ -34,6 +35,7 @@ module.exports = async (req, res) => {
       publishedYear: pubDate.length >= 4 ? pubDate.slice(0, 4) : "",
       publisher: info?.publisher || "",
       genres: Array.isArray(info?.categories) ? info.categories : [],
+      printType: String(info?.printType || "BOOK"),
       googleRating: info?.averageRating ?? null,
     };
   };
@@ -166,7 +168,7 @@ module.exports = async (req, res) => {
       description: String(book?.summaries?.[0] || ""),
       publishedYear: "",
       publisher: "",
-      genres: [],
+      genres: Array.isArray(book?.subjects) ? book.subjects.map((s) => String(s)) : [],
       googleRating: null,
     };
   };
@@ -186,7 +188,12 @@ module.exports = async (req, res) => {
           return res.status(200).json({ results: [], next: null, count: 0 });
         }
         const classics = await classicsRes.json();
-        return res.status(200).json(classics);
+        const results = filterGutendexNovels(classics.results || []);
+        return res.status(200).json({
+          ...classics,
+          results,
+          count: results.length,
+        });
       } catch (_) {
         return res.status(200).json({ results: [], next: null, count: 0 });
       } finally {
@@ -269,7 +276,7 @@ module.exports = async (req, res) => {
     res.setHeader("Cache-Control", "s-maxage=600, stale-while-revalidate=3600");
     const startIndex = toInt(req.query?.startIndex, 0);
     const maxResults = Math.min(40, Math.max(1, toInt(req.query?.maxResults, 20)));
-    const candidateLimit = Math.min(120, startIndex + maxResults * 3);
+    const candidateLimit = Math.min(120, startIndex + maxResults * 5);
     if (startIndex > 2000) {
       return res.status(400).json({ error: "startIndex too large" });
     }
@@ -288,23 +295,24 @@ module.exports = async (req, res) => {
     const olPage = 1;
     const googleUrlByType = () => {
       if (!googleKey) return "";
+      const printType = "&printType=books";
       if (type === "trending") {
         return (
           `https://www.googleapis.com/books/v1/volumes` +
-          `?q=subject:fiction&orderBy=relevance&startIndex=0&maxResults=${Math.min(40, candidateLimit)}&langRestrict=en&key=${googleKey}`
+          `?q=subject:fiction&orderBy=relevance&startIndex=0&maxResults=${Math.min(40, candidateLimit)}&langRestrict=en${printType}&key=${googleKey}`
         );
       }
       if (type === "genre") {
-        const genre = encodeURIComponent(String(req.query?.genre || "romance"));
+        const genre = encodeURIComponent(novelGenreQuery(String(req.query?.genre || "romance")));
         return (
           `https://www.googleapis.com/books/v1/volumes` +
-          `?q=subject:${genre}&orderBy=relevance&startIndex=0&maxResults=${Math.min(40, candidateLimit)}&langRestrict=en&key=${googleKey}`
+          `?q=subject:${genre}&orderBy=relevance&startIndex=0&maxResults=${Math.min(40, candidateLimit)}&langRestrict=en${printType}&key=${googleKey}`
         );
       }
-      const q = encodeURIComponent(String(req.query?.q || ""));
+      const q = encodeURIComponent(String(req.query?.q || "").trim());
       return (
         `https://www.googleapis.com/books/v1/volumes` +
-        `?q=${q}&startIndex=0&maxResults=${Math.min(40, candidateLimit)}&langRestrict=en&key=${googleKey}`
+        `?q=${q}+subject:fiction&startIndex=0&maxResults=${Math.min(40, candidateLimit)}&langRestrict=en${printType}&key=${googleKey}`
       );
     };
 
@@ -313,11 +321,11 @@ module.exports = async (req, res) => {
         return `https://openlibrary.org/subjects/fiction.json?limit=${candidateLimit}&offset=0`;
       }
       if (type === "genre") {
-        const genre = encodeURIComponent(String(req.query?.genre || "romance"));
+        const genre = encodeURIComponent(novelGenreQuery(String(req.query?.genre || "romance")));
         return `https://openlibrary.org/subjects/${genre}.json?limit=${candidateLimit}&offset=0`;
       }
-      const q = encodeURIComponent(String(req.query?.q || ""));
-      return `https://openlibrary.org/search.json?q=${q}&limit=${candidateLimit}&page=${olPage}`;
+      const q = encodeURIComponent(String(req.query?.q || "").trim());
+      return `https://openlibrary.org/search.json?q=${q}&subject=fiction&limit=${candidateLimit}&page=${olPage}`;
     };
 
     const [googleRes, olRes] = await Promise.all([
@@ -344,7 +352,7 @@ module.exports = async (req, res) => {
     ]);
 
     const googleItems = Array.isArray(googleRes?.items) ? googleRes.items : [];
-    const googleBooks = googleItems.map(normalizeGoogleBook);
+    const googleBooks = filterNovels(googleItems.map(normalizeGoogleBook));
 
     const olRawRows =
       type === "search"
@@ -354,7 +362,7 @@ module.exports = async (req, res) => {
         : Array.isArray(olRes?.works)
           ? olRes.works
           : [];
-    const openLibraryBooks = olRawRows.map(normalizeOpenLibraryBook);
+    const openLibraryBooks = filterNovels(olRawRows.map(normalizeOpenLibraryBook));
 
     const searchQuery = type === "search" ? String(req.query?.q || "") : "";
     const books = mergeProviderBooks(

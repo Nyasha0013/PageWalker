@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
           {
             role: "user",
             content:
-              `Reader feels: "${mood}". Recommend 5 books. ` +
+              `Reader feels: "${mood}". Recommend 5 novels (fiction only — no articles, dissertations, textbooks, or nonfiction). ` +
               'Return JSON: [{"title":"","author":"","reason":"","genre":""}]',
           },
         ],
@@ -72,10 +72,20 @@ module.exports = async (req, res) => {
         try {
           const query = encodeURIComponent(`${title} ${author}`.trim());
           const bookRes = await fetch(
-            `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1&langRestrict=en&key=${googleBooksApiKey}`,
+            `https://www.googleapis.com/books/v1/volumes?q=${query}+subject:fiction&maxResults=3&printType=books&langRestrict=en&key=${googleBooksApiKey}`,
           );
           const bookData = await bookRes.json();
-          const item = bookData?.items?.[0];
+          const items = Array.isArray(bookData?.items) ? bookData.items : [];
+          let item = null;
+          for (let i = 0; i < items.length; i += 1) {
+            const info = items[i]?.volumeInfo || {};
+            const categories = Array.isArray(info.categories) ? info.categories.join(" ") : "";
+            if (/\bfiction\b/i.test(categories) || /novel|stories|fantasy|romance|mystery/i.test(categories)) {
+              item = items[i];
+              break;
+            }
+          }
+          item = item || items[0];
           let cover =
             item?.volumeInfo?.imageLinks?.thumbnail ||
             item?.volumeInfo?.imageLinks?.smallThumbnail ||
