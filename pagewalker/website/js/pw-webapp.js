@@ -1252,6 +1252,20 @@ async function renderDiscover(supabase, session) {
   const moodCustomValue = !moodInPreset && discoverMood ? discoverMood : "";
 
   return `
+    <div class="pw-discover-route">
+      <div class="pw-discover-scene" aria-hidden="true">
+        <picture class="pw-hero-scene__picture">
+          <img
+            class="pw-hero-scene__media"
+            src="/assets/discover-sky.png"
+            alt=""
+            width="573"
+            height="1024"
+            decoding="async"
+          />
+        </picture>
+      </div>
+      <div class="pw-discover-overlay" aria-hidden="true"></div>
     <section class="app-panel pw-discover-page" id="pw-discover-root" data-pw-active="${discoverView}">
       <h2 class="pw-discover-title">${t("route.discover.heading", "Discover")}</h2>
       <nav class="pw-discover-tabstrip" aria-label="${t("route.discover.tabstripLabel", "Discover areas")}">
@@ -1430,6 +1444,7 @@ async function renderDiscover(supabase, session) {
           : t("route.discover.noteGuest", "Sign in to save books to your TBR and library.")
       }</p>
     </section>
+    </div>
   `;
 }
 
@@ -3118,13 +3133,18 @@ async function renderRoute(supabase, session) {
     bookPageReviewPanelOpen = false;
   }
   if (!session?.user && PROTECTED_ROUTES.has(route)) {
-    document.body.classList.remove("pw-home-immersive", "pw-home-hero-scrolled");
+    document.body.classList.remove(
+      "pw-home-immersive",
+      "pw-home-hero-scrolled",
+      "pw-discover-immersive",
+    );
     root.innerHTML = renderProtectedRouteGate(route);
     bindLockedGateActions();
     return;
   }
   const isGuestHome = route === "/" && !session?.user;
   document.body.classList.toggle("pw-home-immersive", isGuestHome);
+  document.body.classList.toggle("pw-discover-immersive", route === "/discover");
   if (!isGuestHome) {
     document.body.classList.remove("pw-home-hero-scrolled");
   }

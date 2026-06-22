@@ -2983,6 +2983,78 @@ body.pw-home-immersive .cta-band {
   background: transparent;
 }
 
+/* ── Discover: same fixed-backdrop treatment, different photo ─────────── */
+body.pw-discover-immersive {
+  background: var(--ink);
+}
+
+.pw-discover-route {
+  position: relative;
+}
+
+.pw-discover-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.pw-discover-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Pin the scene + scrim to the viewport so all of Discover scrolls over it. */
+body.pw-discover-immersive .pw-discover-scene,
+body.pw-discover-immersive .pw-discover-overlay {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  height: 100svh;
+  z-index: 0;
+}
+
+body.pw-discover-immersive .pw-discover-scene {
+  inset: -28px;
+  width: calc(100% + 56px);
+  height: calc(100dvh + 56px);
+  height: calc(100svh + 56px);
+}
+
+body.pw-discover-immersive .pw-discover-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(22, 20, 15, 0.42) 0%,
+    rgba(22, 20, 15, 0.2) 30%,
+    rgba(22, 20, 15, 0.5) 62%,
+    rgba(22, 20, 15, 0.86) 100%
+  );
+}
+
+/* Content floats above the fixed photo as glass panels. */
+body.pw-discover-immersive .pw-discover-page {
+  position: relative;
+  z-index: 2;
+  background: rgba(22, 20, 15, 0.55);
+  border-color: rgba(239, 230, 211, 0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+body.pw-discover-immersive a.pw-discover-hub-card {
+  background: rgba(22, 20, 15, 0.5);
+  border-color: rgba(239, 230, 211, 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+body.pw-discover-immersive a.pw-discover-hub-card:hover {
+  background: rgba(217, 89, 26, 0.22);
+  border-color: var(--border-strong);
+}
+
 .pw-hero-scene__picture,
 .pw-hero-scene__media {
   display: block;
