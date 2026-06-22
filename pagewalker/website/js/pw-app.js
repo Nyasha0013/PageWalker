@@ -16,6 +16,17 @@ function hideBanner(el) {
   if (el) el.hidden = true;
 }
 
+function authErrorMessage(error) {
+  const msg = String(error?.message || "");
+  if (!msg || /load failed|failed to fetch|networkerror|network error/i.test(msg)) {
+    return tr(
+      "app.authNetworkError",
+      "Could not reach the sign-in service. Check your connection and try again."
+    );
+  }
+  return msg;
+}
+
 function getAuthRedirectBase() {
   const url = new URL(window.location.href);
   // Keep Supabase redirect host aligned with the configured production domain.
@@ -46,7 +57,7 @@ async function initOAuthButtons() {
         const hint = msg.toLowerCase().includes("redirect")
           ? " (check Supabase Auth URL allow-list for pagewalker.org and www.pagewalker.org)"
           : "";
-        showBanner(err, "error", (msg || tr("app.oauthFailed")) + hint);
+        showBanner(err, "error", authErrorMessage(error) + hint);
       }
     });
   }
@@ -66,7 +77,7 @@ async function initSignIn() {
     const password = String(fd.get("password") || "");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      showBanner(err, "error", error.message);
+      showBanner(err, "error", authErrorMessage(error));
       return;
     }
     showBanner(ok, "success", tr("app.signedIn"));
@@ -103,7 +114,7 @@ async function initSignUp() {
       },
     });
     if (error) {
-      showBanner(err, "error", error.message);
+      showBanner(err, "error", authErrorMessage(error));
       return;
     }
     if (data.user && !data.session) {
@@ -128,7 +139,7 @@ async function initForgot() {
     const email = String(fd.get("email") || "").trim();
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) {
-      showBanner(err, "error", error.message);
+      showBanner(err, "error", authErrorMessage(error));
       return;
     }
     showBanner(ok, "success", tr("app.resetSent"));
@@ -179,7 +190,7 @@ async function initUpdatePassword() {
     }
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
-      showBanner(err, "error", error.message);
+      showBanner(err, "error", authErrorMessage(error));
       return;
     }
     showBanner(ok, "success", tr("app.passwordUpdated"));
