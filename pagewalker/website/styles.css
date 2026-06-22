@@ -2147,6 +2147,47 @@ html[data-theme="dark"] .pw-auth-nudge {
   color: var(--text-secondary);
 }
 
+.pw-book-about h3 {
+  margin-bottom: 0.65rem;
+}
+
+.pw-book-about__body p {
+  margin: 0 0 0.75rem;
+  line-height: 1.55;
+}
+
+.pw-book-about__body p:last-child {
+  margin-bottom: 0;
+}
+
+.pw-book-about__empty {
+  margin: 0;
+}
+
+.pw-book-about__toggle {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  list-style: none;
+}
+
+.pw-book-about__toggle::-webkit-details-marker {
+  display: none;
+}
+
+.pw-book-about__body--clamped {
+  max-height: 12rem;
+  overflow: hidden;
+  mask-image: linear-gradient(180deg, #000 70%, transparent);
+}
+
+.pw-book-about__details[open] .pw-book-about__body--clamped {
+  max-height: none;
+  overflow: visible;
+  mask-image: none;
+}
+
 .app-list {
   list-style: none;
   margin: 0.75rem 0 0;

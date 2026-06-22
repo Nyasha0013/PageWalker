@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/config/supabase_config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import '../../core/utils/catalog_text_utils.dart';
 import '../../core/widgets/book_cover_widget.dart';
 import '../../core/widgets/themed_background.dart';
 import '../../core/widgets/glass_card.dart';
@@ -664,11 +665,13 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   }
 
   Widget _aboutCard(BuildContext context, CatalogBook b) {
+    final paragraphs = formatBookDescriptionParagraphs(b.description);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final text = b.description?.trim();
-    final body = text != null && text.isNotEmpty
-        ? text
-        : (b.genres.isNotEmpty ? b.genres.join(', ') : 'No description yet.');
+    final bodyColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    final showToggle =
+        paragraphs.length > 1 || paragraphs.join(' ').length > 280;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -678,35 +681,45 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'About',
+              'About this book',
               style: AppText.bodySemiBold(15, context: context).copyWith(
                 color: AppColors.orangePrimary,
               ),
             ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => setState(() => _descExpanded = !_descExpanded),
-              child: Text(
-                body,
-                maxLines: _descExpanded ? null : 4,
-                overflow: _descExpanded
-                    ? TextOverflow.visible
-                    : TextOverflow.ellipsis,
-                style: GoogleFonts.cormorantGaramond(
-                  fontSize: 16,
+            const SizedBox(height: 10),
+            if (paragraphs.isEmpty)
+              Text(
+                'No description yet.',
+                style: AppText.body(15, context: context).copyWith(
+                  color: bodyColor,
                   fontStyle: FontStyle.italic,
-                  height: 1.45,
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary,
+                ),
+              )
+            else ...[
+              ...(_descExpanded ? paragraphs : [paragraphs.first]).map(
+                (p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    p,
+                    style: AppText.body(15, context: context).copyWith(
+                      height: 1.55,
+                      color: bodyColor,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            if ((b.description?.length ?? 0) > 200)
-              TextButton(
-                onPressed: () => setState(() => _descExpanded = !_descExpanded),
-                child: Text(_descExpanded ? 'Show less ▲' : 'Read more ▼'),
-              ),
+              if (showToggle)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: () =>
+                        setState(() => _descExpanded = !_descExpanded),
+                    child: Text(
+                      _descExpanded ? 'Show less' : 'Read full description',
+                    ),
+                  ),
+                ),
+            ],
           ],
         ),
       ),

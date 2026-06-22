@@ -7,9 +7,11 @@ import {
   BOOK_SOURCE_LABELS,
   fetchJsonCached,
   filterBooksBySource,
+  formatBookDescriptionParagraphs,
   inferBookSource,
   posterGridSkeleton,
   prefetchBookApi,
+  renderBookAboutSection,
   renderBookSourceBadge,
 } from "./pw-books.js";
 
@@ -782,10 +784,7 @@ function truncateText(value, max = 220) {
 
 /** Book APIs often return HTML in descriptions; we show plain text in the app shell. */
 function stripHtmlToPlainText(value) {
-  return String(value || "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return formatBookDescriptionParagraphs(value).join(" ");
 }
 
 function toStars(value) {
@@ -890,7 +889,6 @@ function buildBookPageHtml(source, pageOpts = {}) {
   const cover = fixCoverUrl(source.coverUrl);
   const title = escapeHtml(source.title || "Untitled");
   const author = escapeHtml(source.author || "Unknown Author");
-  const descPlain = stripHtmlToPlainText(String(source.description || ""));
   const metaLine = [
     source.publishedYear ? escapeHtml(String(source.publishedYear)) : "",
     source.publisher ? escapeHtml(String(source.publisher)) : "",
@@ -983,10 +981,10 @@ function buildBookPageHtml(source, pageOpts = {}) {
           </div>
         </div>
       </section>
-      <article class="app-panel">
-        <h3>${t("route.book.about", "About this book")}</h3>
-        <p>${descPlain ? escapeHtml(descPlain) : t("route.book.noDescription", "No description yet.")}</p>
-      </article>
+      ${renderBookAboutSection(source.description, {
+        title: t("route.book.about", "About this book"),
+        emptyText: t("route.book.noDescription", "No description yet."),
+      })}
       ${
         bookIdStr
           ? `<section class="app-panel pw-book-reviews">
@@ -1031,10 +1029,6 @@ function openBookModal(book) {
   const title = escapeHtml(book.title || "Untitled");
   const author = escapeHtml(book.author || "Unknown Author");
   const cover = fixCoverUrl(book.coverUrl);
-  const descPlain = stripHtmlToPlainText(String(book.description || ""));
-  const description = descPlain
-    ? escapeHtml(descPlain)
-    : escapeHtml("No description yet.");
   const meta = [
     book.publishedYear ? escapeHtml(String(book.publishedYear)) : "",
     book.publisher ? escapeHtml(String(book.publisher)) : "",
@@ -1052,10 +1046,10 @@ function openBookModal(book) {
         <p class="metric">Community rating: ${escapeHtml(rating)}</p>
       </div>
     </section>
-    <section class="app-panel">
-      <h4>About this book</h4>
-      <p>${description}</p>
-    </section>
+    ${renderBookAboutSection(book.description, {
+      title: t("route.book.about", "About this book"),
+      emptyText: t("route.book.noDescription", "No description yet."),
+    })}
     <section class="app-panel">
       <h4>Where to find it</h4>
       <p>Use Discover search for editions and external links, then add it to your shelf.</p>
