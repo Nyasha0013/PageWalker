@@ -152,6 +152,10 @@ body > * {
   display: none !important;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .pw-immersive-scene {
   position: absolute;
   inset: -28px;
@@ -255,7 +259,11 @@ body.pw-app-immersive .webapp-content {
 
 body.pw-app-immersive .webapp-content > .app-panel,
 body.pw-app-immersive .webapp-content > section.app-panel,
-body.pw-app-immersive .webapp-hero {
+body.pw-app-immersive .webapp-hero,
+body.pw-app-immersive .pw-profile-route > .app-panel,
+body.pw-app-immersive .pw-profile-route .pw-profile-settings,
+body.pw-app-immersive .pw-profile-route .pw-profile-shelf,
+body.pw-app-immersive .pw-profile-route .pw-profile-secondary .app-panel {
   background: var(--glass-immersive-bg);
   border-color: var(--glass-immersive-border);
   box-shadow: var(--glass-edge);
@@ -2505,6 +2513,265 @@ html[data-theme="dark"] .pw-auth-nudge {
   margin-bottom: 0.5rem;
 }
 
+.pw-profile-route {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pw-profile-hero__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 1.25rem;
+}
+
+.pw-profile-hero__meta {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.pw-profile-hero__name {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 4.5vw, 2.2rem);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.pw-profile-handle {
+  margin: 0.35rem 0 0;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.pw-profile-bio-preview {
+  margin: 0.5rem 0 0;
+  max-width: 42rem;
+  line-height: 1.45;
+}
+
+.pw-profile-hero__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.pw-profile-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.pw-profile-email {
+  font-size: 0.9rem;
+}
+
+.pw-profile-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pw-profile-photo-actions--hero {
+  margin-top: 0.85rem;
+}
+
+.pw-profile-guest-forgot {
+  margin: 0.75rem 0 0;
+  text-align: center;
+}
+
+.pw-profile-settings .pw-section-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+}
+
+.pw-profile-fieldset {
+  margin: 1.15rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.pw-profile-fieldset legend {
+  padding: 0;
+  margin-bottom: 0.65rem;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.pw-profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.pw-profile-span-2 {
+  grid-column: 1 / -1;
+}
+
+.pw-profile-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pw-profile-form-grid label > span {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.pw-profile-form-grid input,
+.pw-profile-form-grid textarea {
+  width: 100%;
+}
+
+.pw-profile-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+.pw-profile-check input {
+  margin-top: 0.2rem;
+}
+
+.pw-profile-field-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}
+
+.pw-profile-stat-chip {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.pw-profile-stat-chip strong {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--primary);
+}
+
+#pw-profile-save-status[data-state="error"] {
+  color: var(--error-text);
+}
+
+#pw-profile-save-status[data-state="success"] {
+  color: var(--success-text, #6ecf8e);
+}
+
+.pw-fav-slot--filled {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.pw-fav-slot--filled img,
+.pw-fav-slot--filled .pw-fav-slot__fallback {
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  object-fit: cover;
+}
+
+.pw-fav-slot__fallback {
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: var(--primary);
+  background: var(--card);
+}
+
+.pw-fav-slot--filled figcaption {
+  margin: 0;
+  padding: 0 0.45rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pw-fav-slot--empty {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.pw-shelf-stat {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.pw-shelf-stat:hover {
+  border-color: var(--border-strong);
+  background: var(--primary-soft);
+}
+
+.pw-shelf-stat span {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.pw-profile-diary li span {
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.pw-profile-secondary {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .pw-profile-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pw-profile-span-2 {
+    grid-column: auto;
+  }
+
+  .pw-profile-hero__actions {
+    width: 100%;
+  }
+
+  .pw-profile-hero__actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
 .pw-club-card__ctas {
   display: flex;
   flex-direction: column;
@@ -3709,6 +3976,10 @@ body.pw-home-immersive .pw-hero-foreground {
   body.pw-app-immersive .webapp-content > .app-panel,
   body.pw-app-immersive .webapp-content > section.app-panel,
   body.pw-app-immersive .webapp-hero,
+  body.pw-app-immersive .pw-profile-route > .app-panel,
+  body.pw-app-immersive .pw-profile-route .pw-profile-settings,
+  body.pw-app-immersive .pw-profile-route .pw-profile-shelf,
+  body.pw-app-immersive .pw-profile-route .pw-profile-secondary .app-panel,
   body.pw-home-dashboard-immersive .pw-dash-card {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;

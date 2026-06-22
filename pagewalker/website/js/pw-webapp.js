@@ -1918,6 +1918,115 @@ function bindProfileTabActions() {
   }
 }
 
+function bindProfileSettingsForm(supabase, session, rerender) {
+  const form = document.getElementById("pw-profile-form");
+  const statusEl = document.getElementById("pw-profile-save-status");
+  const saveBtn = document.getElementById("pw-profile-save");
+  if (!form || !session?.user) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (statusEl) {
+      statusEl.hidden = true;
+      statusEl.removeAttribute("data-state");
+    }
+
+    const fd = new FormData(form);
+    const username = String(fd.get("username") || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "");
+    const displayName = String(fd.get("display_name") || "").trim();
+    const bio = String(fd.get("bio") || "").trim();
+    const location = String(fd.get("location") || "").trim();
+    const favouriteGenre = String(fd.get("favourite_genre") || "").trim();
+    const readingGoal = Math.max(1, Math.min(999, Number.parseInt(String(fd.get("reading_goal") || "12"), 10) || 12));
+    const isPublic = fd.get("is_public") === "on";
+
+    if (username.length < 3) {
+      if (statusEl) {
+        statusEl.textContent = t("route.profile.usernameShort", "Username must be at least 3 characters.");
+        statusEl.dataset.state = "error";
+        statusEl.hidden = false;
+      }
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(username)) {
+      if (statusEl) {
+        statusEl.textContent = t(
+          "route.profile.usernameInvalid",
+          "Username can only use lowercase letters, numbers, and underscores.",
+        );
+        statusEl.dataset.state = "error";
+        statusEl.hidden = false;
+      }
+      return;
+    }
+
+    if (saveBtn) saveBtn.disabled = true;
+    if (statusEl) {
+      statusEl.textContent = t("route.profile.saving", "Saving…");
+      statusEl.hidden = false;
+      statusEl.removeAttribute("data-state");
+    }
+
+    try {
+      const { error } = await withTimeout(
+        supabase
+          .from("profiles")
+          .update({
+            username,
+            display_name: displayName || username,
+            full_name: displayName || username,
+            bio: bio || null,
+            location: location || null,
+            favourite_genre: favouriteGenre || null,
+            reading_goal: readingGoal,
+            is_public: isPublic,
+          })
+          .eq("id", session.user.id),
+        12000,
+      );
+      if (error) throw error;
+      if (statusEl) {
+        statusEl.textContent = t("route.profile.saved", "Profile updated.");
+        statusEl.dataset.state = "success";
+        statusEl.hidden = false;
+      }
+      if (typeof window.pwUserMenuRefresh === "function") {
+        await window.pwUserMenuRefresh();
+      }
+      await rerender();
+    } catch (err) {
+      const msg = String(err?.message || "");
+      if (statusEl) {
+        statusEl.textContent = msg.includes("duplicate")
+          ? t("route.profile.usernameTaken", "That username is already taken.")
+          : msg || t("route.profile.saveError", "Could not save profile. Try again.");
+        statusEl.dataset.state = "error";
+        statusEl.hidden = false;
+      }
+    } finally {
+      if (saveBtn) saveBtn.disabled = false;
+    }
+  });
+}
+
+function renderProfileGuestCta() {
+  return `
+    <section class="webapp-hero app-panel">
+      <h1>${t("appShell.heroTitle", "Your full Pagewalker experience on web")}</h1>
+      <p>${t("appShell.heroLede", "Sign in once and move across library, discover, social, clubs, and reader tools.")}</p>
+      <div class="webapp-auth-row">
+        <span class="badge-outline">${t("appShell.authGuest", "Guest mode")}</span>
+        <button id="pw-profile-signin" class="btn" type="button">${t("appShell.signIn", "Sign in")}</button>
+        <button id="pw-profile-signup" class="btn btn-outline" type="button">${t("appShell.signUp", "Sign up")}</button>
+      </div>
+      <p class="muted pw-profile-guest-forgot"><a href="/forgot-password">${t("signin.forgot", "Forgot password?")}</a></p>
+    </section>
+  `;
+}
+
 async function renderClubDetail(supabase, session) {
   if (!session?.user) {
     return `<section class="app-panel"><h2>${t("route.clubs.title", "Book clubs")}</h2><p>${t("route.authRequired", "Please sign in to view this section.")}</p></section>`;
@@ -2330,32 +2439,21 @@ async function renderReader(supabase, session) {
 }
 
 async function renderProfile(supabase, session) {
-  const signedIn = !!(session && session.user);
-  const authPanel = `
-    <section class="webapp-hero">
-      <h1>${t("appShell.heroTitle", "Your full Pagewalker experience on web")}</h1>
-      <p>${t("appShell.heroLede", "Sign in once and move across library, discover, social, clubs, and reader tools.")}</p>
-      <div class="webapp-auth-row">
-        <span class="badge-outline">${signedIn ? t("appShell.authSignedIn", "Signed in") : t("appShell.authGuest", "Guest mode")}</span>
-        <button id="pw-profile-signin" class="btn"${signedIn ? " hidden" : ""}>${t("appShell.signIn", "Sign in")}</button>
-        <button id="pw-profile-signup" class="btn btn-outline"${signedIn ? " hidden" : ""}>${t("appShell.signUp", "Sign up")}</button>
-        <button id="pw-profile-signout" class="btn btn-outline"${signedIn ? "" : " hidden"}>${t("appShell.signOut", "Sign out")}</button>
-      </div>
-      ${signedIn ? "" : `<p class="muted" style="margin-top:10px;text-align:center"><a href="/forgot-password">${t("signin.forgot", "Forgot password?")}</a></p>`}
-    </section>
-  `;
-
   if (!session?.user) {
     return `
-      ${authPanel}
-      <section class="app-panel"><h2>${t("route.profile.title", "Profile")}</h2><p>${t("route.authRequired", "Please sign in to view this section.")}</p></section>
+      <div class="pw-profile-route">
+        ${renderProfileGuestCta()}
+        <section class="app-panel"><h2>${t("route.profile.title", "Profile")}</h2><p>${t("route.authRequired", "Please sign in to view this section.")}</p></section>
+      </div>
     `;
   }
 
   const profiles = await runSafeQuery(async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("username, full_name, display_name, bio, avatar_url")
+      .select(
+        "username, full_name, display_name, bio, avatar_url, location, favourite_genre, reading_goal, is_public",
+      )
       .eq("id", session.user.id)
       .maybeSingle();
     if (error) throw error;
@@ -2363,6 +2461,17 @@ async function renderProfile(supabase, session) {
   }, t("appShell.missingProfile", "Could not load profile."));
 
   const profile = profiles[0] || {};
+  if (profiles[0]?.__error) {
+    return `
+      <div class="pw-profile-route">
+        <section class="app-panel">
+          <h2>${t("route.profile.title", "Profile")}</h2>
+          <p class="muted">${escapeHtml(profiles[0].text)}</p>
+        </section>
+      </div>
+    `;
+  }
+
   if (!profile?.username) {
     try {
       const emailPrefix = String(session.user.email || "reader")
@@ -2381,108 +2490,213 @@ async function renderProfile(supabase, session) {
       profile.display_name = emailPrefix || "reader";
     } catch (_) {}
   }
+
   const [userBooks, diaryRows] = await Promise.all([
     runSafeQuery(async () => {
       const { data, error } = await supabase
         .from("user_books")
-        .select("title,author,status,created_at,books(cover_url)")
+        .select("title, author, status, book_id, created_at, books(id, cover_url)")
         .eq("user_id", session.user.id)
         .order("updated_at", { ascending: false })
         .limit(120);
       if (error) throw error;
       return data || [];
-    }, "Books unavailable."),
+    }, t("route.profile.booksUnavailable", "Books unavailable.")),
     runSafeQuery(async () => {
       const { data, error } = await supabase
         .from("reading_history")
-        .select("book_title,book_author,last_read_at,is_finished")
+        .select("book_title, book_author, last_read_at, is_finished")
         .eq("user_id", session.user.id)
         .order("last_read_at", { ascending: false })
         .limit(8);
       if (error) throw error;
       return data || [];
-    }, "Diary unavailable."),
+    }, t("route.profile.diaryUnavailable", "Diary unavailable.")),
   ]);
+
   const favBooks = userBooks.filter((x) => !x.__error && x.status === "read").slice(0, 4);
   const listCounts = LIBRARY_STATUSES.reduce((acc, status) => {
     acc[status] = userBooks.filter((x) => !x.__error && x.status === status).length;
     return acc;
   }, {});
   const avatarUrl = profile.avatar_url ? String(profile.avatar_url).trim() : "";
-  const letterFallback = escapeHtml(
-    (profile.display_name || profile.username || session.user.email || "?").trim().charAt(0) || "?",
-  ).toUpperCase();
-  const profileTab = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("tab") === "clubs" ? "clubs" : "account";
+  const displayName =
+    profile.display_name || profile.full_name || profile.username || t("route.profile.defaultName", "Reader");
+  const letterFallback = escapeHtml(displayName.trim().charAt(0) || "?").toUpperCase();
+  const handle = profile.username ? `@${profile.username}` : "";
+  const readingGoal = Number(profile.reading_goal) > 0 ? Number(profile.reading_goal) : 12;
+  const isPublic = profile.is_public !== false;
+  const profileTab =
+    new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("tab") === "clubs"
+      ? "clubs"
+      : "account";
   const showClubsTab = profileTab === "clubs";
+
   return `
-    ${authPanel}
-    <div class="pw-profile-tabs" role="tablist" aria-label="${t("route.profile.tablistLabel", "Profile sections")}">
-      <button type="button" class="pw-profile-tab" role="tab" id="pw-profile-tab-btn-account" data-profile-tab="account" aria-selected="${!showClubsTab ? "true" : "false"}" aria-controls="pw-profile-panel-account">${t("route.profile.tabAccount", "Account")}</button>
-      <button type="button" class="pw-profile-tab" role="tab" id="pw-profile-tab-btn-clubs" data-profile-tab="clubs" aria-selected="${showClubsTab ? "true" : "false"}" aria-controls="pw-profile-panel-clubs">${t("route.profile.tabClubs", "Book clubs")}</button>
-    </div>
-    <div id="pw-profile-panel-clubs" class="pw-profile-panel" role="tabpanel" aria-labelledby="pw-profile-tab-btn-clubs" ${showClubsTab ? "" : "hidden"}>
-      <h2 class="visually-hidden">${t("route.profile.tabClubs", "Book clubs")}</h2>
-      <p class="muted">${t("route.profile.clubTabLede", "Start a new club or join with an invite code. Then use Clubs in the menu to open your club and use the book forum.")}</p>
-      ${renderClubSetupFormsHtml()}
-    </div>
-    <div id="pw-profile-panel-account" class="pw-profile-panel" role="tabpanel" aria-labelledby="pw-profile-tab-btn-account" ${showClubsTab ? "hidden" : ""}>
-    <section class="app-panel">
-        <h2>${t("route.profile.title", "Profile")}</h2>
-        <div class="pw-profile-photo-section">
+    <div class="pw-profile-route">
+      <header class="app-panel pw-profile-hero">
+        <div class="pw-profile-hero__top">
           <div class="pw-profile-photo-wrap">
             ${
               avatarUrl
-                ? `<img class="pw-profile-avatar-lg" id="pw-profile-avatar-preview" src="${escapeHtml(avatarUrl)}" alt="${t("userMenu.profilePhotoAlt", "Profile photo")}" width="88" height="88" loading="lazy" />`
+                ? `<img class="pw-profile-avatar-lg" id="pw-profile-avatar-preview" src="${escapeHtml(avatarUrl)}" alt="${t("userMenu.profilePhotoAlt", "Profile photo")}" width="96" height="96" loading="lazy" />`
                 : `<div class="pw-profile-avatar-lg pw-profile-avatar-lg--empty" id="pw-profile-avatar-fallback" aria-hidden="true">${letterFallback}</div>`
             }
           </div>
-          <div class="pw-profile-photo-actions">
-            <input type="file" id="pw-profile-photo-file" class="visually-hidden" accept="image/jpeg,image/png,image/webp" />
-            <button type="button" class="btn btn-outline" id="pw-profile-photo-pick">${t("route.profile.photoChoose", "Upload photo")}</button>
-            <button type="button" class="btn btn-outline" id="pw-profile-photo-remove"${!avatarUrl ? " hidden" : ""}>${t("route.profile.photoRemove", "Remove photo")}</button>
+          <div class="pw-profile-hero__meta">
+            <p class="pw-kicker">${t("route.profile.kicker", "Your account")}</p>
+            <h1 class="pw-profile-hero__name">${escapeHtml(displayName)}</h1>
+            ${handle ? `<p class="pw-profile-handle">${escapeHtml(handle)}</p>` : ""}
+            <p class="pw-profile-bio-preview">${escapeHtml(profile.bio || t("route.profile.bioEmpty", "No bio yet."))}</p>
           </div>
         </div>
+        <div class="pw-profile-hero__bar">
+          <div class="pw-profile-hero__chips">
+            <span class="badge-outline">${t("appShell.authSignedIn", "Signed in")}</span>
+            <span class="muted pw-profile-email">${escapeHtml(maskEmailForDisplay(session.user.email))}</span>
+          </div>
+          <div class="pw-profile-hero__actions">
+            <a class="btn btn-outline" href="/library" data-link-route="/library">${t("route.profile.openLibrary", "Open library")}</a>
+            <button type="button" class="btn btn-outline" id="pw-profile-signout">${t("appShell.signOut", "Sign out")}</button>
+          </div>
+        </div>
+        <div class="pw-profile-photo-actions pw-profile-photo-actions--hero">
+          <input type="file" id="pw-profile-photo-file" class="visually-hidden" accept="image/jpeg,image/png,image/webp" />
+          <button type="button" class="btn btn-outline" id="pw-profile-photo-pick">${t("route.profile.photoChoose", "Upload photo")}</button>
+          <button type="button" class="btn btn-outline" id="pw-profile-photo-remove"${avatarUrl ? "" : " hidden"}>${t("route.profile.photoRemove", "Remove photo")}</button>
+        </div>
         <p class="muted" id="pw-profile-photo-status" role="status" hidden></p>
-        <div class="profile-grid">
-          <div><span class="muted">${t("route.profile.email", "Email")}</span><p>${escapeHtml(maskEmailForDisplay(session.user.email))}</p><p class="muted" style="font-size:0.85rem;margin-top:4px">${t("route.profile.emailHint", "Shown masked on web. Use the app or support@pagewalker.org for account help.")}</p></div>
-          <div><span class="muted">${t("route.profile.username", "Username")}</span><p>${escapeHtml(profile.username || "-")}</p></div>
-          <div><span class="muted">${t("route.profile.fullName", "Name")}</span><p>${escapeHtml(profile.full_name || profile.display_name || "-")}</p></div>
-        </div>
-        <p>${escapeHtml(profile.bio || t("route.profile.bioEmpty", "No bio yet."))}</p>
-    </section>
-    <section class="app-panel">
-      <h3>Top 4 favorites</h3>
-      <div class="pw-favorites-grid">
-        ${Array.from({ length: 4 }).map((_, i) => {
-          const book = favBooks[i];
-          const cover = fixCoverUrl(book?.books?.cover_url);
-          return `
-            <div class="pw-fav-slot">
-              ${book ? `${cover ? `<img src="${escapeHtml(cover)}" alt="${escapeHtml(book.title)} cover" loading="lazy" />` : "<span>Book</span>"}` : `<span>+</span>`}
-            </div>
-          `;
-        }).join("")}
+      </header>
+
+      <div class="pw-profile-tabs" role="tablist" aria-label="${t("route.profile.tablistLabel", "Profile sections")}">
+        <button type="button" class="pw-profile-tab" role="tab" id="pw-profile-tab-btn-account" data-profile-tab="account" aria-selected="${!showClubsTab ? "true" : "false"}" aria-controls="pw-profile-panel-account">${t("route.profile.tabAccount", "Account")}</button>
+        <button type="button" class="pw-profile-tab" role="tab" id="pw-profile-tab-btn-clubs" data-profile-tab="clubs" aria-selected="${showClubsTab ? "true" : "false"}" aria-controls="pw-profile-panel-clubs">${t("route.profile.tabClubs", "Book clubs")}</button>
       </div>
-    </section>
-    <section class="app-grid app-grid-2">
-      <article class="app-panel">
-        <h3>Diary</h3>
-        ${diaryRows.some((x) => !x.__error) ? `
-          <ul class="app-list">
-            ${diaryRows.filter((x) => !x.__error).map((row) => `<li><strong>${escapeHtml(row.book_title || "Book")}</strong><span>${escapeHtml(row.book_author || "")} · ${row.is_finished ? "Finished" : "In progress"} · ${escapeHtml(row.last_read_at || "")}</span></li>`).join("")}
-          </ul>
-        ` : `<p class="muted">Your diary entries will show up here.</p>`}
-      </article>
-      <article class="app-panel">
-        <h3>My Lists</h3>
-        <div class="pw-list-collage">
-          <div><strong>TBR</strong><span>${listCounts.tbr || 0}</span></div>
-          <div><strong>Reading</strong><span>${listCounts.reading || 0}</span></div>
-          <div><strong>Read</strong><span>${listCounts.read || 0}</span></div>
-          <div><strong>DNF</strong><span>${listCounts.dnf || 0}</span></div>
+
+      <div id="pw-profile-panel-clubs" class="pw-profile-panel" role="tabpanel" aria-labelledby="pw-profile-tab-btn-clubs" ${showClubsTab ? "" : "hidden"}>
+        <section class="app-panel">
+          <h2>${t("route.profile.tabClubs", "Book clubs")}</h2>
+          <p class="muted">${t("route.profile.clubTabLede", "Start a new club or join with an invite code. Then use Clubs in the menu to open your club and use the book forum.")}</p>
+          ${renderClubSetupFormsHtml()}
+        </section>
+      </div>
+
+      <div id="pw-profile-panel-account" class="pw-profile-panel" role="tabpanel" aria-labelledby="pw-profile-tab-btn-account" ${showClubsTab ? "hidden" : ""}>
+        <form id="pw-profile-form" class="app-panel pw-profile-settings" novalidate>
+          <div class="pw-section-head">
+            <h2>${t("route.profile.settingsTitle", "Account settings")}</h2>
+            <button type="submit" class="btn" id="pw-profile-save">${t("route.profile.save", "Save changes")}</button>
+          </div>
+          <p class="pw-section-note muted">${t("route.profile.settingsLede", "Same fields as the Pagewalker app — changes sync across web and mobile.")}</p>
+          <p class="muted" id="pw-profile-save-status" role="status" hidden></p>
+
+          <fieldset class="pw-profile-fieldset">
+            <legend>${t("route.profile.sectionPersonal", "Personal")}</legend>
+            <div class="pw-profile-form-grid">
+              <label>
+                <span>${t("route.profile.displayName", "Display name")}</span>
+                <input name="display_name" type="text" maxlength="80" value="${escapeHtml(profile.display_name || profile.full_name || "")}" autocomplete="name" />
+              </label>
+              <label>
+                <span>${t("route.profile.username", "Username")}</span>
+                <input name="username" type="text" maxlength="32" value="${escapeHtml(profile.username || "")}" autocomplete="username" autocapitalize="off" spellcheck="false" required />
+              </label>
+              <label class="pw-profile-span-2">
+                <span>${t("route.profile.bioLabel", "Bio")}</span>
+                <textarea name="bio" rows="3" maxlength="150" placeholder="${t("route.profile.bioPlaceholder", "A line about your reading taste…")}">${escapeHtml(profile.bio || "")}</textarea>
+              </label>
+              <label>
+                <span>${t("route.profile.location", "Location")}</span>
+                <input name="location" type="text" maxlength="80" value="${escapeHtml(profile.location || "")}" autocomplete="address-level2" />
+              </label>
+              <label>
+                <span>${t("route.profile.favouriteGenre", "Favourite genre")}</span>
+                <input name="favourite_genre" type="text" maxlength="60" value="${escapeHtml(profile.favourite_genre || "")}" />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="pw-profile-fieldset">
+            <legend>${t("route.profile.sectionReading", "Reading")}</legend>
+            <div class="pw-profile-form-grid">
+              <label>
+                <span>${t("route.profile.readingGoal", "Books to read this year")}</span>
+                <input name="reading_goal" type="number" min="1" max="999" step="1" value="${readingGoal}" />
+              </label>
+              <div class="pw-profile-stat-chip">
+                <span class="muted">${t("route.profile.onShelfRead", "On your Read shelf")}</span>
+                <strong>${listCounts.read || 0}</strong>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="pw-profile-fieldset">
+            <legend>${t("route.profile.sectionPrivacy", "Privacy")}</legend>
+            <label class="pw-profile-check">
+              <input name="is_public" type="checkbox"${isPublic ? " checked" : ""} />
+              <span>${t("route.profile.publicProfile", "Show my profile to other readers")}</span>
+            </label>
+            <p class="muted pw-profile-field-hint">${t("route.profile.emailHint", "Shown masked on web. Use the app or support@pagewalker.org for account help.")}</p>
+          </fieldset>
+        </form>
+
+        <section class="app-panel pw-profile-shelf">
+          <div class="pw-section-head">
+            <h3>${t("route.profile.favoritesTitle", "Top 4 favorites")}</h3>
+            <a href="/library" data-link-route="/library">${t("route.profile.manageLibrary", "Manage in Library")}</a>
+          </div>
+          <p class="pw-section-note muted">${t("route.profile.favoritesHint", "Your four most recently finished books appear here.")}</p>
+          <div class="pw-favorites-grid">
+            ${Array.from({ length: 4 })
+              .map((_, i) => {
+                const book = favBooks[i];
+                const cover = fixCoverUrl(book?.books?.cover_url);
+                const title = escapeHtml(book?.title || "");
+                if (!book) {
+                  return `<div class="pw-fav-slot pw-fav-slot--empty" aria-label="${t("route.profile.favEmpty", "Empty favorite slot")}"><span>+</span></div>`;
+                }
+                return `
+                  <figure class="pw-fav-slot pw-fav-slot--filled">
+                    ${cover ? `<img src="${escapeHtml(cover)}" alt="${title} cover" loading="lazy" />` : `<span class="pw-fav-slot__fallback">${title.slice(0, 1) || "B"}</span>`}
+                    <figcaption>${title}</figcaption>
+                  </figure>
+                `;
+              })
+              .join("")}
+          </div>
+        </section>
+
+        <div class="app-grid app-grid-2 pw-profile-secondary">
+          <article class="app-panel">
+            <h3>${t("route.profile.diaryTitle", "Diary")}</h3>
+            ${
+              diaryRows.some((x) => !x.__error)
+                ? `<ul class="app-list pw-profile-diary">
+            ${diaryRows
+              .filter((x) => !x.__error)
+              .map(
+                (row) =>
+                  `<li><strong>${escapeHtml(row.book_title || "Book")}</strong><span>${escapeHtml(row.book_author || "")} · ${row.is_finished ? t("route.reader.finished", "Finished") : t("route.reader.inProgress", "In progress")}${row.last_read_at ? ` · ${escapeHtml(String(row.last_read_at).slice(0, 10))}` : ""}</span></li>`,
+              )
+              .join("")}
+          </ul>`
+                : `<p class="muted">${t("route.profile.diaryEmpty", "Your diary entries will show up here.")}</p>`
+            }
+          </article>
+          <article class="app-panel">
+            <h3>${t("route.profile.listsTitle", "My lists")}</h3>
+            <div class="pw-list-collage">
+              ${LIBRARY_STATUSES.map(
+                (status) => `
+                <a class="pw-shelf-stat" href="/library" data-link-route="/library">
+                  <strong>${STATUS_LABELS[status]}</strong>
+                  <span>${listCounts[status] || 0}</span>
+                </a>`,
+              ).join("")}
+            </div>
+          </article>
         </div>
-      </article>
-    </section>
+      </div>
     </div>
   `;
 }
@@ -3400,6 +3614,7 @@ async function renderRoute(supabase, session, expectedPath) {
   if (route === "/profile" && session?.user) {
     bindClubsActions(supabase, session, rerender);
     bindProfileTabActions();
+    bindProfileSettingsForm(supabase, session, rerender);
   }
   if (route === "/profile") {
     const signInBtn = document.getElementById("pw-profile-signin");
