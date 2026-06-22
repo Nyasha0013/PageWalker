@@ -151,16 +151,47 @@ function setActiveRoute(route) {
 }
 
 /** Each Discover tab uses its own backdrop (see assets/*.png sources). */
-const DISCOVER_SCENE_SRC = {
-  hub: "/assets/discover-sky.png",
-  search: "/assets/discover-sky.png",
-  trending: "/assets/trending-beach.png",
-  genre: "/assets/discover-sky.png",
-  classics: "/assets/discover-sky.png",
+const DISCOVER_SCENE_BASE = {
+  hub: "discover-sky",
+  search: "discover-sky",
+  trending: "trending-beach",
+  genre: "discover-sky",
+  classics: "discover-sky",
 };
 
 function discoverSceneSrc(view) {
-  return DISCOVER_SCENE_SRC[view] || DISCOVER_SCENE_SRC.hub;
+  const base = DISCOVER_SCENE_BASE[view] || DISCOVER_SCENE_BASE.hub;
+  return `/assets/${base}.png`;
+}
+
+function discoverSceneMobileSrc(view) {
+  const base = DISCOVER_SCENE_BASE[view] || DISCOVER_SCENE_BASE.hub;
+  return `/assets/${base}-mobile.png`;
+}
+
+function immersiveBackdropPicture(src, mobileSrc, width, height) {
+  return `
+    <picture class="pw-hero-scene__picture">
+      <source id="pw-immersive-scene-mobile" media="(max-width: 860px)" srcset="${mobileSrc}" />
+      <img
+        id="pw-immersive-scene-media"
+        class="pw-hero-scene__media"
+        src="${src}"
+        alt=""
+        width="${width}"
+        height="${height}"
+        decoding="async"
+        fetchpriority="low"
+      />
+    </picture>
+  `;
+}
+
+function updateImmersiveBackdropMedia(src, mobileSrc) {
+  const media = document.getElementById("pw-immersive-scene-media");
+  const mobile = document.getElementById("pw-immersive-scene-mobile");
+  if (media && media.getAttribute("src") !== src) media.setAttribute("src", src);
+  if (mobile && mobile.getAttribute("srcset") !== mobileSrc) mobile.setAttribute("srcset", mobileSrc);
 }
 
 function syncDiscoverSceneView() {
@@ -176,22 +207,19 @@ function syncImmersiveBackdrop(route) {
   if (!el) return;
 
   if (route === "/library") {
+    const src = "/assets/library-walk.png";
+    const mobileSrc = "/assets/library-walk-mobile.png";
     el.hidden = false;
+    if (el.dataset.mode === "library" && el.querySelector("#pw-immersive-scene-media")) {
+      delete el.dataset.discoverView;
+      updateImmersiveBackdropMedia(src, mobileSrc);
+      return;
+    }
     el.dataset.mode = "library";
     delete el.dataset.discoverView;
     el.innerHTML = `
       <div class="pw-immersive-scene" aria-hidden="true">
-        <picture class="pw-hero-scene__picture">
-          <img
-            id="pw-immersive-scene-media"
-            class="pw-hero-scene__media"
-            src="/assets/library-walk.png"
-            alt=""
-            width="576"
-            height="1024"
-            decoding="async"
-          />
-        </picture>
+        ${immersiveBackdropPicture(src, mobileSrc, 576, 1024)}
       </div>
       <div class="pw-immersive-overlay pw-immersive-overlay--library" aria-hidden="true"></div>
     `;
@@ -201,22 +229,17 @@ function syncImmersiveBackdrop(route) {
   if (route === "/discover") {
     const view = getDiscoverView();
     const src = discoverSceneSrc(view);
+    const mobileSrc = discoverSceneMobileSrc(view);
     el.hidden = false;
     el.dataset.mode = "discover";
     el.dataset.discoverView = view;
+    if (el.querySelector("#pw-immersive-scene-media")) {
+      updateImmersiveBackdropMedia(src, mobileSrc);
+      return;
+    }
     el.innerHTML = `
       <div class="pw-immersive-scene" aria-hidden="true">
-        <picture class="pw-hero-scene__picture">
-          <img
-            id="pw-immersive-scene-media"
-            class="pw-hero-scene__media"
-            src="${src}"
-            alt=""
-            width="573"
-            height="1024"
-            decoding="async"
-          />
-        </picture>
+        ${immersiveBackdropPicture(src, mobileSrc, 573, 1024)}
       </div>
       <div class="pw-immersive-overlay pw-immersive-overlay--discover" aria-hidden="true"></div>
     `;
@@ -235,11 +258,7 @@ function applyDiscoverPanelFromHash() {
   const view = getDiscoverView();
   root.setAttribute("data-pw-active", view);
   syncDiscoverSceneView();
-  const media = document.getElementById("pw-immersive-scene-media");
-  if (media) {
-    const nextSrc = discoverSceneSrc(view);
-    if (!media.getAttribute("src").endsWith(nextSrc)) media.setAttribute("src", nextSrc);
-  }
+  updateImmersiveBackdropMedia(discoverSceneSrc(view), discoverSceneMobileSrc(view));
   const backdrop = document.getElementById("pw-immersive-backdrop");
   if (backdrop?.dataset.mode === "discover") {
     backdrop.dataset.discoverView = view;
@@ -3237,7 +3256,6 @@ async function renderRoute(supabase, session) {
     document.body.classList.remove("pw-home-hero-scrolled");
   }
   root.classList.remove("pw-route-enter");
-  root.innerHTML = renderRouteSkeleton(route);
   root.innerHTML = await renderCurrentRoute(supabase, session, route);
   requestAnimationFrame(() => {
     root.classList.add("pw-route-enter");
@@ -3296,7 +3314,7 @@ async function renderRoute(supabase, session) {
   }
   bindBookModalActions();
   if (route === "/") initHomeHeroParallax();
-  initScrollReveal();
+  if (root.querySelector("[data-reveal]")) initScrollReveal(root);
 }
 
 /** Briefly fades/scales the current route content forward before it's
@@ -3305,7 +3323,8 @@ async function renderRoute(supabase, session) {
 function diveToRoute(run) {
   const root = document.getElementById("pw-route-content");
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!root || reduced) {
+  const mobile = window.matchMedia("(max-width: 860px)").matches;
+  if (!root || reduced || mobile) {
     run();
     return;
   }
@@ -3335,10 +3354,15 @@ function initLinks(render) {
     if (!APP_ROUTES.has(pathOnly)) return;
     const currentFull = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     const isSameRoute = currentFull === nextPathWithHash;
+    if (isSameRoute) return;
+    if (pathOnly === "/discover" && window.location.pathname === "/discover") {
+      window.history.pushState({}, "", nextPathWithHash);
+      applyDiscoverPanelFromHash();
+      setActiveRoute("/discover");
+      return;
+    }
     diveToRoute(() => {
-      if (!isSameRoute) {
-        window.history.pushState({}, "", nextPathWithHash);
-      }
+      window.history.pushState({}, "", nextPathWithHash);
       render();
     });
   });
@@ -3348,9 +3372,14 @@ function initLinks(render) {
 function initBottomNav(render) {
   const searchBtn = document.getElementById("pw-bottom-search");
   searchBtn?.addEventListener("click", () => {
-    if (window.location.pathname !== "/discover" || window.location.hash !== "#search") {
+    if (window.location.pathname === "/discover" && window.location.hash === "#search") return;
+    if (window.location.pathname === "/discover") {
       window.history.pushState({}, "", "/discover#search");
+      applyDiscoverPanelFromHash();
+      setActiveRoute("/discover");
+      return;
     }
+    window.history.pushState({}, "", "/discover#search");
     render();
   });
 }
