@@ -115,7 +115,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       );
     }
     if (hotRows.isEmpty) {
-      if (Env.hasGoogleBooksApiKey) {
+      if (Env.hasGoogleBooksCatalog) {
         final trending =
             await _catalogRepo.getGoogleTrendingFiction(maxResults: 8);
         for (final b in trending) {
@@ -146,7 +146,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     }
 
     late final List<(String, List<CatalogBook>)> curatedSlices;
-    if (Env.hasGoogleBooksApiKey) {
+    if (Env.hasGoogleBooksCatalog) {
       curatedSlices = [];
       for (final c in _googleCuratedCollections) {
         final books = await _catalogRepo.searchGoogleBooksForQuery(
@@ -687,7 +687,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                Env.hasGoogleBooksApiKey
+                Env.hasGoogleBooksCatalog
                     ? 'Most discussed in Pagewalker this week, or trending from Google Books.'
                     : 'Most discussed in Pagewalker this week, or popular picks from our catalog.',
                 style: AppText.body(

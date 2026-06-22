@@ -7,11 +7,13 @@ import '../../core/config/env.dart';
 import '../../core/utils/catalog_text_utils.dart';
 import '../../core/utils/url_utils.dart';
 import '../models/catalog_book.dart';
+import 'pagewalker_books_api.dart';
 
-// Catalog search: Google Books, Open Library, Gutendex (Gutenberg links only).
+// Catalog search: Google Books (via Pagewalker API), Open Library, Gutendex.
 class CatalogBookRepository {
   static const String _gutendexBase = 'https://gutendex.com';
   static const String _openLibraryBase = 'https://openlibrary.org';
+  final _booksApi = PagewalkerBooksApi();
 
   Uri _googleVolumesUri(Map<String, String> params) {
     return Uri(
@@ -32,7 +34,7 @@ class CatalogBookRepository {
   }
 
   Future<List<CatalogBook>> searchAll(String query) async {
-    if (Env.hasGoogleBooksApiKey) {
+    if (Env.hasGoogleBooksCatalog) {
       final results = await Future.wait([
         _searchGutenberg(query),
         _searchGoogleBooks(query),
@@ -65,6 +67,9 @@ class CatalogBookRepository {
         return _mapGutenbergJson(jsonDecode(r.body) as Map<String, dynamic>);
       }
       if (id.startsWith('google_')) {
+        if (Env.hasPagewalkerBooksApi) {
+          return _booksApi.detail(id);
+        }
         final vid = id.replaceFirst('google_', '');
         final r = await http
             .get(_googleVolumeByIdUri(vid))
@@ -159,10 +164,22 @@ class CatalogBookRepository {
   }
 
   Future<List<CatalogBook>> _searchGoogleBooks(String query) async {
-    if (!Env.hasGoogleBooksApiKey) {
-      if (kDebugMode) debugPrint('Google Books: no API key');
+    if (!Env.hasGoogleBooksCatalog) {
+      if (kDebugMode) debugPrint('Google Books: unavailable');
       return [];
     }
+    if (Env.hasPagewalkerBooksApi) {
+      try {
+        final books = await _booksApi.search(query: query, maxResults: 20);
+        return books
+            .where((book) => book.source == BookSource.googleBooks)
+            .toList();
+      } catch (e, st) {
+        debugPrint('Google Books proxy: $e\n$st');
+        return [];
+      }
+    }
+    if (!Env.hasGoogleBooksApiKey) return [];
     try {
       final allUri = _googleVolumesUri({
         'q': query,
@@ -206,6 +223,18 @@ class CatalogBookRepository {
   }
 
   Future<List<CatalogBook>> getGoogleTrendingFiction({int maxResults = 10}) async {
+    if (!Env.hasGoogleBooksCatalog) return [];
+    if (Env.hasPagewalkerBooksApi) {
+      try {
+        final books = await _booksApi.trending(maxResults: maxResults);
+        return books
+            .where((book) => book.source == BookSource.googleBooks)
+            .toList();
+      } catch (e) {
+        debugPrint('getGoogleTrendingFiction proxy: $e');
+        return [];
+      }
+    }
     if (!Env.hasGoogleBooksApiKey) return [];
     try {
       final uri = _googleVolumesUri({
@@ -234,6 +263,19 @@ class CatalogBookRepository {
     String query, {
     int maxResults = 5,
   }) async {
+    if (!Env.hasGoogleBooksCatalog) return [];
+    if (Env.hasPagewalkerBooksApi) {
+      try {
+        final books =
+            await _booksApi.search(query: query, maxResults: maxResults);
+        return books
+            .where((book) => book.source == BookSource.googleBooks)
+            .toList();
+      } catch (e) {
+        debugPrint('searchGoogleBooksForQuery proxy: $e');
+        return [];
+      }
+    }
     if (!Env.hasGoogleBooksApiKey) return [];
     try {
       final uri = _googleVolumesUri({
@@ -491,7 +533,7 @@ class CatalogBookRepository {
   }
 
   Future<List<CatalogBook>> browseByGenre(String genre) async {
-    if (Env.hasGoogleBooksApiKey) {
+    if (Env.hasGoogleBooksCatalog) {
       final results = await Future.wait([
         _searchGutenberg(genre),
         _searchGoogleBooks('subject:$genre'),

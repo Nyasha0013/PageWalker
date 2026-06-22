@@ -8,8 +8,8 @@ class BookSearchRepository {
   final _inner = CatalogBookRepository();
 
   Future<List<BookDetail>> searchBooks(String query) async {
-    if (!Env.hasGoogleBooksApiKey && kDebugMode) {
-      debugPrint('Google Books skipped (no API key)');
+    if (!Env.hasGoogleBooksCatalog && kDebugMode) {
+      debugPrint('Google Books skipped (no API key or server proxy)');
     }
     final list = await _inner.searchAll(query);
     return list.map(BookDetail.fromCatalogBook).toList();

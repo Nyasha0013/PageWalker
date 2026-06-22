@@ -9,50 +9,14 @@ import 'catalog_book_repository.dart';
 
 class BookRepository {
   final _client = SupabaseConfig.client;
-
-  Uri _googleBooksSearchUri(String query) {
-    return Uri(
-      scheme: 'https',
-      host: 'www.googleapis.com',
-      pathSegments: ['books', 'v1', 'volumes'],
-      queryParameters: {
-        'q': query,
-        'maxResults': '20',
-        'key': Env.googleBooksApiKey,
-      },
-    );
-  }
-
-  Uri _googleBooksVolumeUri(String bookId) {
-    return Uri(
-      scheme: 'https',
-      host: 'www.googleapis.com',
-      pathSegments: ['books', 'v1', 'volumes', bookId],
-      queryParameters: {'key': Env.googleBooksApiKey},
-    );
-  }
+  final _catalog = CatalogBookRepository();
 
   Future<List<Book>> searchBooks(String query) async {
-    if (!Env.hasGoogleBooksApiKey) {
-      final cat = CatalogBookRepository();
-      final list = await cat.searchAll(query);
-      return list.map(Book.fromCatalogBook).toList();
-    }
-    final response = await http.get(_googleBooksSearchUri(query));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final items = data['items'] as List<dynamic>? ?? [];
-      return items
-          .map(
-            (e) => Book.fromGoogleBooks(e as Map<String, dynamic>),
-          )
-          .toList();
-    }
-    return [];
+    final list = await _catalog.searchAll(query);
+    return list.map(Book.fromCatalogBook).toList();
   }
 
   Future<Book?> getBookById(String bookId) async {
-    // cached copy first
     final cached = await _client
         .from('books')
         .select()
@@ -60,10 +24,10 @@ class BookRepository {
         .maybeSingle();
     if (cached != null) return Book.fromSupabase(cached);
 
-    // google volume lookup
-    final response = await http.get(_googleBooksVolumeUri(bookId));
-    if (response.statusCode == 200) {
-      final book = Book.fromGoogleBooks(jsonDecode(response.body));
+    final stableId = bookId.startsWith('google_') ? bookId : 'google_$bookId';
+    final catalogBook = await _catalog.getByCatalogId(stableId);
+    if (catalogBook != null) {
+      final book = Book.fromCatalogBook(catalogBook);
       await _client.from('books').upsert(book.toSupabase());
       return book;
     }
@@ -75,6 +39,58 @@ class BookRepository {
     required List<String> topBooks,
     required List<String> topTropes,
   }) async {
+    if (Env.hasPagewalkerBooksApi) {
+      try {
+        final response = await http
+            .post(
+              Uri.parse('${Env.apiBaseUrl}/api/mood-recommendations'),
+              headers: const {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Pagewalker/6.0 Flutter',
+              },
+              body: jsonEncode({'mood': moodInput}),
+            )
+            .timeout(const Duration(seconds: 35));
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final recommendations =
+              data['recommendations'] as List<dynamic>? ?? [];
+          final books = <Book>[];
+          for (final rec in recommendations) {
+            final map = rec as Map<String, dynamic>;
+            final title = '${map['title'] ?? ''}'.trim();
+            final author = '${map['author'] ?? ''}'.trim();
+            if (title.isEmpty) continue;
+
+            final results = await _catalog.searchAll('$title $author');
+            if (results.isNotEmpty) {
+              books.add(Book.fromCatalogBook(results.first));
+              continue;
+            }
+
+            books.add(
+              Book(
+                id: 'mood_${title.toLowerCase().hashCode}',
+                title: title,
+                author: author.isEmpty ? 'Unknown Author' : author,
+                coverUrl: map['coverUrl'] as String?,
+                description: map['reason'] as String?,
+                genres: [
+                  if (map['genre'] != null) '${map['genre']}',
+                ],
+              ),
+            );
+          }
+          if (books.isNotEmpty) return books;
+        }
+      } catch (_) {
+        // fall through to direct OpenAI when configured
+      }
+    }
+
+    if (!Env.hasOpenAiKey) return [];
+
     final response = await http.post(
       Uri.parse('https://api.openai.com/v1/chat/completions'),
       headers: {
@@ -99,25 +115,20 @@ class BookRepository {
       }),
     );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final content =
-          data['choices'][0]['message']['content'] as String;
-      final recommendations =
-          jsonDecode(content) as List<dynamic>;
+    if (response.statusCode != 200) return [];
 
-      final catRepo = CatalogBookRepository();
-      final books = <Book>[];
-      for (final rec in recommendations) {
-        final query = '${rec["title"]} ${rec["author"]}';
-        final results = await catRepo.searchAll(query);
-        if (results.isNotEmpty) {
-          books.add(Book.fromCatalogBook(results.first));
-        }
+    final data = jsonDecode(response.body);
+    final content = data['choices'][0]['message']['content'] as String;
+    final recommendations = jsonDecode(content) as List<dynamic>;
+
+    final books = <Book>[];
+    for (final rec in recommendations) {
+      final query = '${rec["title"]} ${rec["author"]}';
+      final results = await _catalog.searchAll(query);
+      if (results.isNotEmpty) {
+        books.add(Book.fromCatalogBook(results.first));
       }
-      return books;
     }
-    return [];
+    return books;
   }
 }
-

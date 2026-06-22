@@ -261,7 +261,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
                 child: Text(
-                  Env.hasGoogleBooksApiKey
+                  Env.hasGoogleBooksCatalog
                       ? 'Metadata from Google Books, Open Library, and Project Gutenberg.'
                       : 'Showing Open Library and Project Gutenberg. Google Books is off in this build.',
                   style: AppText.body(
