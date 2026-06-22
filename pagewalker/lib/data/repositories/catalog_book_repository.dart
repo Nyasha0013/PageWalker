@@ -484,16 +484,48 @@ class CatalogBookRepository {
   }
 
   Future<List<CatalogBook>> getPopularMixed({int limit = 24}) async {
-    final results = await Future.wait([
+    final fetches = <Future<List<CatalogBook>>>[
       getPopularGutenberg(),
-      getOpenLibrarySubjectSlice('romance', limit: 16),
-    ]);
+      getOpenLibrarySubjectSlice('fiction', limit: 16),
+    ];
+    if (Env.hasGoogleBooksCatalog) {
+      fetches.add(getGoogleTrendingFiction(maxResults: 12));
+    }
+    final results = await Future.wait(fetches);
     final merged = _mergeBooksByTitle([
-      ...results[0],
-      ...results[1],
+      for (final chunk in results) ...chunk,
     ]);
     if (merged.length <= limit) return merged;
     return merged.take(limit).toList();
+  }
+
+  Future<List<CatalogBook>> searchBySource(
+    String query,
+    BookSource source, {
+    int maxResults = 24,
+  }) async {
+    switch (source) {
+      case BookSource.googleBooks:
+        return searchGoogleBooksForQuery(query, maxResults: maxResults);
+      case BookSource.gutenberg:
+        return _searchGutenberg(query);
+      case BookSource.openLibrary:
+        return _searchOpenLibrary(query);
+    }
+  }
+
+  Future<List<CatalogBook>> popularForSource(
+    BookSource source, {
+    int limit = 30,
+  }) async {
+    switch (source) {
+      case BookSource.googleBooks:
+        return getGoogleTrendingFiction(maxResults: limit);
+      case BookSource.gutenberg:
+        return getPopularGutenberg();
+      case BookSource.openLibrary:
+        return getOpenLibrarySubjectSlice('fiction', limit: limit);
+    }
   }
 
   Future<List<CatalogBook>> getPopularGutenberg() async {

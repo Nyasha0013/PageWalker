@@ -63,13 +63,45 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
     setState(() {
       _loading = true;
       _browsing = false;
+      _lastQuery = '';
     });
-    final list = await _repo.getPopularMixed(limit: 30);
+    final list = _sourceFilter == null
+        ? await _repo.getPopularMixed(limit: 30)
+        : await _repo.popularForSource(_sourceFilter!, limit: 30);
     if (!mounted) return;
     setState(() {
       _results = list;
       _loading = false;
     });
+  }
+
+  Future<void> _loadSourcePopular(BookSource source) async {
+    setState(() {
+      _loading = true;
+      _browsing = false;
+      _lastQuery = '';
+      _sourceFilter = source;
+    });
+    final list = await _repo.popularForSource(source, limit: 30);
+    if (!mounted) return;
+    setState(() {
+      _results = list;
+      _loading = false;
+    });
+  }
+
+  void _selectSourceFilter(BookSource? source) {
+    if (_sourceFilter == source) return;
+    setState(() => _sourceFilter = source);
+    if (_lastQuery.isNotEmpty) {
+      _runSearch();
+      return;
+    }
+    if (source == null) {
+      _loadPopular();
+    } else {
+      _loadSourcePopular(source);
+    }
   }
 
   Future<void> _browseGenre(String genreKey) async {
@@ -93,7 +125,9 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
       _browsing = false;
       _lastQuery = q;
     });
-    final list = await _repo.searchAll(q);
+    final list = _sourceFilter == null
+        ? await _repo.searchAll(q)
+        : await _repo.searchBySource(q, _sourceFilter!, maxResults: 30);
     if (!mounted) return;
     setState(() {
       _results = list;
@@ -180,31 +214,28 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
                     FilterChip(
                       label: const Text('All sources'),
                       selected: _sourceFilter == null,
-                      onSelected: (_) => setState(() => _sourceFilter = null),
+                      onSelected: (_) => _selectSourceFilter(null),
                     ),
                     const SizedBox(width: 6),
                     FilterChip(
                       label: const Text('Gutenberg'),
                       selected: _sourceFilter == BookSource.gutenberg,
-                      onSelected: (_) => setState(
-                        () => _sourceFilter = BookSource.gutenberg,
-                      ),
+                      onSelected: (_) =>
+                          _selectSourceFilter(BookSource.gutenberg),
                     ),
                     const SizedBox(width: 6),
                     FilterChip(
                       label: const Text('Google'),
                       selected: _sourceFilter == BookSource.googleBooks,
-                      onSelected: (_) => setState(
-                        () => _sourceFilter = BookSource.googleBooks,
-                      ),
+                      onSelected: (_) =>
+                          _selectSourceFilter(BookSource.googleBooks),
                     ),
                     const SizedBox(width: 6),
                     FilterChip(
                       label: const Text('Open Library'),
                       selected: _sourceFilter == BookSource.openLibrary,
-                      onSelected: (_) => setState(
-                        () => _sourceFilter = BookSource.openLibrary,
-                      ),
+                      onSelected: (_) =>
+                          _selectSourceFilter(BookSource.openLibrary),
                     ),
                   ],
                 ),
@@ -247,7 +278,20 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
                     : _filtered.isEmpty
-                        ? _EmptyState(onPopular: _loadPopular)
+                        ? _EmptyState(
+                            sourceFilter: _sourceFilter,
+                            hasQuery: _lastQuery.isNotEmpty,
+                            onPopular: () {
+                              if (_sourceFilter != null) {
+                                _loadSourcePopular(_sourceFilter!);
+                              } else {
+                                _loadPopular();
+                              }
+                            },
+                            onClearFilter: _sourceFilter == null
+                                ? null
+                                : () => _selectSourceFilter(null),
+                          )
                         : ListView(
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                             children: [
@@ -436,9 +480,38 @@ class _CatalogBookCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
+  final BookSource? sourceFilter;
+  final bool hasQuery;
   final VoidCallback onPopular;
+  final VoidCallback? onClearFilter;
 
-  const _EmptyState({required this.onPopular});
+  const _EmptyState({
+    required this.sourceFilter,
+    required this.hasQuery,
+    required this.onPopular,
+    this.onClearFilter,
+  });
+
+  String _message() {
+    if (hasQuery && sourceFilter != null) {
+      return 'No ${_sourceLabel(sourceFilter!)} matches for this search.';
+    }
+    if (sourceFilter == BookSource.googleBooks) {
+      return 'No Google Books picks right now. Try a search or switch source.';
+    }
+    return 'Search for any book';
+  }
+
+  String _sourceLabel(BookSource source) {
+    switch (source) {
+      case BookSource.googleBooks:
+        return 'Google Books';
+      case BookSource.gutenberg:
+        return 'Gutenberg';
+      case BookSource.openLibrary:
+        return 'Open Library';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -449,14 +522,23 @@ class _EmptyState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Search for any book',
+              _message(),
               style: AppText.display(20, context: context),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
+            if (onClearFilter != null)
+              TextButton(
+                onPressed: onClearFilter,
+                child: const Text('Show all sources'),
+              ),
             TextButton(
               onPressed: onPopular,
-              child: const Text('Show popular classics'),
+              child: Text(
+                sourceFilter == null
+                    ? 'Show popular picks'
+                    : 'Load ${_sourceLabel(sourceFilter!)} picks',
+              ),
             ),
           ],
         ),
