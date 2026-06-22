@@ -3171,6 +3171,22 @@ body.pw-library-immersive .pw-poster-card {
   -webkit-backdrop-filter: blur(12px);
 }
 
+/* Per-page crop so each backdrop reads at its best focal point */
+body.pw-discover-immersive[data-discover-view="trending"] .pw-discover-scene .pw-hero-scene__media {
+  object-position: 36% 58%;
+}
+
+body.pw-discover-immersive[data-discover-view="search"] .pw-discover-scene .pw-hero-scene__media,
+body.pw-discover-immersive[data-discover-view="hub"] .pw-discover-scene .pw-hero-scene__media,
+body.pw-discover-immersive[data-discover-view="genre"] .pw-discover-scene .pw-hero-scene__media,
+body.pw-discover-immersive[data-discover-view="classics"] .pw-discover-scene .pw-hero-scene__media {
+  object-position: 50% 32%;
+}
+
+body.pw-library-immersive .pw-library-scene .pw-hero-scene__media {
+  object-position: 54% 46%;
+}
+
 .pw-hero-scene__picture,
 .pw-hero-scene__media {
   display: block;

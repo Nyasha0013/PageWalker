@@ -150,12 +150,25 @@ function setActiveRoute(route) {
   document.body.classList.toggle("pw-has-bottom-nav", true);
 }
 
-/** Hub vs one section: /discover vs /discover#… */
-/** Per-tab backdrop photo for the Discover scene. */
+/** Each Discover tab uses its own backdrop (see assets/*.png sources). */
+const DISCOVER_SCENE_SRC = {
+  hub: "/assets/discover-sky.png",
+  search: "/assets/discover-sky.png",
+  trending: "/assets/trending-beach.png",
+  genre: "/assets/discover-sky.png",
+  classics: "/assets/discover-sky.png",
+};
+
 function discoverSceneSrc(view) {
-  if (view === "trending") return "/assets/trending-beach.png";
-  if (view === "search") return "/assets/search-beach.png";
-  return "/assets/discover-sky.png";
+  return DISCOVER_SCENE_SRC[view] || DISCOVER_SCENE_SRC.hub;
+}
+
+function syncDiscoverSceneView() {
+  if (window.location.pathname !== "/discover") {
+    delete document.body.dataset.discoverView;
+    return;
+  }
+  document.body.dataset.discoverView = getDiscoverView();
 }
 
 function applyDiscoverPanelFromHash() {
@@ -163,6 +176,7 @@ function applyDiscoverPanelFromHash() {
   if (!root) return;
   const view = getDiscoverView();
   root.setAttribute("data-pw-active", view);
+  syncDiscoverSceneView();
   const media = document.getElementById("pw-discover-scene-media");
   if (media) {
     const nextSrc = discoverSceneSrc(view);
@@ -3168,6 +3182,7 @@ async function renderRoute(supabase, session) {
       "pw-discover-immersive",
       "pw-library-immersive",
     );
+    delete document.body.dataset.discoverView;
     root.innerHTML = renderProtectedRouteGate(route);
     bindLockedGateActions();
     return;
@@ -3176,6 +3191,7 @@ async function renderRoute(supabase, session) {
   document.body.classList.toggle("pw-home-immersive", isGuestHome);
   document.body.classList.toggle("pw-discover-immersive", route === "/discover");
   document.body.classList.toggle("pw-library-immersive", route === "/library");
+  syncDiscoverSceneView();
   if (!isGuestHome) {
     document.body.classList.remove("pw-home-hero-scrolled");
   }
