@@ -9,6 +9,7 @@ import '../../core/plus/pagewalker_plus_features.dart';
 import '../../core/plus/pagewalker_plus_service.dart';
 import '../../core/plus/plus_paywall_sheet.dart';
 import '../../core/plus/plus_gate.dart';
+import '../../core/config/env.dart';
 import '../../core/config/supabase_config.dart';
 import '../../core/providers/theme_provider.dart';
 import '../../core/services/notification_service.dart';
