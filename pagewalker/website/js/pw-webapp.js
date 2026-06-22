@@ -1103,13 +1103,20 @@ async function renderHomeGuest(session) {
       <section class="pw-home-hero" data-pw-hero aria-labelledby="pw-home-title">
         <div class="pw-hero-scene" aria-hidden="true">
           <picture class="pw-hero-scene__picture">
-            <source media="(max-width: 860px)" srcset="/assets/hero-book-cloud-mobile.png" />
+            <source
+              media="(max-width: 860px) and (orientation: portrait)"
+              srcset="/assets/hero-book-cloud-portrait.png"
+            />
+            <source
+              media="(max-width: 860px) and (orientation: landscape)"
+              srcset="/assets/hero-book-cloud-mobile.png"
+            />
             <img
               class="pw-hero-scene__media"
               src="/assets/hero-book-cloud.png"
               alt=""
-              width="1920"
-              height="1080"
+              width="1024"
+              height="576"
               decoding="async"
               fetchpriority="high"
             />

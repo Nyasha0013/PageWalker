@@ -95,6 +95,7 @@ export function initHomeHeroParallax() {
 
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onResize, { passive: true });
+  window.addEventListener("orientationchange", onResize, { passive: true });
   if (finePointer && !reduced && !mobile) {
     window.addEventListener("mousemove", onMouseMove, { passive: true });
   }
@@ -103,6 +104,7 @@ export function initHomeHeroParallax() {
   heroParallaxCleanup = () => {
     window.removeEventListener("scroll", onScroll);
     window.removeEventListener("resize", onResize);
+    window.removeEventListener("orientationchange", onResize);
     window.removeEventListener("mousemove", onMouseMove);
     scene.style.transform = "";
     foreground.style.transform = "";

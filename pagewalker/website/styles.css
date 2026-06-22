@@ -3010,6 +3010,29 @@ body.pw-home-immersive .pw-hero-overlay {
   );
 }
 
+/* Landscape photo on desktop; portrait crop + per-orientation framing on phones */
+body.pw-home-immersive .pw-hero-scene__media {
+  object-position: 40% 42%;
+}
+
+@media (max-width: 860px) and (orientation: portrait) {
+  body.pw-home-immersive .pw-hero-scene__media {
+    object-position: 50% 36%;
+  }
+}
+
+@media (max-width: 860px) and (orientation: landscape) {
+  body.pw-home-immersive .pw-hero-scene__media {
+    object-position: 34% 50%;
+  }
+
+  body.pw-home-immersive .pw-hero-foreground {
+    min-height: calc(100dvh + var(--site-header-h));
+    min-height: calc(100svh + var(--site-header-h));
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+  }
+}
+
 /* Content scrolls over the fixed photo: drop the solid section fills and
    let the scrim show through, with glass cards for readability. */
 body.pw-home-immersive .pw-home-pillars,
@@ -3598,10 +3621,6 @@ body.pw-home-immersive .pw-hero-foreground {
   .pw-hero-scene__media {
     animation: none !important;
     object-position: 36% 44%;
-  }
-
-  body.pw-home-immersive .pw-hero-scene__media {
-    object-position: 34% 46%;
   }
 
   .pw-hero-scene,
