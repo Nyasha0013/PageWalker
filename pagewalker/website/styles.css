@@ -142,6 +142,95 @@ body > * {
   z-index: 1;
 }
 
+/* Fixed photo layer — lives on body so mobile Safari keeps position:fixed pinned */
+#pw-immersive-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#pw-immersive-backdrop[hidden] {
+  display: none !important;
+}
+
+.pw-immersive-scene {
+  position: absolute;
+  inset: -28px;
+  width: calc(100% + 56px);
+  height: calc(100dvh + 56px);
+  height: calc(100svh + 56px);
+  overflow: hidden;
+}
+
+.pw-immersive-scene .pw-hero-scene__picture,
+.pw-immersive-scene .pw-hero-scene__media {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pw-immersive-scene .pw-hero-scene__media {
+  object-fit: cover;
+  object-position: 42% 42%;
+}
+
+.pw-immersive-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.pw-immersive-overlay--discover {
+  background: linear-gradient(
+    180deg,
+    rgba(22, 20, 15, 0.42) 0%,
+    rgba(22, 20, 15, 0.2) 30%,
+    rgba(22, 20, 15, 0.5) 62%,
+    rgba(22, 20, 15, 0.86) 100%
+  );
+}
+
+.pw-immersive-overlay--library {
+  background: linear-gradient(
+    180deg,
+    rgba(22, 20, 15, 0.34) 0%,
+    rgba(22, 20, 15, 0.16) 32%,
+    rgba(22, 20, 15, 0.44) 64%,
+    rgba(22, 20, 15, 0.82) 100%
+  );
+}
+
+body.pw-discover-immersive[data-discover-view="trending"] #pw-immersive-scene-media {
+  object-position: 36% 58%;
+}
+
+body.pw-discover-immersive[data-discover-view="search"] #pw-immersive-scene-media,
+body.pw-discover-immersive[data-discover-view="hub"] #pw-immersive-scene-media,
+body.pw-discover-immersive[data-discover-view="genre"] #pw-immersive-scene-media,
+body.pw-discover-immersive[data-discover-view="classics"] #pw-immersive-scene-media {
+  object-position: 50% 32%;
+}
+
+body.pw-library-immersive #pw-immersive-scene-media {
+  object-position: 54% 46%;
+}
+
+body.pw-discover-immersive .webapp-content.pw-route-enter,
+body.pw-library-immersive .webapp-content.pw-route-enter {
+  animation: none;
+}
+
+body.pw-library-immersive .pw-route-gate,
+body.pw-discover-immersive .pw-route-gate {
+  position: relative;
+  z-index: 2;
+  background: var(--glass-immersive-bg);
+  border-color: var(--glass-immersive-border);
+  box-shadow: var(--glass-edge);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}
+
 @media (max-width: 860px) {
   :root {
     --glass-blur: 14px;
@@ -3077,47 +3166,6 @@ body.pw-discover-immersive {
   position: relative;
 }
 
-.pw-discover-scene {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.pw-discover-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* Pin the scene + scrim to the viewport so all of Discover scrolls over it. */
-body.pw-discover-immersive .pw-discover-scene,
-body.pw-discover-immersive .pw-discover-overlay {
-  position: fixed;
-  inset: 0;
-  height: 100dvh;
-  height: 100svh;
-  z-index: 0;
-}
-
-body.pw-discover-immersive .pw-discover-scene {
-  inset: -28px;
-  width: calc(100% + 56px);
-  height: calc(100dvh + 56px);
-  height: calc(100svh + 56px);
-}
-
-body.pw-discover-immersive .pw-discover-overlay {
-  background: linear-gradient(
-    180deg,
-    rgba(22, 20, 15, 0.42) 0%,
-    rgba(22, 20, 15, 0.2) 30%,
-    rgba(22, 20, 15, 0.5) 62%,
-    rgba(22, 20, 15, 0.86) 100%
-  );
-}
-
 /* The page container itself stays transparent so the photo shows through;
    only the interactive cards/tabs become glass, like the home sections. */
 body.pw-discover-immersive .pw-discover-page {
@@ -3173,47 +3221,6 @@ body.pw-library-immersive {
   position: relative;
 }
 
-.pw-library-scene {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.pw-library-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-body.pw-library-immersive .pw-library-scene,
-body.pw-library-immersive .pw-library-overlay {
-  position: fixed;
-  inset: 0;
-  height: 100dvh;
-  height: 100svh;
-  z-index: 0;
-}
-
-body.pw-library-immersive .pw-library-scene {
-  inset: -28px;
-  width: calc(100% + 56px);
-  height: calc(100dvh + 56px);
-  height: calc(100svh + 56px);
-}
-
-/* photo is already very dark, so a lighter scrim keeps the glow visible */
-body.pw-library-immersive .pw-library-overlay {
-  background: linear-gradient(
-    180deg,
-    rgba(22, 20, 15, 0.34) 0%,
-    rgba(22, 20, 15, 0.16) 32%,
-    rgba(22, 20, 15, 0.44) 64%,
-    rgba(22, 20, 15, 0.82) 100%
-  );
-}
-
 body.pw-library-immersive .pw-library-page {
   position: relative;
   z-index: 2;
@@ -3237,22 +3244,6 @@ body.pw-library-immersive .pw-library-page > .muted {
 body.pw-library-immersive .pw-sticky-bar {
   border-radius: 999px;
   padding: 0.4rem;
-}
-
-/* Per-page crop so each backdrop reads at its best focal point */
-body.pw-discover-immersive[data-discover-view="trending"] .pw-discover-scene .pw-hero-scene__media {
-  object-position: 36% 58%;
-}
-
-body.pw-discover-immersive[data-discover-view="search"] .pw-discover-scene .pw-hero-scene__media,
-body.pw-discover-immersive[data-discover-view="hub"] .pw-discover-scene .pw-hero-scene__media,
-body.pw-discover-immersive[data-discover-view="genre"] .pw-discover-scene .pw-hero-scene__media,
-body.pw-discover-immersive[data-discover-view="classics"] .pw-discover-scene .pw-hero-scene__media {
-  object-position: 50% 32%;
-}
-
-body.pw-library-immersive .pw-library-scene .pw-hero-scene__media {
-  object-position: 54% 46%;
 }
 
 .pw-hero-scene__picture,

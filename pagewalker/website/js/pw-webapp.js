@@ -171,16 +171,78 @@ function syncDiscoverSceneView() {
   document.body.dataset.discoverView = getDiscoverView();
 }
 
+function syncImmersiveBackdrop(route) {
+  const el = document.getElementById("pw-immersive-backdrop");
+  if (!el) return;
+
+  if (route === "/library") {
+    el.hidden = false;
+    el.dataset.mode = "library";
+    delete el.dataset.discoverView;
+    el.innerHTML = `
+      <div class="pw-immersive-scene" aria-hidden="true">
+        <picture class="pw-hero-scene__picture">
+          <img
+            id="pw-immersive-scene-media"
+            class="pw-hero-scene__media"
+            src="/assets/library-walk.png"
+            alt=""
+            width="576"
+            height="1024"
+            decoding="async"
+          />
+        </picture>
+      </div>
+      <div class="pw-immersive-overlay pw-immersive-overlay--library" aria-hidden="true"></div>
+    `;
+    return;
+  }
+
+  if (route === "/discover") {
+    const view = getDiscoverView();
+    const src = discoverSceneSrc(view);
+    el.hidden = false;
+    el.dataset.mode = "discover";
+    el.dataset.discoverView = view;
+    el.innerHTML = `
+      <div class="pw-immersive-scene" aria-hidden="true">
+        <picture class="pw-hero-scene__picture">
+          <img
+            id="pw-immersive-scene-media"
+            class="pw-hero-scene__media"
+            src="${src}"
+            alt=""
+            width="573"
+            height="1024"
+            decoding="async"
+          />
+        </picture>
+      </div>
+      <div class="pw-immersive-overlay pw-immersive-overlay--discover" aria-hidden="true"></div>
+    `;
+    return;
+  }
+
+  el.hidden = true;
+  el.innerHTML = "";
+  el.removeAttribute("data-mode");
+  delete el.dataset.discoverView;
+}
+
 function applyDiscoverPanelFromHash() {
   const root = document.getElementById("pw-discover-root");
   if (!root) return;
   const view = getDiscoverView();
   root.setAttribute("data-pw-active", view);
   syncDiscoverSceneView();
-  const media = document.getElementById("pw-discover-scene-media");
+  const media = document.getElementById("pw-immersive-scene-media");
   if (media) {
     const nextSrc = discoverSceneSrc(view);
     if (!media.getAttribute("src").endsWith(nextSrc)) media.setAttribute("src", nextSrc);
+  }
+  const backdrop = document.getElementById("pw-immersive-backdrop");
+  if (backdrop?.dataset.mode === "discover") {
+    backdrop.dataset.discoverView = view;
   }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1287,20 +1349,6 @@ async function renderDiscover(supabase, session) {
 
   return `
     <div class="pw-discover-route">
-      <div class="pw-discover-scene" aria-hidden="true">
-        <picture class="pw-hero-scene__picture">
-          <img
-            id="pw-discover-scene-media"
-            class="pw-hero-scene__media"
-            src="${discoverSceneSrc(discoverView)}"
-            alt=""
-            width="573"
-            height="1024"
-            decoding="async"
-          />
-        </picture>
-      </div>
-      <div class="pw-discover-overlay" aria-hidden="true"></div>
     <section class="app-panel pw-discover-page" id="pw-discover-root" data-pw-active="${discoverView}">
       <h2 class="pw-discover-title">${t("route.discover.heading", "Discover")}</h2>
       <nav class="pw-discover-tabstrip" aria-label="${t("route.discover.tabstripLabel", "Discover areas")}">
@@ -1529,19 +1577,6 @@ async function renderLibrary(supabase, session) {
 
   return `
     <div class="pw-library-route">
-      <div class="pw-library-scene" aria-hidden="true">
-        <picture class="pw-hero-scene__picture">
-          <img
-            class="pw-hero-scene__media"
-            src="/assets/library-walk.png"
-            alt=""
-            width="576"
-            height="1024"
-            decoding="async"
-          />
-        </picture>
-      </div>
-      <div class="pw-library-overlay" aria-hidden="true"></div>
     <section class="app-panel pw-library-page">
       <h2>${t("route.library.title", "Library")}</h2>
       <p class="muted">${t("route.library.explainer", "This is your reading shelf. Add books from Discover, then move them across TBR, Reading, Read, and DNF.")}</p>
@@ -2390,7 +2425,7 @@ function renderProtectedRouteGate(route) {
     "/profile": t("appNav.profile", "Profile"),
   };
   return `
-    <section class="app-panel">
+    <section class="app-panel pw-route-gate">
       <h2>${t("route.locked.title", "Sign in required")}</h2>
       <p>${t("route.locked.body", "To view in-depth product content on web, please sign in first.")}</p>
       <p class="muted">${t("route.locked.target", "Requested section")}: ${escapeHtml(routeNameMap[route] || route)}</p>
@@ -3183,13 +3218,11 @@ async function renderRoute(supabase, session) {
     bookPageReviewPanelOpen = false;
   }
   if (!session?.user && PROTECTED_ROUTES.has(route)) {
-    document.body.classList.remove(
-      "pw-home-immersive",
-      "pw-home-hero-scrolled",
-      "pw-discover-immersive",
-      "pw-library-immersive",
-    );
-    delete document.body.dataset.discoverView;
+    document.body.classList.remove("pw-home-immersive", "pw-home-hero-scrolled");
+    document.body.classList.toggle("pw-discover-immersive", route === "/discover");
+    document.body.classList.toggle("pw-library-immersive", route === "/library");
+    syncDiscoverSceneView();
+    syncImmersiveBackdrop(route);
     root.innerHTML = renderProtectedRouteGate(route);
     bindLockedGateActions();
     return;
@@ -3199,6 +3232,7 @@ async function renderRoute(supabase, session) {
   document.body.classList.toggle("pw-discover-immersive", route === "/discover");
   document.body.classList.toggle("pw-library-immersive", route === "/library");
   syncDiscoverSceneView();
+  syncImmersiveBackdrop(route);
   if (!isGuestHome) {
     document.body.classList.remove("pw-home-hero-scrolled");
   }
