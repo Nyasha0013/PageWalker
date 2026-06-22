@@ -1,8 +1,8 @@
 import { getSupabase } from "./pw-supabase.js";
 import { initUserMenu } from "./pw-user-menu.js";
 import { closeAuthNudge, guardAuthAction } from "./pw-auth-nudge.js";
-import { initAppDrawer } from "./pw-drawer.js";
 import { initHomeHeroParallax } from "./pw-hero.js";
+import { initScrollReveal } from "./pw-scroll-reveal.js";
 
 const APP_ROUTES = new Set([
   "/",
@@ -1110,7 +1110,7 @@ async function renderHomeGuest(session) {
         </div>
       </section>
 
-      <section class="pw-home-pillars wrap" aria-label="${t("home.pillarsLabel", "What you can do")}">
+      <section class="pw-home-pillars wrap" data-reveal aria-label="${t("home.pillarsLabel", "What you can do")}">
         <a class="pw-pillar" href="/discover" data-link-route="/discover">
           <span class="pw-pillar__icon" aria-hidden="true">🔎</span>
           <h2 class="pw-pillar__title">${t("home.pillarFind", "Find")}</h2>
@@ -1133,7 +1133,7 @@ async function renderHomeGuest(session) {
         </a>
       </section>
 
-      <section class="pw-home-section wrap pw-marginalia-rail">
+      <section class="pw-home-section wrap pw-marginalia-rail" data-reveal>
         <span class="pw-marginalia-rail__tick" style="top:0.2rem">01</span>
         <div class="pw-section-head">
           <h2>${t("home.trendingHeading", "Trending on Pagewalker")}</h2>
@@ -1150,7 +1150,7 @@ async function renderHomeGuest(session) {
         </div>
       </section>
 
-      <section class="pw-home-section wrap pw-marginalia-rail">
+      <section class="pw-home-section wrap pw-marginalia-rail" data-reveal>
         <span class="pw-marginalia-rail__tick" style="top:0.2rem">02</span>
         <div class="pw-section-head">
           <h2>${t("home.buzzHeading", "Reader buzz")}</h2>
@@ -1177,7 +1177,7 @@ async function renderHomeGuest(session) {
         </div>
       </section>
 
-      <section class="cta-band">
+      <section class="cta-band" data-reveal>
         <div class="cta-inner">
           <h2>${t("home.ctaHeading", "Start your next chapter")}</h2>
           <p class="cta-lede">${t("home.ctaLede", "Get the app on Google Play, read release notes, or reach out for support.")}</p>
@@ -3188,6 +3188,25 @@ async function renderRoute(supabase, session) {
   }
   bindBookModalActions();
   if (route === "/") initHomeHeroParallax();
+  initScrollReveal();
+}
+
+/** Briefly fades/scales the current route content forward before it's
+ *  swapped, so navigating reads as "diving into" the next page rather
+ *  than an instant cut. Skipped entirely under reduced-motion. */
+function diveToRoute(run) {
+  const root = document.getElementById("pw-route-content");
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!root || reduced) {
+    run();
+    return;
+  }
+  root.classList.remove("pw-route-enter");
+  root.classList.add("pw-route-exit");
+  window.setTimeout(() => {
+    root.classList.remove("pw-route-exit");
+    run();
+  }, 150);
 }
 
 function initLinks(render) {
@@ -3207,10 +3226,13 @@ function initLinks(render) {
     } catch (_) {}
     if (!APP_ROUTES.has(pathOnly)) return;
     const currentFull = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    if (currentFull !== nextPathWithHash) {
-      window.history.pushState({}, "", nextPathWithHash);
-    }
-    render();
+    const isSameRoute = currentFull === nextPathWithHash;
+    diveToRoute(() => {
+      if (!isSameRoute) {
+        window.history.pushState({}, "", nextPathWithHash);
+      }
+      render();
+    });
   });
   window.addEventListener("popstate", render);
 }
@@ -3254,7 +3276,6 @@ async function boot() {
   }
 
   const userMenu = initUserMenu(supabase);
-  const appDrawer = initAppDrawer();
   window.pwSyncNav = function pwSyncNav() {
     const route = APP_ROUTES.has(window.location.pathname) ? window.location.pathname : "/";
     const pathForNav = window.location.pathname === "/club" ? "/clubs" : route;
@@ -3264,7 +3285,6 @@ async function boot() {
   const render = async () => {
     userMenu.close();
     closeAuthNudge();
-    appDrawer.close();
     await renderRoute(supabase, session);
   };
   window.pwRerender = render;

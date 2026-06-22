@@ -30,25 +30,26 @@
     <header class="site-header">
       <div class="wrap inner app-header-inner">
         <div class="app-header-start">
-          <button
-            type="button"
-            id="pw-drawer-open"
-            class="pw-header-menu"
-            aria-expanded="false"
-            aria-controls="pw-app-drawer"
-            data-i18n-attr="aria-label:drawer.open"
-            aria-label="Open menu"
-          >
-            <span class="visually-hidden" data-i18n="drawer.open">Menu</span>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <line x1="4" y1="6" x2="20" y2="6" />
-              <line x1="4" y1="12" x2="20" y2="12" />
-              <line x1="4" y1="18" x2="20" y2="18" />
-            </svg>
-          </button>
           <a class="logo" href="/" data-link-route="/">Pagewalker</a>
         </div>
+
+        <nav class="site-nav-top" aria-label="Primary">
+          <a class="site-nav-top__link" href="/" data-link-route="/" data-i18n="appNav.home">Home</a>
+          <a class="site-nav-top__link" href="/discover" data-link-route="/discover" data-i18n="appNav.discover">Discover</a>
+          <a class="site-nav-top__link" href="/library" data-link-route="/library" data-i18n="appNav.library">Library</a>
+          <a class="site-nav-top__link" href="/social" data-link-route="/social" data-i18n="appNav.social">Social</a>
+          <a class="site-nav-top__link" href="/clubs" data-link-route="/clubs" data-i18n="appNav.clubs">Clubs</a>
+          <a class="site-nav-top__link" href="/reader" data-link-route="/reader" data-i18n="appNav.reader">Reader</a>
+          <a class="site-nav-top__link" href="/profile" data-link-route="/profile" data-i18n="appNav.profile">Profile</a>
+        </nav>
+
         <div class="app-header-right">
+          <div class="site-controls">
+            <select class="pw-select pw-lang-select" data-i18n-attr="aria-label:toolbar.language" aria-label="Language">
+              <option value="en">English</option>
+              <option value="hu">Magyar</option>
+            </select>
+          </div>
           <div class="pw-user-menu" id="pw-user-menu">
             <button
               type="button"
@@ -84,102 +85,6 @@
         </div>
       </div>
     </header>
-
-    <div
-      id="pw-drawer-backdrop"
-      class="pw-drawer-backdrop"
-      hidden
-      aria-hidden="true"
-    ></div>
-    <aside
-      id="pw-app-drawer"
-      class="pw-app-drawer"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="pw-app-drawer-title"
-      hidden
-      aria-hidden="true"
-    >
-      <div class="pw-app-drawer__top">
-        <h2 id="pw-app-drawer-title" class="pw-app-drawer__title" data-i18n="drawer.title">Browse Pagewalker</h2>
-        <button
-          type="button"
-          id="pw-drawer-close"
-          class="pw-drawer-close"
-          data-i18n-attr="aria-label:drawer.close"
-          aria-label="Close menu"
-        >
-          <span class="visually-hidden" data-i18n="drawer.close">Close</span>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <nav class="pw-app-drawer__nav" aria-label="App sections">
-        <a class="pw-drawer__item" href="/" data-link-route="/">
-          <span class="pw-drawer__label" data-i18n="appNav.home">Home</span>
-          <span class="pw-drawer__desc" data-i18n="drawer.desc.home">Landing, hero, and what’s new</span>
-        </a>
-        <details class="pw-drawer__group pw-drawer__discover-block" id="pw-drawer-discover">
-          <summary class="pw-drawer__summary">
-            <span class="pw-drawer__summary-toggle">
-              <span class="pw-drawer__label" data-i18n="appNav.discover">Discover</span>
-              <span class="pw-drawer__desc" data-i18n="drawer.desc.discover">Search, explore moods, trending, genres &amp; classics</span>
-            </span>
-            <span class="pw-drawer__chevron" aria-hidden="true">▾</span>
-          </summary>
-          <div class="pw-drawer__sub" role="group" aria-label="Discover sections">
-            <a class="pw-drawer__sublink" href="/discover" data-link-route="/discover" data-discover-jump="hub">
-              <span class="pw-drawer__sublink-label" data-i18n="drawer.discover.overview">Overview</span>
-            </a>
-            <a class="pw-drawer__sublink" href="/discover#search" data-link-route="/discover" data-discover-jump="search">
-              <span class="pw-drawer__sublink-label" data-i18n="drawer.discover.search">Search &amp; mood</span>
-            </a>
-            <a class="pw-drawer__sublink" href="/discover#trending" data-link-route="/discover" data-discover-jump="trending">
-              <span class="pw-drawer__sublink-label" data-i18n="drawer.discover.trending">Trending</span>
-            </a>
-            <a class="pw-drawer__sublink" href="/discover#genre" data-link-route="/discover" data-discover-jump="genre">
-              <span class="pw-drawer__sublink-label" data-i18n="drawer.discover.genre">Genre exploration</span>
-            </a>
-            <a class="pw-drawer__sublink" href="/discover#classics" data-link-route="/discover" data-discover-jump="classics">
-              <span class="pw-drawer__sublink-label" data-i18n="drawer.discover.classics">Classics</span>
-            </a>
-          </div>
-        </details>
-        <a class="pw-drawer__item" href="/library" data-link-route="/library">
-          <span class="pw-drawer__label" data-i18n="appNav.library">Library</span>
-          <span class="pw-drawer__desc" data-i18n="drawer.desc.library">TBR, reading, read & DNF</span>
-        </a>
-        <a class="pw-drawer__item" href="/social" data-link-route="/social">
-          <span class="pw-drawer__label" data-i18n="appNav.social">Social</span>
-          <span class="pw-drawer__desc" data-i18n="drawer.desc.social">Reviews and community</span>
-        </a>
-        <a class="pw-drawer__item" href="/clubs" data-link-route="/clubs">
-          <span class="pw-drawer__label" data-i18n="appNav.clubs">Clubs</span>
-          <span class="pw-drawer__desc" data-i18n="drawer.desc.clubs">Book clubs, chat & polls</span>
-        </a>
-        <a class="pw-drawer__item" href="/reader" data-link-route="/reader">
-          <span class="pw-drawer__label" data-i18n="appNav.reader">Reader</span>
-          <span class="pw-drawer__desc" data-i18n="drawer.desc.reader">Timer, sessions & history</span>
-        </a>
-        <a class="pw-drawer__item" href="/profile" data-link-route="/profile">
-          <span class="pw-drawer__label" data-i18n="appNav.profile">Profile</span>
-          <span class="pw-drawer__desc" data-i18n="drawer.desc.profile">Account, settings & app sections</span>
-        </a>
-      </nav>
-      <div class="pw-app-drawer__footer">
-        <p class="pw-app-drawer__prefs-title" data-i18n="drawer.preferences">Language &amp; display</p>
-        <div class="site-controls site-controls--drawer">
-          <div class="pw-drawer-pref">
-            <span class="pw-drawer-pref__label" data-i18n="toolbar.language">Language</span>
-            <select class="pw-select pw-lang-select" data-i18n-attr="aria-label:toolbar.language" aria-label="Language">
-              <option value="en">English</option>
-              <option value="hu">Magyar</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </aside>
 
     <main id="main" class="wrap web-app-main">
       <div id="pw-err" class="pw-banner" hidden></div>

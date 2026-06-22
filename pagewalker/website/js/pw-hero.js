@@ -31,9 +31,14 @@ export function initHomeHeroParallax() {
 
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const mobile = window.matchMedia("(max-width: 860px)").matches;
+  const finePointer = window.matchMedia("(pointer: fine)").matches;
 
   let ticking = false;
   const capRatio = 0.12;
+
+  // cursor offsets, tracked separately from scroll and blended in each frame
+  let mouseX = 0;
+  let mouseY = 0;
 
   function update() {
     ticking = false;
@@ -51,8 +56,16 @@ export function initHomeHeroParallax() {
     const cap = heroH * capRatio;
     const bgShift = Math.min(cap, scrolled * capRatio);
     const fgShift = Math.min(cap * 0.45, scrolled * 0.045);
-    scene.style.transform = `translate3d(0, ${bgShift}px, 0)`;
-    foreground.style.transform = `translate3d(0, ${fgShift}px, 0)`;
+
+    // small extra offset from cursor position, on top of the scroll drift —
+    // background and foreground move opposite directions for depth
+    const cursorBgX = mouseX * 10;
+    const cursorBgY = mouseY * 8;
+    const cursorFgX = mouseX * -4;
+    const cursorFgY = mouseY * -3;
+
+    scene.style.transform = `translate3d(${cursorBgX}px, ${bgShift + cursorBgY}px, 0)`;
+    foreground.style.transform = `translate3d(${cursorFgX}px, ${fgShift + cursorFgY}px, 0)`;
   }
 
   function onScroll() {
@@ -67,13 +80,25 @@ export function initHomeHeroParallax() {
     onScroll();
   }
 
+  function onMouseMove(e) {
+    const rect = hero.getBoundingClientRect();
+    if (rect.bottom <= 0 || rect.top >= window.innerHeight) return; // hero off-screen, ignore
+    mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+    mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    onScroll();
+  }
+
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onResize, { passive: true });
+  if (finePointer && !reduced && !mobile) {
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
+  }
   update();
 
   heroParallaxCleanup = () => {
     window.removeEventListener("scroll", onScroll);
     window.removeEventListener("resize", onResize);
+    window.removeEventListener("mousemove", onMouseMove);
     scene.style.transform = "";
     foreground.style.transform = "";
     document.body.classList.remove("pw-home-hero-scrolled");

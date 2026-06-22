@@ -1824,17 +1824,36 @@ html[data-theme="dark"] .pw-auth-nudge {
 }
 
 .webapp-content.pw-route-enter {
-  animation: pw-route-fade 220ms ease;
+  animation: pw-route-dive-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes pw-route-fade {
+@keyframes pw-route-dive-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(10px) scale(0.985);
+    filter: blur(2px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.webapp-content.pw-route-exit {
+  animation: pw-route-dive-out 150ms ease forwards;
+}
+
+@keyframes pw-route-dive-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.03);
+    filter: blur(2px);
   }
 }
 
@@ -3442,4 +3461,80 @@ body.pw-home-immersive .pw-hero-foreground {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* =====================================================================
+   Top nav (replaces the left drawer on wider screens) and scroll
+   reveal utility, added alongside the dive-in route transition above.
+===================================================================== */
+.site-nav-top {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.site-nav-top::-webkit-scrollbar {
+  display: none;
+}
+
+.site-nav-top__link {
+  font-family: var(--font);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.site-nav-top__link:hover {
+  color: var(--text);
+  background: var(--bg-soft);
+  text-decoration: none;
+}
+
+.site-nav-top__link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.site-nav-top__link[data-active] {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+@media (max-width: 860px) {
+  /* .pw-bottom-nav already covers primary navigation on small screens */
+  .site-nav-top {
+    display: none;
+  }
+  /* keep the mobile app header to just logo + avatar, same footprint
+     as before (language lived inside the now-removed drawer) */
+  .app-header-right .site-controls {
+    display: none;
+  }
+}
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-reveal].is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
