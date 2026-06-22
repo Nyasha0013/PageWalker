@@ -6,8 +6,8 @@
 const PROFILE_Q_TIMEOUT_MS = 10000;
 
 function t(key, fallback) {
-  if (window.pwT) return window.pwT(key);
-  return fallback != null ? fallback : key;
+  if (window.pwT) return window.pwT(key, fallback);
+  return fallback || key;
 }
 
 function withTimeout(promise, ms) {

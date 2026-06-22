@@ -13,7 +13,7 @@ let onI18n = null;
 let lastAnchor = null;
 
 function t(key, fallback) {
-  if (window.pwT) return window.pwT(key);
+  if (window.pwT) return window.pwT(key, fallback);
   return fallback != null ? fallback : key;
 }
 

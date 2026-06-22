@@ -1,7 +1,7 @@
 import { getSupabase } from "./pw-supabase.js";
 
 function tr(key, fallback) {
-  if (window.pwT) return window.pwT(key);
+  if (window.pwT) return window.pwT(key, fallback);
   return fallback || key;
 }
 

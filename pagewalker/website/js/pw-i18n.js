@@ -557,6 +557,19 @@
       "route.discover.source.google": "Google Books",
       "route.discover.source.openlibrary": "Open Library",
       "route.discover.source.gutenberg": "Project Gutenberg",
+      "route.discover.classicsEmpty": "No classics matched. Try again in a moment.",
+      "route.discover.classicsUnavailable": "Free classics are temporarily unavailable.",
+      "route.discover.loadMore": "Load more",
+      "route.book.openDetails": "Open details",
+      "route.book.copyShareLink": "Copy share link",
+      "route.book.openOriginal": "Open original link",
+      "route.book.communityRating": "Community rating",
+      "route.book.detailsTitle": "Book details",
+      "route.book.modalWhereTitle": "Where to find it",
+      "route.book.modalWhereBody": "Use Explore search for editions and external links, then add it to your shelf.",
+      "route.book.openFullPage": "Open full page",
+      "common.close": "Close",
+      "common.loadMore": "Load more",
       "route.library.title": "Library",
       "route.library.filterAll": "All",
       "route.library.status": "Status",
@@ -1012,6 +1025,19 @@
       "route.discover.source.google": "Google Books",
       "route.discover.source.openlibrary": "Open Library",
       "route.discover.source.gutenberg": "Project Gutenberg",
+      "route.discover.classicsEmpty": "Nincs klasszikus találat. Próbáld újra egy pillanat múlva.",
+      "route.discover.classicsUnavailable": "Az ingyenes klasszikusok átmenetileg nem érhetők el.",
+      "route.discover.loadMore": "Továbbiak",
+      "route.book.openDetails": "Részletek",
+      "route.book.copyShareLink": "Megosztási link másolása",
+      "route.book.openOriginal": "Eredeti link megnyitása",
+      "route.book.communityRating": "Közösségi értékelés",
+      "route.book.detailsTitle": "Könyv részletei",
+      "route.book.modalWhereTitle": "Hol találod",
+      "route.book.modalWhereBody": "A Böngészésben kereshetsz kiadásokat és külső linkeket, majd hozzáadhatod a polcodhoz.",
+      "route.book.openFullPage": "Teljes oldal megnyitása",
+      "common.close": "Bezárás",
+      "common.loadMore": "Továbbiak",
       "route.library.title": "Könyvtár",
       "route.library.filterAll": "Összes",
       "route.library.status": "Állapot",
@@ -1251,6 +1277,11 @@
     return fallback !== undefined ? fallback : key;
   }
 
+  function tNode(key, fallback) {
+    var resolved = t(key, fallback);
+    return resolved !== key ? resolved : fallback !== undefined ? fallback : key;
+  }
+
   function apply() {
     var lang = getLang();
     document.documentElement.setAttribute("lang", lang);
@@ -1258,7 +1289,8 @@
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
       var key = el.getAttribute("data-i18n");
-      el.textContent = t(key);
+      var fallback = (el.textContent || "").trim();
+      el.textContent = tNode(key, fallback || undefined);
     }
     var attrNodes = document.querySelectorAll("[data-i18n-attr]");
     for (var j = 0; j < attrNodes.length; j++) {

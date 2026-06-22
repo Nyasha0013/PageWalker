@@ -1,0 +1,27 @@
+---
+description: When no specific feature is requested, scan for bugs and fix them — especially raw i18n keys, broken APIs, and polish regressions.
+alwaysApply: true
+---
+
+# Proactive debug and polish
+
+When the user has **no other active task** (or asks for a quality / premium pass), spend the first minutes auditing before building new features.
+
+## Always check
+
+1. **i18n** — No user-visible `route.*`, `drawer.*`, or other translation keys. Every `t(key, fallback)` must pass `fallback` through to `window.pwT`. New keys belong in `pagewalker/website/js/pw-i18n.js` (en + hu).
+2. **API paths** — Hit live or local `/api/*` for empty panels (classics, trending, mood). Fix server fetch (timeouts, headers, retries) not just empty UI copy.
+3. **Layout** — Cramped forms, raw dev strings, emoji section headers, and debug footnotes on production routes.
+4. **Flutter** — `dart analyze` on touched files; Plus gates match product decisions.
+
+## Fix, don’t only report
+
+- If you find a clear bug (missing translation fallback, dead API, wrong empty state), **fix it in the same turn** unless the user explicitly asked for analysis only.
+- Keep diffs focused; don’t refactor unrelated code.
+- After web changes, run a quick i18n audit: keys used in `t("…", "…")` should exist in `pw-i18n.js` or have a real fallback string.
+
+## Premium bar (Pagewalker web)
+
+- No internal key names, no “AI slop” chip walls, no squeezed square form tiles.
+- Book sources: subtle attribution on detail/footer — not loud badges on every grid card.
+- Copy should read like a finished product, not a dev shell.

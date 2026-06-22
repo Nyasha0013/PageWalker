@@ -839,7 +839,7 @@ function renderBookPosterCard(book, opts = {}) {
         <h4>${title}</h4>
         <p>${author}</p>
         ${footer ? `<p class="muted">${footer}</p>` : ""}
-        <a href="${shareLink}" data-link-route="/book">Open details</a>
+        <a href="${shareLink}" data-link-route="/book">${t("route.book.openDetails", "Open details")}</a>
         ${action}
       </div>
     </article>
@@ -937,10 +937,10 @@ function buildBookPageHtml(source, pageOpts = {}) {
           <p>${author}</p>
           <p class="pw-book-source-line">${sourceBadge}</p>
           ${metaLine ? `<p class="muted">${metaLine}</p>` : ""}
-          <p class="metric">Community rating: ${escapeHtml(ratingText)}</p>
+          <p class="metric">${t("route.book.communityRating", "Community rating")}: ${escapeHtml(ratingText)}</p>
           <div class="cta-actions">
-            <button class="btn btn-outline" id="pw-book-page-copy">Copy share link</button>
-            <a class="btn btn-outline" href="${escapeHtml(shareUrl)}">Open original link</a>
+            <button class="btn btn-outline" id="pw-book-page-copy">${t("route.book.copyShareLink", "Copy share link")}</button>
+            <a class="btn btn-outline" href="${escapeHtml(shareUrl)}">${t("route.book.openOriginal", "Open original link")}</a>
             <button type="button" class="btn btn-outline" data-require-auth data-book-page-review data-book='${bookAttr}'>${t("route.book.giveReview", "Give a review")}</button>
             <button type="button" class="btn" data-require-auth data-book-page-add data-book='${bookAttr}'>${t("route.discover.addTbr", "Add to TBR")}</button>
           </div>
@@ -1013,8 +1013,8 @@ function ensureBookModal() {
   modal.hidden = true;
   modal.innerHTML = `
     <div class="pw-modal-backdrop" data-modal-close></div>
-    <article class="pw-modal-card" role="dialog" aria-modal="true" aria-label="Book details">
-      <button class="btn btn-outline pw-modal-close" data-modal-close>Close</button>
+    <article class="pw-modal-card" role="dialog" aria-modal="true" aria-label="${escapeHtml(t("route.book.detailsTitle", "Book details"))}">
+      <button class="btn btn-outline pw-modal-close" data-modal-close>${t("common.close", "Close")}</button>
       <div class="pw-modal-body" id="pw-modal-body"></div>
     </article>
   `;
@@ -1043,7 +1043,7 @@ function openBookModal(book) {
         <h3>${title}</h3>
         <p>${author}</p>
         ${meta ? `<p class="muted">${meta}</p>` : ""}
-        <p class="metric">Community rating: ${escapeHtml(rating)}</p>
+        <p class="metric">${t("route.book.communityRating", "Community rating")}: ${escapeHtml(rating)}</p>
       </div>
     </section>
     ${renderBookAboutSection(book.description, {
@@ -1051,11 +1051,11 @@ function openBookModal(book) {
       emptyText: t("route.book.noDescription", "No description yet."),
     })}
     <section class="app-panel">
-      <h4>Where to find it</h4>
-      <p>Use Discover search for editions and external links, then add it to your shelf.</p>
+      <h4>${t("route.book.modalWhereTitle", "Where to find it")}</h4>
+      <p>${t("route.book.modalWhereBody", "Use Explore search for editions and external links, then add it to your shelf.")}</p>
       <div class="cta-actions">
-        <a class="btn btn-outline" href="${escapeHtml(shareUrl)}" data-link-route="/book">Open full page</a>
-        <button class="btn btn-outline" id="pw-book-copy-link">Copy share link</button>
+        <a class="btn btn-outline" href="${escapeHtml(shareUrl)}" data-link-route="/book">${t("route.book.openFullPage", "Open full page")}</a>
+        <button class="btn btn-outline" id="pw-book-copy-link">${t("route.book.copyShareLink", "Copy share link")}</button>
       </div>
     </section>
   `;
@@ -1528,8 +1528,15 @@ async function loadClassicsBookPages(pages) {
     reqs.push(fetchJsonCached(`/api/books?type=classics&page=${i}`));
   }
   const responses = await Promise.all(reqs);
-  const books = dedupeBooksStable(responses.flatMap((x) => x.results || []).map(parseGutendexBook));
-  const hasMore = Boolean(responses[responses.length - 1]?.next);
+  const books = dedupeBooksStable(
+    responses.flatMap((x) => {
+      if (Array.isArray(x?.books) && x.books.length) {
+        return x.books.map(normalizeApiBook);
+      }
+      return (x?.results || []).map(parseGutendexBook);
+    }),
+  );
+  const hasMore = Boolean(responses[responses.length - 1]?.hasMore ?? responses[responses.length - 1]?.next);
   return { books, hasMore };
 }
 
@@ -1595,7 +1602,7 @@ function renderDiscoverShell(session) {
       </nav>
       <div class="pw-discover-panels" role="region" aria-label="${t("route.explore.sectionsLabel", "Explore content")}">
         <section class="app-panel pw-discover-panel" data-pw-discover-panel="trending" id="pw-discover-trending">
-          <h3>🔥 ${t("route.discover.trendingTitle", "Trending now")}</h3>
+          <h3>${t("route.discover.trendingTitle", "Trending now")}</h3>
           <div class="pw-poster-grid" data-discover-grid="trending">${posterGridSkeleton(8)}</div>
           <div data-discover-more="trending"></div>
         </section>
@@ -1610,7 +1617,7 @@ function renderDiscoverShell(session) {
           <div data-discover-more="genre"></div>
         </section>
         <section class="app-panel pw-discover-panel" data-pw-discover-panel="classics" id="pw-discover-classics">
-          <h3>📖 ${t("route.discover.freeClassics", "Free classics")}</h3>
+          <h3>${t("route.discover.freeClassics", "Free classics")}</h3>
           <p class="muted">${t("route.discover.classicsSource", "Public-domain novels from Project Gutenberg.")}</p>
           <div class="pw-poster-grid" data-discover-grid="classics">${posterGridSkeleton(8)}</div>
           <div data-discover-more="classics"></div>
@@ -1682,7 +1689,7 @@ async function hydrateDiscoverPanels(session) {
     const el = document.querySelector(`[data-discover-more="${key}"]`);
     if (!el) return;
     el.innerHTML = hasMore
-      ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="${key}">Load more</button></div>`
+      ? `<div class="cta-actions"><button class="btn btn-outline" data-discover-more="${key}">${t("route.discover.loadMore", "Load more")}</button></div>`
       : "";
   };
 
@@ -1720,13 +1727,17 @@ async function hydrateDiscoverPanels(session) {
   if (discoverView === "classics") {
     const classics = await runSafeQuery(
       () => loadClassicsBookPages(discoverPaging.classicsPage),
-      t("route.discover.trendingFallback", "Trending data is not available yet."),
+      t("route.discover.classicsUnavailable", "Free classics are temporarily unavailable."),
     );
     const rows = (classics?.books || []).filter((b) => !b.__error);
     _discoverPanelBooks.classics = rows;
     fillGrid(
       "classics",
       renderDiscoverBooksHtml(rows, {
+        emptyText: t(
+          "route.discover.classicsUnavailable",
+          "Free classics are temporarily unavailable.",
+        ),
         actionHtml: () => `<p class="metric">${t("route.discover.freeBadge", "Free")}</p>`,
       }),
     );
@@ -1822,7 +1833,7 @@ async function renderLibrary(supabase, session) {
           })).join("")
         }
       </div>
-      ${hasMoreLibrary ? `<div class="cta-actions"><button class="btn btn-outline" data-library-more>Load more</button></div>` : ""}
+      ${hasMoreLibrary ? `<div class="cta-actions"><button class="btn btn-outline" data-library-more>${t("common.loadMore", "Load more")}</button></div>` : ""}
       ${rows.some((r) => r.__error) ? `<p class="muted">${escapeHtml(rows.find((r) => r.__error)?.text || "")}</p>` : ""}
     </section>
     </div>
@@ -2817,7 +2828,7 @@ async function renderBookRoute(supabase, session) {
       const unavailable = msg.includes("request_failed_5");
       return `
         <section class="app-panel">
-          <h2>Book details</h2>
+          <h2>${t("route.book.detailsTitle", "Book details")}</h2>
           <p class="muted">${
             notFound
               ? "This book link no longer exists or was removed by the source provider."
@@ -2835,8 +2846,8 @@ async function renderBookRoute(supabase, session) {
   if (!book) {
     return `
       <section class="app-panel">
-        <h2>Book details</h2>
-        <p class="muted">This link is missing data. Open a book from Discover or Library first.</p>
+        <h2>${t("route.book.detailsTitle", "Book details")}</h2>
+        <p class="muted">This link is missing data. Open a book from Explore or Library first.</p>
         <p><a href="/explore" data-link-route="/explore">${t("home.goExplore", "Go to Explore")}</a></p>
       </section>
     `;

@@ -177,27 +177,41 @@ module.exports = async (req, res) => {
     if (type === "classics") {
       res.setHeader("Cache-Control", "s-maxage=1800, stale-while-revalidate=86400");
       const page = Math.max(1, toInt(req.query?.page, 1));
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-      try {
-        const classicsRes = await fetch(
-          `https://gutendex.com/books/?languages=en&copyright=false&page=${page}`,
-          { signal: controller.signal, headers: { Accept: "application/json" } },
-        );
-        if (!classicsRes.ok) {
-          return res.status(200).json({ results: [], next: null, count: 0 });
+      const gutUrl = `https://gutendex.com/books/?languages=en&copyright=false&page=${page}`;
+      const gutHeaders = {
+        Accept: "application/json",
+        "User-Agent": "Pagewalker/1.0 (+https://pagewalker.org)",
+      };
+
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        try {
+          const classicsRes = await fetch(gutUrl, {
+            signal: controller.signal,
+            headers: gutHeaders,
+          });
+          if (!classicsRes.ok) {
+            if (attempt === 0) continue;
+            return res.status(200).json({ results: [], books: [], next: null, count: 0, hasMore: false });
+          }
+          const classics = await classicsRes.json();
+          const filtered = filterGutendexNovels(classics.results || []);
+          const results = filtered.map((book) => normalizeGutendexBook(book));
+          return res.status(200).json({
+            results,
+            books: results,
+            next: classics.next || null,
+            hasMore: Boolean(classics.next),
+            count: results.length,
+          });
+        } catch (_) {
+          if (attempt === 1) {
+            return res.status(200).json({ results: [], books: [], next: null, count: 0, hasMore: false });
+          }
+        } finally {
+          clearTimeout(timeoutId);
         }
-        const classics = await classicsRes.json();
-        const results = filterGutendexNovels(classics.results || []);
-        return res.status(200).json({
-          ...classics,
-          results,
-          count: results.length,
-        });
-      } catch (_) {
-        return res.status(200).json({ results: [], next: null, count: 0 });
-      } finally {
-        clearTimeout(timeoutId);
       }
     }
 
